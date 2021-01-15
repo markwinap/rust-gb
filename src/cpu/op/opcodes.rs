@@ -17,21 +17,6 @@ pub enum Cond {
 impl Cpu {
     pub fn execute(&mut self) {}
 
-    pub fn decode2(&mut self) -> Box<dyn FnMut(&mut Cpu)> {
-        // let mut foo: impl FnMut(&mut Cpu) = match self.op_code {
-        //     0x7f => |x|  self.load_8(A, A),
-        //     _ => panic!()
-        // };
-        // foo
-        // panic!();
-        //  let a = 2;
-        Box::new(move |x| {})       // if true {
-        //
-        // } else {
-        //    // move |x| { }
-        //     panic!()
-        // }
-    }
 
 
     pub fn decode(&mut self) -> ((Step, u16), u8) {

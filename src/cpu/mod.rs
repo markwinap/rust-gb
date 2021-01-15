@@ -23,7 +23,7 @@ pub enum Step {
 pub struct StateHandler {}
 
 impl Cpu {
-    pub fn step(&mut self) {
+    pub fn step(&mut self) -> u8 {
         let (cycles, step) = match self.state {
             Step::Run => {
                 let ((step, _), cycles) = self.decode();
@@ -63,5 +63,6 @@ impl Cpu {
                 panic!()
             }
         };
+        cycles
     }
 }

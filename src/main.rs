@@ -1,6 +1,6 @@
 
 mod cpu;
-
+mod hardware;
 mod memory;
 //mod util;
 mod util;
