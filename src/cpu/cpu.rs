@@ -2,6 +2,7 @@ use crate::cpu::registers::{Registers, Reg8, Reg16};
 use crate::memory::mmu::Mmu;
 use crate::memory::AddressSpace;
 use crate::cpu::interrupt_handler::InterruptHandler;
+use crate::cpu::Step;
 
 pub trait CpuContext {
     fn read_cycle(&mut self, addr: u16) -> u8;
@@ -14,19 +15,19 @@ pub trait CpuContext {
     }
 }
 
-pub enum State{
-    Normal,
-    HaltState,
-    Stopped,
-    HaltBug,
-}
+// pub enum State{
+//     Normal,
+//     HaltState,
+//     Stopped,
+//     HaltBug,
+// }
 
 pub struct Cpu {
     pub registers: Registers,
     pub op_code: u8,
     pub bus: Mmu,
     pub interrupt_handler: InterruptHandler,
-    pub state: State
+    pub state: Step
 }
 
 impl Cpu {
@@ -36,7 +37,7 @@ impl Cpu {
             op_code: 0x00,
             bus: Mmu::new(),
             interrupt_handler: InterruptHandler::new(),
-            state: State::Normal
+            state: Step::Run
         }
     }
 

@@ -744,7 +744,15 @@ impl Cpu {
         self.handle_return(self.registers.pc)
     }
 
-    fn handle_return(&mut self, address: u16) -> (Step, u16) {
+
+    // fn handle_return(&mut self, address: u16) -> (Step, u16) {
+    //     self.op_code = self.bus.get_byte(address).unwrap();
+    //     self.registers.pc = address.wrapping_add(1);
+    //     (Step::Run, address.wrapping_add(1))
+    // }
+
+
+    pub(crate) fn handle_return(&mut self, address: u16) -> (Step, u16) {
         self.op_code = self.bus.get_byte(address).unwrap();
         if self.interrupt_handler.interrupt_master_enabled && self.interrupt_handler.any_enabled() {
             (Step::Interrupt, address)
@@ -761,8 +769,9 @@ impl Cpu {
             if self.interrupt_handler.interrupt_master_enabled {
                 (Step::Interrupt, self.registers.pc)
             } else {
-                let (result, result2) = self.decode();
-                result
+                // let (result, result2) = self.decode();
+                // result
+                (Step::HaltBug, self.registers.pc)
             }
         } else {
             (Step::Halt, self.registers.pc)
