@@ -1,7 +1,9 @@
 use crate::cpu::cpu::Cpu;
 use crate::cpu::flags::Flags;
+use crate::cpu::Interface;
 
-impl Cpu {
+
+impl<T: Interface> Cpu<'_, T> {
     pub(crate) fn alu_sub(&mut self, value: u8, carry: bool) -> u8 {
         let cy = carry as u8;
         let result = self.registers.a.wrapping_sub(value).wrapping_sub(cy);
@@ -14,7 +16,6 @@ impl Cpu {
 
     pub(crate) fn alu_rl<F>(&mut self, value: u8, reset_zero: bool, carry: F) -> u8
         where F: Fn(&Flags, u8) -> u8 {
-
         let ci = carry(&self.registers.flags, value);
         let new_value = (value << 1) | ci;
 
@@ -27,7 +28,6 @@ impl Cpu {
 
     pub(crate) fn alu_rr<F>(&mut self, value: u8, reset_zero: bool, carry: F) -> u8
         where F: Fn(&Flags, u8) -> u8 {
-
         let ci = carry(&self.registers.flags, value);
         let new_value = (value >> 1) | ci;
 

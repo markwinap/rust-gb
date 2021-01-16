@@ -1,6 +1,5 @@
 use crate::cpu::cpu::Cpu;
 use crate::cpu::interrupt_handler::InterruptLine;
-use crate::memory::AddressSpace;
 
 pub mod flags;
 pub mod error;
@@ -8,9 +7,9 @@ pub mod error;
 pub mod interrupt_manager;
 pub mod interrupt_handler;
 pub mod registers;
-pub mod op;
 pub mod cpu;
 pub mod alu;
+mod opcodes;
 
 pub enum Step {
     Run,
@@ -20,9 +19,27 @@ pub enum Step {
     Stopped,
 }
 
+pub trait Interface {
+    fn set_interrupt_disabled(&mut self, disabled: bool);
+    fn enable(&mut self, interrupt: InterruptLine, enable: bool);
+    fn request(&mut self, interrupt: InterruptLine, requested: bool);
+    fn acknowledge(&mut self, interrupt: InterruptLine);
+    fn interrupt_master_enabled(&self) -> bool;
+    fn requested_interrupts(&self) -> InterruptLine;
+    // fn is_enabled(&self, interrupt: InterruptLine) -> bool;
+    // fn is_requested(&self, interrupt: InterruptLine) -> bool;
+    fn any_enabled(&self) -> bool;
+
+    fn set_byte(&mut self, address: u16, value: u8);
+    fn get_byte(&self, address: u16) -> Option<u8>;
+
+    fn step(&mut self) {}
+}
+
+
 pub struct StateHandler {}
 
-impl Cpu {
+impl  <T: Interface>  Cpu<'_, T> {
     pub fn step(&mut self) -> u8 {
         let (cycles, step) = match self.state {
             Step::Run => {
@@ -30,9 +47,9 @@ impl Cpu {
                 (cycles, step)
             }
             Step::Interrupt => {
-                self.interrupt_handler.interrupt_master_enabled = false;
-                let interrupt = self.interrupt_handler.requested_interrupts.highest_priority();
-                self.interrupt_handler.acknowledge(interrupt);
+                self.interface.interrupt_master_enabled() = false;
+                let interrupt = self.interface.requested_interrupts().highest_priority();
+                self.interface.acknowledge(interrupt);
                 self.registers.pc = match interrupt {
                     InterruptLine::VBLANK => 0x0040,
                     InterruptLine::STAT => 0x0048,
@@ -41,12 +58,12 @@ impl Cpu {
                     InterruptLine::JOYPAD => 0x0060,
                     _ => 0x0000,
                 };
-                self.op_code = self.bus.get_byte(self.registers.pc).unwrap();
-                self.interrupt_handler.step();
+                self.op_code = self.interface.get_byte(self.registers.pc).unwrap();
+                self.interface.step();
                 (0, Step::Run)
             }
             Step::Halt => {
-                if self.interrupt_handler.any_enabled() {
+                if self.interface.any_enabled() {
                     let (step, _) = self.handle_return(self.registers.pc);
                     (4, step)
                 } else {

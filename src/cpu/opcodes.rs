@@ -1,9 +1,8 @@
-use crate::cpu::{Step};
+use crate::cpu::{Step, Interface};
 use crate::cpu::cpu::{Cpu, Out8, In8, Addr, Immediate8, ReadOffType, In16, Out16, Addr16};
 use crate::cpu::registers::Reg8::{A, B, C, D, E, H, L};
 use crate::cpu::registers::Reg16;
 use crate::util::int::IntExt;
-use crate::memory::AddressSpace;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Cond {
@@ -14,7 +13,7 @@ pub enum Cond {
 }
 
 
-impl Cpu {
+impl  <T: Interface>  Cpu<'_, T> {
     pub fn execute(&mut self) {}
 
 
@@ -739,7 +738,7 @@ impl Cpu {
 
     pub(crate) fn handle_return(&mut self, address: u16) -> (Step, u16) {
         self.op_code = self.bus.get_byte(address).unwrap();
-        if self.interrupt_handler.interrupt_master_enabled && self.interrupt_handler.any_enabled() {
+        if self.interface.interrupt_master_enabled() && self.interface.any_enabled() {
             (Step::Interrupt, address)
         } else {
             self.registers.pc = address.wrapping_add(1);
@@ -750,8 +749,8 @@ impl Cpu {
     pub fn halt(&mut self) -> (Step, u16) {
         //TODO: Do I need to increment PC?
         self.op_code = self.bus.get_byte(self.registers.pc).unwrap();
-        if self.interrupt_handler.any_enabled() {
-            if self.interrupt_handler.interrupt_master_enabled {
+        if self.interface.any_enabled() {
+            if self.interface.interrupt_master_enabled() {
                 (Step::Interrupt, self.registers.pc)
             } else {
                 // let (result, result2) = self.decode();
@@ -769,7 +768,7 @@ impl Cpu {
 
     pub fn di(&mut self) -> (Step, u16) {
         // self.ime = false;
-        self.interrupt_handler.set_interrupt_disabled(true);
+        self.interface.set_interrupt_disabled(true);
         self.op_code = self.read_next_byte();
         (Step::Run, self.registers.pc.wrapping_add(1)) //TODO Do we increment? it has already been incremented
     }
@@ -777,7 +776,7 @@ impl Cpu {
     pub fn ei(&mut self) -> (Step, u16) {
         let return_value = self.handle_return(self.registers.pc);
         //self.ime = false;
-        self.interrupt_handler.set_interrupt_disabled(false);
+        self.interface.set_interrupt_disabled(false);
         return_value
     }
 
@@ -886,7 +885,7 @@ impl Cpu {
     }
 
     pub fn reti(&mut self) -> (Step, u16) {
-        self.interrupt_handler.set_interrupt_disabled(false);
+        self.interface.set_interrupt_disabled(false);
         self.ctr_return()
     }
 

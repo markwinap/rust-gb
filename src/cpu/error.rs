@@ -50,10 +50,10 @@ impl<E> From<E> for Error
         }
     }
 }
-
-macro_rules! err {
-    ($($err:tt)*) => {{
-        error!($($err)*);
-        Err(err_msg(format!($($err)*)))
-    }};
-}
+// 
+// macro_rules! err {
+//     ($($err:tt)*) => {{
+//         error!($($err)*);
+//         Err(err_msg(format!($($err)*)))
+//     }};
+// }
