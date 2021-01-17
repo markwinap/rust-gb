@@ -1,13 +1,12 @@
-use crate::cpu::cpu::Cpu;
+use crate::cpu::address::Cpu;
 use crate::cpu::interrupt_handler::InterruptLine;
+use crate::cpu::registers::Registers;
 
 pub mod flags;
-pub mod error;
 
-pub mod interrupt_manager;
 pub mod interrupt_handler;
 pub mod registers;
-pub mod cpu;
+pub mod address;
 pub mod alu;
 mod opcodes;
 
@@ -26,6 +25,7 @@ pub trait Interface {
     fn acknowledge(&mut self, interrupt: InterruptLine);
     fn interrupt_master_enabled(&self) -> bool;
     fn requested_interrupts(&self) -> InterruptLine;
+    fn change_interrupt_master_enabled(&mut self, boolean: bool);
     // fn is_enabled(&self, interrupt: InterruptLine) -> bool;
     // fn is_requested(&self, interrupt: InterruptLine) -> bool;
     fn any_enabled(&self) -> bool;
@@ -37,9 +37,18 @@ pub trait Interface {
 }
 
 
-pub struct StateHandler {}
+impl<'a, T: Interface> Cpu<'a, T> {
+    pub fn new(interface: &'a mut T) -> Self {
+        Cpu {
+            registers: Registers::default(),
+            op_code: 0x00,
+            interface,
+            state: Step::Run,
+        }
+    }
+}
 
-impl  <T: Interface>  Cpu<'_, T> {
+impl<'a, T: Interface> Cpu<'a, T> {
     pub fn step(&mut self) -> u8 {
         let (cycles, step) = match self.state {
             Step::Run => {
@@ -47,7 +56,7 @@ impl  <T: Interface>  Cpu<'_, T> {
                 (cycles, step)
             }
             Step::Interrupt => {
-                self.interface.interrupt_master_enabled() = false;
+                self.interface.change_interrupt_master_enabled(false);
                 let interrupt = self.interface.requested_interrupts().highest_priority();
                 self.interface.acknowledge(interrupt);
                 self.registers.pc = match interrupt {

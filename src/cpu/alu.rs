@@ -1,4 +1,4 @@
-use crate::cpu::cpu::Cpu;
+use crate::cpu::address::Cpu;
 use crate::cpu::flags::Flags;
 use crate::cpu::Interface;
 

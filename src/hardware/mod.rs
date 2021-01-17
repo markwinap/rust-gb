@@ -1,5 +1,5 @@
 
-use crate::cpu::cpu::Cpu;
+use crate::cpu::address::Cpu;
 use crate::cpu::interrupt_handler::{InterruptHandler, InterruptLine};
 use crate::cpu::Interface;
 
@@ -10,10 +10,11 @@ pub struct TestMachine<'a> {
 }
 impl TestMachine<'_> {
     fn from_memory(input: &[u8]) -> TestMachine<'_> {
-        let test_hardware = TestHardware::from_memory(input);
+        let mut test_hardware = TestHardware::from_memory(input);
+        let test_hardware_two = TestHardware::from_memory(input);
         TestMachine {
-            test_hardware,
-            cpu: Cpu::new(&test_hardware),
+            test_hardware: test_hardware_two,
+            cpu: Cpu::new(&mut test_hardware),
             t_cycles: 0
         }
     }
@@ -62,6 +63,11 @@ impl Interface for TestHardware {
     fn requested_interrupts(&self) -> InterruptLine {
         self.interrupt_handler.requested_interrupts
     }
+
+    fn change_interrupt_master_enabled(&mut self, boolean: bool) {
+        self.interrupt_handler.interrupt_master_enabled = boolean;
+    }
+
 
     fn any_enabled(&self) -> bool {
         self.any_enabled()

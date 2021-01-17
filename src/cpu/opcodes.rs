@@ -1,5 +1,5 @@
 use crate::cpu::{Step, Interface};
-use crate::cpu::cpu::{Cpu, Out8, In8, Addr, Immediate8, ReadOffType, In16, Out16, Addr16};
+use crate::cpu::address::{Cpu, Out8, In8, Addr, Immediate8, ReadOffType, In16, Out16, Addr16};
 use crate::cpu::registers::Reg8::{A, B, C, D, E, H, L};
 use crate::cpu::registers::Reg16;
 use crate::util::int::IntExt;
@@ -737,7 +737,7 @@ impl  <T: Interface>  Cpu<'_, T> {
 
 
     pub(crate) fn handle_return(&mut self, address: u16) -> (Step, u16) {
-        self.op_code = self.bus.get_byte(address).unwrap();
+        self.op_code = self.interface.get_byte(address).unwrap();
         if self.interface.interrupt_master_enabled() && self.interface.any_enabled() {
             (Step::Interrupt, address)
         } else {
@@ -748,7 +748,7 @@ impl  <T: Interface>  Cpu<'_, T> {
 
     pub fn halt(&mut self) -> (Step, u16) {
         //TODO: Do I need to increment PC?
-        self.op_code = self.bus.get_byte(self.registers.pc).unwrap();
+        self.op_code = self.interface.get_byte(self.registers.pc).unwrap();
         if self.interface.any_enabled() {
             if self.interface.interrupt_master_enabled() {
                 (Step::Interrupt, self.registers.pc)

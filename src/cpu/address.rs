@@ -1,34 +1,14 @@
 use crate::cpu::registers::{Registers, Reg8, Reg16};
 use crate::cpu::{Step, Interface};
 
-pub trait CpuContext {
-    fn read_cycle(&mut self, addr: u16) -> u8;
-    fn read_cycle_high(&mut self, addr: u8) -> u8 {
-        self.read_cycle(0xff00 | (addr as u16))
-    }
-    fn write_cycle(&mut self, addr: u16, data: u8);
-    fn write_cycle_high(&mut self, addr: u8, data: u8) {
-        self.write_cycle(0xff00 | (addr as u16), data);
-    }
-}
-
-
 pub struct Cpu<'a, T: Interface> {
     pub registers: Registers,
     pub op_code: u8,
-    pub interface: &'a T,
+    pub interface: &'a mut T,
     pub state: Step,
 }
 
 impl<'a, T: Interface> Cpu<'a, T> {
-    pub fn new(interface: &'a T) -> Self {
-        Cpu {
-            registers: Registers::default(),
-            op_code: 0x00,
-            interface,
-            state: Step::Run,
-        }
-    }
 
     pub fn read_next_byte(&mut self) -> u8 {
         let addr = self.registers.get_pc();
