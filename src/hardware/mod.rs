@@ -3,18 +3,19 @@ use crate::cpu::address::Cpu;
 use crate::cpu::interrupt_handler::{InterruptHandler, InterruptLine};
 use crate::cpu::Interface;
 
-pub struct TestMachine<'a> {
-    pub test_hardware: TestHardware,
-    pub cpu: Cpu<'a, TestHardware>,
+pub struct TestMachine<> {
+    pub cpu: Cpu<TestHardware>,
     t_cycles: usize,
 }
-impl TestMachine<'_> {
-    fn from_memory(input: &[u8]) -> TestMachine<'_> {
-        let mut test_hardware = TestHardware::from_memory(input);
-        let test_hardware_two = TestHardware::from_memory(input);
+// pub struct TestMachineTwo {
+//     pub test_hardware: TestHardware,
+//     pub cpu: Cpu<'static, TestHardware>,
+//     t_cycles: usize,
+// }
+impl TestMachine<> {
+    fn from_memory(input: &[u8]) -> TestMachine<> {
         TestMachine {
-            test_hardware: test_hardware_two,
-            cpu: Cpu::new(&mut test_hardware),
+            cpu: Cpu::new(TestHardware::from_memory(input)),
             t_cycles: 0
         }
     }

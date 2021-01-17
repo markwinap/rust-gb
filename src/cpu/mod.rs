@@ -37,8 +37,8 @@ pub trait Interface {
 }
 
 
-impl<'a, T: Interface> Cpu<'a, T> {
-    pub fn new(interface: &'a mut T) -> Self {
+impl<T: Interface> Cpu<T> {
+    pub fn new(interface: T) -> Self {
         Cpu {
             registers: Registers::default(),
             op_code: 0x00,
@@ -48,7 +48,7 @@ impl<'a, T: Interface> Cpu<'a, T> {
     }
 }
 
-impl<'a, T: Interface> Cpu<'a, T> {
+impl<T: Interface> Cpu<T> {
     pub fn step(&mut self) -> u8 {
         let (cycles, step) = match self.state {
             Step::Run => {

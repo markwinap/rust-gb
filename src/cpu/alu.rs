@@ -3,7 +3,7 @@ use crate::cpu::flags::Flags;
 use crate::cpu::Interface;
 
 
-impl<T: Interface> Cpu<'_, T> {
+impl<T: Interface> Cpu<T> {
     pub(crate) fn alu_sub(&mut self, value: u8, carry: bool) -> u8 {
         let cy = carry as u8;
         let result = self.registers.a.wrapping_sub(value).wrapping_sub(cy);

@@ -13,10 +13,8 @@ pub enum Cond {
 }
 
 
-impl  <T: Interface>  Cpu<'_, T> {
+impl  <T: Interface> Cpu<T> {
     pub fn execute(&mut self) {}
-
-
 
     pub fn decode(&mut self) -> ((Step, u16), u8) {
         let foo = match self.op_code {
@@ -890,7 +888,8 @@ impl  <T: Interface>  Cpu<'_, T> {
     }
 
     pub fn ctr_return(&mut self) -> (Step, u16) {
-        self.handle_return(self.pop_u16())
+        let addr = self.pop_u16();
+        self.handle_return(addr)
     }
 
     pub fn call(&mut self) -> (Step, u16) {

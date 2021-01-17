@@ -1,14 +1,18 @@
 use crate::cpu::registers::{Registers, Reg8, Reg16};
 use crate::cpu::{Step, Interface};
 
-pub struct Cpu<'a, T: Interface> {
+pub struct Cpu< T: Interface> {
     pub registers: Registers,
     pub op_code: u8,
-    pub interface: &'a mut T,
+    pub interface: T,
     pub state: Step,
 }
 
-impl<'a, T: Interface> Cpu<'a, T> {
+impl<T: Interface> Cpu< T> {
+
+    pub fn get_interface(&mut self) -> &mut T {
+        &mut self.interface
+    }
 
     pub fn read_next_byte(&mut self) -> u8 {
         let addr = self.registers.get_pc();
@@ -39,7 +43,7 @@ impl<'a, T: Interface> Cpu<'a, T> {
     }
 }
 
-impl<T: Interface> In8<Reg8> for Cpu<'_, T> {
+impl<T: Interface> In8<Reg8> for Cpu<T> {
     fn read_8(&mut self, src: Reg8) -> u8 {
         match src {
             Reg8::A => self.registers.a,
@@ -53,7 +57,7 @@ impl<T: Interface> In8<Reg8> for Cpu<'_, T> {
     }
 }
 
-impl<T: Interface> Out8<Reg8> for Cpu<'_, T> {
+impl<T: Interface> Out8<Reg8> for Cpu<T> {
     fn write_8(&mut self, dst: Reg8, val: u8) {
         match dst {
             Reg8::A => self.registers.set_a(val),
@@ -67,7 +71,7 @@ impl<T: Interface> Out8<Reg8> for Cpu<'_, T> {
     }
 }
 
-impl<T: Interface> In16<Reg16> for Cpu<'_, T> {
+impl<T: Interface> In16<Reg16> for Cpu<T> {
     fn read_16(&mut self, src: Reg16) -> u16 {
         match src {
             Reg16::AF => self.registers.get_af(),
@@ -79,7 +83,7 @@ impl<T: Interface> In16<Reg16> for Cpu<'_, T> {
     }
 }
 
-impl<T: Interface> Out16<Reg16> for Cpu<'_, T> {
+impl<T: Interface> Out16<Reg16> for Cpu<T> {
     fn write_16(&mut self, dst: Reg16, val: u16) {
         match dst {
             Reg16::AF => self.registers.set_af(val),
@@ -97,13 +101,13 @@ pub struct Immediate8;
 #[derive(Clone, Copy, Debug)]
 pub struct Immediate16;
 
-impl<T: Interface> In8<Immediate8> for Cpu<'_, T> {
+impl<T: Interface> In8<Immediate8> for Cpu<T> {
     fn read_8(&mut self, _: Immediate8) -> u8 {
         self.read_next_byte()
     }
 }
 
-impl<T: Interface> In16<Immediate16> for Cpu<'_, T> {
+impl<T: Interface> In16<Immediate16> for Cpu<T> {
     fn read_16(&mut self, _: Immediate16) -> u16 {
         self.read_next_word()
     }
@@ -148,7 +152,7 @@ pub enum ReadOffType {
     Immediate8,
 }
 
-impl<T: Interface> In16<Addr16> for Cpu<'_, T> {
+impl<T: Interface> In16<Addr16> for Cpu<T> {
     fn read_16(&mut self, src: Addr16) -> u16 {
         match src {
             Addr16::Direct => {
@@ -161,7 +165,7 @@ impl<T: Interface> In16<Addr16> for Cpu<'_, T> {
     }
 }
 
-impl<T: Interface> Out16<Addr16> for Cpu<'_, T> {
+impl<T: Interface> Out16<Addr16> for Cpu<T> {
     fn write_16(&mut self, dst: Addr16, val: u16) {
         match dst {
             Addr16::Direct => {
@@ -173,7 +177,7 @@ impl<T: Interface> Out16<Addr16> for Cpu<'_, T> {
     }
 }
 
-impl<T: Interface> Out8<Addr> for Cpu<'_, T> {
+impl<T: Interface> Out8<Addr> for Cpu<T> {
     fn write_8(&mut self, dst: Addr, val: u8) {
         match dst {
             Addr::BC => {
@@ -213,7 +217,7 @@ impl<T: Interface> Out8<Addr> for Cpu<'_, T> {
     }
 }
 
-impl<T: Interface> In8<Addr> for Cpu<'_, T> {
+impl<T: Interface> In8<Addr> for Cpu<T> {
     fn read_8(&mut self, src: Addr) -> u8 {
         match src {
             Addr::BC => {
