@@ -14,7 +14,6 @@ pub enum Cond {
 
 
 impl  <T: Interface> Cpu<T> {
-    pub fn execute(&mut self) {}
 
     pub fn decode(&mut self) -> ((Step, u16), u8) {
         let foo = match self.op_code {
