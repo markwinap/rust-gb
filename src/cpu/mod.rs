@@ -10,6 +10,10 @@ pub mod address;
 pub mod alu;
 mod opcodes;
 
+#[cfg(all(test, not(feature = "acceptance_tests")))]
+mod test;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Step {
     Run,
     Interrupt,

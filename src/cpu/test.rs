@@ -1,9 +1,28 @@
+use crate::cpu::address::Cpu;
+use crate::cpu::interrupt_handler::{InterruptHandler, InterruptLine};
+use crate::cpu::{Interface, Step};
 
+
+mod test_0x;
+
+pub struct TestMachine {
+    pub cpu: Cpu<TestHardware>,
+    t_cycles: usize,
+}
+
+
+impl TestMachine {
+    fn from_memory(input: &[u8]) -> TestMachine<> {
+        TestMachine {
+            cpu: Cpu::new(TestHardware::from_memory(input)),
+            t_cycles: 0,
+        }
+    }
+}
 
 pub struct TestHardware {
     memory: Vec<u8>,
-    t_cycles: usize,
-    interrupt_handler: InterruptHandler
+    interrupt_handler: InterruptHandler,
 }
 
 impl TestHardware {
@@ -12,14 +31,14 @@ impl TestHardware {
         memory[0..input.len()].copy_from_slice(input);
         TestHardware {
             memory,
-            t_cycles: 0,
-            interrupt_handler: InterruptHandler::new()
+            interrupt_handler: InterruptHandler::new(),
         }
     }
     fn read(&self, addr: u16) -> u8 {
         self.memory[addr as usize]
     }
 }
+
 impl Interface for TestHardware {
     fn set_interrupt_disabled(&mut self, disabled: bool) {
         self.interrupt_handler.set_interrupt_disabled(disabled);
@@ -30,23 +49,28 @@ impl Interface for TestHardware {
     }
 
     fn request(&mut self, interrupt: InterruptLine, requested: bool) {
-        self.request(interrupt, requested);
+        self.interrupt_handler.request(interrupt, requested);
     }
 
     fn acknowledge(&mut self, interrupt: InterruptLine) {
-        self.acknowledge(interrupt);
+        self.interrupt_handler.acknowledge(interrupt);
     }
 
     fn interrupt_master_enabled(&self) -> bool {
-        self.interrupt_master_enabled()
+        self.interrupt_handler.interrupt_master_enabled
     }
 
     fn requested_interrupts(&self) -> InterruptLine {
         self.interrupt_handler.requested_interrupts
     }
 
+    fn change_interrupt_master_enabled(&mut self, boolean: bool) {
+        self.interrupt_handler.interrupt_master_enabled = boolean;
+    }
+
+
     fn any_enabled(&self) -> bool {
-        self.any_enabled()
+        self.interrupt_handler.any_enabled()
     }
 
     fn set_byte(&mut self, address: u16, value: u8) {
@@ -60,4 +84,18 @@ impl Interface for TestHardware {
     fn step(&mut self) {
         self.interrupt_handler.step();
     }
+}
+
+pub fn run_test(instructions: &[u8], init: impl Fn(&mut TestMachine)) -> TestMachine {
+    let mut memory = instructions.to_vec();
+    memory.push(0xed);
+
+    let mut machine = TestMachine::from_memory(&memory);
+    init(&mut machine);
+    machine.cpu.step();
+    machine.t_cycles = 0;
+    while machine.cpu.op_code != 0xed && machine.cpu.state != Step::Halt {
+        machine.t_cycles +=  machine.cpu.step() as usize;
+    }
+    machine
 }
