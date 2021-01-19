@@ -1053,12 +1053,11 @@ impl  <T: Interface> Cpu<T> {
     {
         let value = self.read_8(io8);
         let result = value.wrapping_sub(1);
-        self.write_8(io8, result);
-
         self.registers.a ^= value;
         self.registers.flags.z = result == 0;
         self.registers.flags.n = true;
-        self.registers.flags.h = (value & 0x0F) == 0x0F;
+        self.registers.flags.h = (value & 0x0F) == 0;
+        self.write_8(io8, result);
         self.handle_return(self.registers.pc)
     }
 

@@ -21,7 +21,7 @@ pub enum Reg16 {
     SP
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Registers {
     pub a: u8,
     pub b: u8,
