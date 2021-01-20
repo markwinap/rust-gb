@@ -93,6 +93,7 @@ impl<T: Interface> Cpu<T> {
                 panic!()
             }
         };
+        self.state = step;
         cycles
     }
 }

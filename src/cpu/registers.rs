@@ -146,6 +146,26 @@ impl Registers {
     pub fn set_pc(&mut self, v: u16) {
         self.pc = v;
     }
+    
+    pub fn write16(&mut self, register: Reg16, value: u16) {
+        match register {
+            Reg16::AF => { self.set_af(value);}
+            Reg16::BC => { self.set_bc(value);}
+            Reg16::DE => { self.set_de(value);}
+            Reg16::HL => { self.set_hl(value);}
+            Reg16::SP => { self.set_sp(value);}
+        }
+    }
+    
+    pub fn read16(&mut self, register: Reg16) -> u16 {
+        match register {
+            Reg16::AF => { self.get_af() }
+            Reg16::BC => { self.get_bc() }
+            Reg16::DE => { self.get_de() }
+            Reg16::HL => { self.get_hl() }
+            Reg16::SP => { self.get_sp() }
+        }
+    }
 }
 
 #[inline(always)]

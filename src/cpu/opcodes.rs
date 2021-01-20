@@ -198,7 +198,7 @@ impl<T: Interface> Cpu<T> {
             0x1c => (self.inc(E), 4),
             0x24 => (self.inc(H), 4),
             0x2c => (self.inc(L), 4),
-            0x34 => (self.inc(Addr::HL), 8),
+            0x34 => (self.inc(Addr::HL), 12),
 
             0x3d => (self.dec(A), 4),
             0x05 => (self.dec(B), 4),
@@ -207,7 +207,7 @@ impl<T: Interface> Cpu<T> {
             0x1d => (self.dec(E), 4),
             0x25 => (self.dec(H), 4),
             0x2d => (self.dec(L), 4),
-            0x35 => (self.dec(Addr::HL), 4),
+            0x35 => (self.dec(Addr::HL), 12),
 
             0x07 => (self.rlca(), 4),
             0x17 => (self.rla(), 4),
@@ -1039,8 +1039,6 @@ impl<T: Interface> Cpu<T> {
         let value = self.read_8(io8);
         let result = value.wrapping_add(1);
         self.write_8(io8, result);
-
-        self.registers.a ^= value;
         self.registers.flags.z = result == 0;
         self.registers.flags.n = false;
         self.registers.flags.h = (value & 0x0F) == 0x0F;
@@ -1052,7 +1050,6 @@ impl<T: Interface> Cpu<T> {
     {
         let value = self.read_8(io8);
         let result = value.wrapping_sub(1);
-        self.registers.a ^= value;
         self.registers.flags.z = result == 0;
         self.registers.flags.n = true;
         self.registers.flags.h = (value & 0x0F) == 0;

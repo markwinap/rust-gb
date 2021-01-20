@@ -5,6 +5,13 @@ use crate::cpu::{Interface, Step};
 
 mod test_0x;
 mod test_1x;
+mod test_2x;
+mod test_3x;
+mod test_4x;
+mod test_5x;
+mod test_6x;
+mod test_7x;
+mod test_add16;
 
 pub struct TestMachine {
     pub cpu: Cpu<TestHardware>,

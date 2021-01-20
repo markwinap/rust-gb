@@ -16,3 +16,6 @@ version = "~0.1"
 
 [dependencies.failure_derive]
 version = "~0.1"
+
+[dev-dependencies]
+quickcheck = "0.9"
