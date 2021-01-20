@@ -20,6 +20,11 @@ mod test_ex;
 mod test_fx;
 mod test_inc16;
 mod test_load16;
+mod test_load16_hl_sp_e;
+mod test_load16_sp_hl;
+mod test_pop16;
+mod test_push16;
+mod cb_test;
 
 pub struct TestMachine {
     pub cpu: Cpu<TestHardware>,
