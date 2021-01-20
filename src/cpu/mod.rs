@@ -57,6 +57,7 @@ impl<T: Interface> Cpu<T> {
         let (cycles, step) = match self.state {
             Step::Run => {
                 let ((step, _), cycles) = self.decode();
+                self.interface.step();
                 (cycles, step)
             }
             Step::Interrupt => {

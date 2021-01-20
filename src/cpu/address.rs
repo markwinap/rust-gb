@@ -85,6 +85,7 @@ impl<T: Interface> In16<Reg16> for Cpu<T> {
 
 impl<T: Interface> Out16<Reg16> for Cpu<T> {
     fn write_16(&mut self, dst: Reg16, val: u16) {
+        println!("Inside write reg: {} with value: {}", dst, val);
         match dst {
             Reg16::AF => self.registers.set_af(val),
             Reg16::BC => self.registers.set_bc(val),
@@ -159,7 +160,16 @@ impl<T: Interface> In16<Addr16> for Cpu<T> {
                 let addr = self.read_next_word();
                 let lo = self.interface.get_byte(addr).unwrap();
                 let hi = self.interface.get_byte(addr.wrapping_add(1)).unwrap();
-                u16::from_le_bytes([lo, hi])
+                let result = u16::from_le_bytes([lo, hi]);
+                println!("The result of fetch: {}", result);
+                println!("The result of fetch: {}", result);
+                result
+                // let addr = self.read_next_word();
+                // let lo = self.interface.get_byte(addr).unwrap() as u16;
+                // let hi = (self.interface.get_byte(addr.wrapping_add(1) ).unwrap() as u16 ) << 8;
+                // pr
+                // lo | hi
+
             }
         }
     }

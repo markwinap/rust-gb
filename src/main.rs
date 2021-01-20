@@ -6,6 +6,8 @@ mod memory;
 mod util;
 extern crate phf;
 extern crate num_traits;
+#[macro_use]
+extern crate enum_display_derive;
 
 fn main() {
     println!("Hello, world!");

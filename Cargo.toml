@@ -17,5 +17,9 @@ version = "~0.1"
 [dependencies.failure_derive]
 version = "~0.1"
 
+[dependencies.enum-display-derive]
+version = "0.1.0"
+
 [dev-dependencies]
 quickcheck = "0.9"
+

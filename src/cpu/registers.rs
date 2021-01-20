@@ -12,7 +12,8 @@ pub enum Reg8 {
     L,
 }
 
-#[derive(Clone, Copy, Debug)]
+use std::fmt::Display;
+#[derive(Clone, Copy, Debug, Display)]
 pub enum Reg16 {
     AF,
     BC,
@@ -146,7 +147,7 @@ impl Registers {
     pub fn set_pc(&mut self, v: u16) {
         self.pc = v;
     }
-    
+
     pub fn write16(&mut self, register: Reg16, value: u16) {
         match register {
             Reg16::AF => { self.set_af(value);}
@@ -156,8 +157,8 @@ impl Registers {
             Reg16::SP => { self.set_sp(value);}
         }
     }
-    
-    pub fn read16(&mut self, register: Reg16) -> u16 {
+
+    pub fn read16(&self, register: Reg16) -> u16 {
         match register {
             Reg16::AF => { self.get_af() }
             Reg16::BC => { self.get_bc() }

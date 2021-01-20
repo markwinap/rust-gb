@@ -1,5 +1,5 @@
 use crate::cpu::{Step, Interface};
-use crate::cpu::address::{Cpu, Out8, In8, Addr, Immediate8, ReadOffType, In16, Out16, Addr16};
+use crate::cpu::address::{Cpu, Out8, In8, Addr, Immediate8, ReadOffType, In16, Out16, Addr16, Immediate16};
 use crate::cpu::registers::Reg8::{A, B, C, D, E, H, L};
 use crate::cpu::registers::Reg16;
 use crate::util::int::IntExt;
@@ -261,12 +261,12 @@ impl<T: Interface> Cpu<T> {
             0x27 => (self.daa(), 4),
             0x2f => (self.cpl(), 4),
 
-            0x01 => (self.load_16(Reg16::BC, Addr16::Direct), 16),
-            0x11 => (self.load_16(Reg16::DE, Addr16::Direct), 16),
-            0x21 => (self.load_16(Reg16::HL, Addr16::Direct), 16),
-            0x31 => (self.load_16(Reg16::SP, Addr16::Direct), 16),
+            0x01 => (self.load_16(Reg16::BC, Immediate16), 12),
+            0x11 => (self.load_16(Reg16::DE, Immediate16), 12),
+            0x21 => (self.load_16(Reg16::HL, Immediate16), 12),
+            0x31 => (self.load_16(Reg16::SP, Immediate16), 12),
 
-            0x08 => (self.load_16(Addr16::Direct, Reg16::SP), 8),
+            0x08 => (self.load_16(Addr16::Direct, Reg16::SP), 20),
             0xf9 => (self.load_16(Reg16::SP, Reg16::HL), 8),
             0xf8 => (self.load_16_e(Reg16::HL, Reg16::SP), 12),
 
