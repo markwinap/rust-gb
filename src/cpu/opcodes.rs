@@ -13,8 +13,7 @@ pub enum Cond {
 }
 
 
-impl  <T: Interface> Cpu<T> {
-
+impl<T: Interface> Cpu<T> {
     pub fn decode(&mut self) -> ((Step, u16), u8) {
         let foo = match self.op_code {
             0x7f => (self.load_8(A, A), 4),
@@ -304,7 +303,7 @@ impl  <T: Interface> Cpu<T> {
         foo
     }
 
-    pub fn cb_prefix(&mut self) ->  ((Step, u16), u8) {
+    pub fn cb_prefix(&mut self) -> ((Step, u16), u8) {
         self.op_code = self.read_next_byte();
         let result = self.cb_decode_execute();
         result
@@ -1089,7 +1088,7 @@ impl  <T: Interface> Cpu<T> {
 
     pub fn rla(&mut self) -> (Step, u16) {
         let value = self.registers.a;
-        self.registers.a = self.alu_rl(value, true, |flags, _| flags.c as u8);
+        self.registers.a = self.alu_rl(value, true, |flags, _| if flags.c { 1 } else { 0 });
         self.handle_return(self.registers.pc)
     }
 
@@ -1101,7 +1100,7 @@ impl  <T: Interface> Cpu<T> {
 
     pub fn rra(&mut self) -> (Step, u16) {
         let value = self.registers.a;
-        self.registers.a = self.alu_rr(value, true, |flags, _| flags.c as u8);
+        self.registers.a = self.alu_rr(value, true, |flags, _| if flags.c { 0b1000_0000 } else { 0 });
         self.handle_return(self.registers.pc)
     }
 
