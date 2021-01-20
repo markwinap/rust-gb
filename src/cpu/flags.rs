@@ -12,12 +12,17 @@ pub struct Flags {
     pub h: bool,
     pub c: bool,
 }
+
 impl Display for Flags {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "z: {}, n: {}, h: {}, c: {}", self.z, self.n, self.h, self.c)
     }
 }
+
 impl Flags {
+    pub fn empty() -> Flags {
+        Flags::default()
+    }
     pub fn set_value(&mut self, v: u8) {
         self.z = (v & (1 << ZERO_FLAG_BYTE_POSITION)) != 0;
         self.n = (v & (1 << SUBTRACT_FLAG_BYTE_POSITION)) != 0;

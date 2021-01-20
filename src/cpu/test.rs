@@ -13,6 +13,8 @@ mod test_6x;
 mod test_7x;
 mod test_add16;
 mod test_add16_sp_e;
+mod test_ax;
+mod test_cx;
 
 pub struct TestMachine {
     pub cpu: Cpu<TestHardware>,
