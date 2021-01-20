@@ -1095,7 +1095,7 @@ impl  <T: Interface> Cpu<T> {
 
     pub fn rrca(&mut self) -> (Step, u16) {
         let value = self.registers.a;
-        self.registers.a = self.alu_rr(value, true, |_, n| n >> 7);
+        self.registers.a = self.alu_rr(value, true, |_, n| (n & 0b0000_0001) << 7);
         self.handle_return(self.registers.pc)
     }
 
@@ -1110,7 +1110,7 @@ impl  <T: Interface> Cpu<T> {
         where Self: In8<IO> + Out8<IO>,
     {
         let value = self.read_8(io8);
-        let result = self.alu_rr(value, false, |_, n| n >> 7);
+        let result = self.alu_rr(value, false, |_, n| (n & 0b0000_0001) << 7);
 
         self.write_8(io8, result);
         self.handle_return(self.registers.pc)

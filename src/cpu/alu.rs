@@ -22,7 +22,7 @@ impl<T: Interface> Cpu<T> {
         self.registers.flags.z = new_value == 0 && !reset_zero;
         self.registers.flags.n = false;
         self.registers.flags.h = false;
-        self.registers.flags.c = (value & 0x80) != 0;
+        self.registers.flags.c = (value & 0b1000_0000) != 0;
         new_value
     }
 
@@ -30,11 +30,11 @@ impl<T: Interface> Cpu<T> {
         where F: Fn(&Flags, u8) -> u8 {
         let ci = carry(&self.registers.flags, value);
         let new_value = (value >> 1) | ci;
-
-        self.registers.flags.z = new_value == 0 && !reset_zero;
+        let zero  = new_value == 0 && reset_zero;
+        self.registers.flags.z = zero;
         self.registers.flags.n = false;
         self.registers.flags.h = false;
-        self.registers.flags.c = (value & 0x80) != 0;
+        self.registers.flags.c = (value & 0b0000_0001) != 0;
         new_value
     }
 }
