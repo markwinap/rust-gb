@@ -1,6 +1,7 @@
 use crate::hardware::{Screen};
 use bit_set::BitSet;
 use crate::hardware::color_palette::{ColorPalette, Color};
+use crate::memory::nmmu::Memory;
 
 const TILE_MAP_ADDRESS_0: usize = 0x9800;
 const TILE_MAP_ADDRESS_1: usize = 0x9C00;
@@ -41,6 +42,61 @@ struct VideoRam {
 
 }
 
+impl VideoRam {
+    fn write_tile_byte(&mut self, address: u16, value: u16) {
+        let virtual_address = address - 0x8000;
+
+        let tile: &mut Tile = &mut self.tiles[virtual_address as usize / TILE_BYTE_SIZE];
+        let row_data = virtual_address % TILE_BYTE_SIZE as u16;
+        let y = row_data / 2;
+
+        for x in 0..TILE_WIDTH {
+            let color_bit = 1 << (TILE_WIDTH - 1 - x);
+            let pixel = tile.1[y as usize][x];
+            let pixel_number: u8 = pixel.into();
+            if row_data % 2 == 0 {
+                let prev: u8 = tile.1[y as usize][x].into();
+                tile.1[y as usize][x] = u8::into(if (value & color_bit) != 0 { 0b01 } else { 0b00 } | prev & 0b10);
+
+            } else {
+                let prev: u8 = tile.1[y as usize][x].into();
+                tile.1[y as usize][x] = u8::into(if (value & color_bit) != 0 { 0b10 } else { 0b00 } | prev & 0b01);
+            }
+        }
+    }
+
+    fn read_tile_byte(&self, address: u16) -> u8 {
+        let virtual_address = address - 0x8000;
+        let mut result = 0;
+
+        let tile: &Tile = &self.tiles[virtual_address as usize / TILE_BYTE_SIZE];
+        let row_data = virtual_address % TILE_BYTE_SIZE as u16;
+        let y = row_data / 2;
+
+        for x in 0..TILE_WIDTH {
+            let color_bit = 1 << (TILE_WIDTH - 1 - x);
+            let pixel = tile.1[y as usize][x];
+            let pixel_number: u8 = pixel.into();
+            if row_data % 2 == 0 {
+                result |= if (pixel_number & 0b01) != 0 { color_bit } else { 0 };
+            } else {
+                result |= if (pixel_number & 0b10) != 0 { color_bit } else { 0 };
+            }
+        }
+        result
+    }
+}
+
+impl Memory for VideoRam {
+    fn set_byte(&mut self, address: u16, value: u8) {
+        unimplemented!()
+    }
+
+    fn get_byte(&self, address: u16) -> Option<u8> {
+        unimplemented!()
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Shade {
     DARKEST,
@@ -55,6 +111,29 @@ pub enum TilePixelValue {
     One = 1,
     Two = 2,
     Three = 3,
+}
+
+impl Into<u8> for TilePixelValue {
+    fn into(self) -> u8 {
+        match self {
+            TilePixelValue::Zero => { 0 }
+            TilePixelValue::One => { 1 }
+            TilePixelValue::Two => { 2 }
+            TilePixelValue::Three => { 3 }
+        }
+    }
+}
+
+impl From<u8> for TilePixelValue {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => { TilePixelValue::Zero }
+            1 => { TilePixelValue::Zero }
+            2 => { TilePixelValue::Zero }
+            3 => { TilePixelValue::Zero }
+            _ => { TilePixelValue::Zero }
+        }
+    }
 }
 
 impl Default for TilePixelValue {
