@@ -9,6 +9,9 @@ extern crate num_traits;
 #[macro_use]
 extern crate enum_display_derive;
 
+#[macro_use]
+extern crate bitflags;
+
 fn main() {
     println!("Hello, world!");
 }
