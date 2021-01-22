@@ -3,6 +3,7 @@ use bit_set::BitSet;
 use crate::hardware::color_palette::{ColorPalette, Color};
 use crate::memory::nmmu::Memory;
 use bitflags::bitflags;
+use crate::cpu::interrupt_handler::{InterruptLine, InterruptHandler};
 
 const TILE_MAP_ADDRESS_0: usize = 0x9800;
 const TILE_MAP_ADDRESS_1: usize = 0x9C00;
@@ -62,7 +63,7 @@ impl Mode {
         }
     }
 
-    fn minimum_cycles(&self) -> u16 {
+    fn minimum_cycles(&self) -> isize {
         match *self {
             Mode::AccessOam => 80,
             Mode::AccessVram => 172,
@@ -77,13 +78,15 @@ pub struct Ppu<T: Screen> {
     render_container: RenderContainer<T>,
     color_palette: ColorPalette,
     background_palette: Palette,
+    obj_palette0: Palette,
+    obj_palette1: Palette,
     scanline: u8,
     large_sprites: bool,
     background_mask: BitSet,
     video_ram: VideoRam,
     control: Control,
     stat: Stat,
-    current_line: u8,
+    // current_line: u8,
     compare_line: u8,
     scroll_x: u8,
     scroll_y: u8,
@@ -91,6 +94,7 @@ pub struct Ppu<T: Screen> {
     mode: Mode,
     window_x: u8,
     window_y: u8,
+    cycle_counter: isize,
     // tile_map1: [u8; TILE_MAP_SIZE],
     // tile_map2: [u8; TILE_MAP_SIZE],
     sprites: [Sprite; OAM_SPRITES],
@@ -112,6 +116,61 @@ impl<T: Screen> RenderContainer<T> {
 }
 
 impl<T: Screen> Ppu<T> {
+    pub fn step(&mut self, cycles: isize, interrupts: &mut InterruptHandler) {
+        if self.update_current_mode(interrupts) {
+            return;
+        }
+        if self.cycle_counter == 0 {
+            self.draw_blank_screen();
+            return;
+        }
+        self.cycle_counter -= cycles;
+
+        if self.cycle_counter <= 0 {
+            self.scanline = self.scanline.wrapping_add(1);
+            self.cycle_counter = Mode::VBlank.minimum_cycles();
+
+            if self.scanline == SCREEN_HEIGHT as u8 {
+                interrupts.request(InterruptLine::VBLANK, true);
+            } else if self.scanline >= SCREEN_HEIGHT as u8 + 10 {
+                self.scanline = 0;
+                self.draw_to_screen();
+            } else {
+                self.draw_scan_line();
+            }
+        }
+    }
+
+    fn draw_to_screen(&mut self) {
+        self.render_container.screen.draw();
+    }
+
+    fn update_current_mode(&mut self, interrupts: &mut InterruptHandler) -> bool {
+        if !self.control.contains(Control::LCD_ON) {
+            self.cycle_counter = Mode::VBlank.minimum_cycles();
+            self.mode = Mode::VBlank;
+            self.scanline = 0;
+            return false;
+        }
+        if self.scanline >= SCREEN_HEIGHT as u8 {
+            self.update_current_mode_sec(interrupts, Mode::VBlank, self.stat.contains(Stat::VBLANK_INT));
+        } else if self.cycle_counter >= Mode::VBlank.minimum_cycles() - Mode::AccessOam.minimum_cycles() {
+            self.update_current_mode_sec(interrupts, Mode::AccessOam, self.stat.contains(Stat::ACCESS_OAM_INT));
+        } else if self.cycle_counter >= Mode::VBlank.minimum_cycles() - Mode::AccessOam.minimum_cycles() - Mode::AccessVram.minimum_cycles() {
+            self.update_current_mode_sec(interrupts, Mode::AccessVram, false);
+        } else {
+            self.update_current_mode_sec(interrupts, Mode::HBlank, self.stat.contains(Stat::HBLANK_INT));
+        }
+        true
+    }
+
+    fn update_current_mode_sec(&mut self, interrupts: &mut InterruptHandler, new_mode: Mode, request_interrupt: bool) {
+        if request_interrupt && new_mode != self.mode {
+            interrupts.request(InterruptLine::STAT, true);
+        }
+        self.mode = new_mode;
+    }
+
     fn draw_pixel(&mut self, x: u8, shade: Shade, color: Color) {
         if shade != Shade::LIGHTEST {
             self.background_mask.insert(x as usize);
@@ -151,13 +210,15 @@ impl<T: Screen> Ppu<T> {
             // if self.mode != Mode::VBlank {
             //     panic!("Warning! LCD off, but not in VBlank");
             // }
-            self.current_line = 0;
+            self.scanline = 0;
         }
         if new_control.contains(Control::LCD_ON) && !self.control.contains(Control::LCD_ON) {
             //   self.mode = Mode::HBlank;
             //   self.cycles = Mode::AccessOam.cycles(self.scroll_x);
             self.stat.insert(Stat::COMPARE);
+            self.render_container.screen.turn_on();
         }
+
         self.control = new_control;
     }
     pub fn set_stat(&mut self, value: u8) {
@@ -231,6 +292,8 @@ impl<T: Screen> Ppu<T> {
             scanline: self.scanline,
             video_ram: &self.video_ram,
             large_sprites: self.large_sprites,
+            obj_palette0: self.obj_palette0,
+            obj_palette1: self.obj_palette1,
         };
 
         for sprite in &self.sprites {
@@ -241,6 +304,34 @@ impl<T: Screen> Ppu<T> {
             }
         }
     }
+
+    pub fn write_oam(&mut self, reladdr: u8, value: u8) {
+        if self.mode == Mode::AccessVram || self.mode == Mode::AccessOam {
+            return;
+        }
+        let sprite = &mut self.sprites[reladdr as usize / 4];
+        match reladdr as usize % 4 {
+            3 => {
+                sprite.flags = SpriteFlags::from_bits_truncate(value);
+            }
+            2 => sprite.tile_number = value,
+            1 => sprite.x = value.wrapping_sub(8),
+            _ => sprite.y = value.wrapping_sub(16),
+        }
+    }
+    // const UNDEFINED_READ: u8 = 0xff;
+    pub fn read_oam(&self, reladdr: u8) -> u8 {
+        if self.mode == Mode::AccessVram || self.mode == Mode::AccessOam {
+            return 0xff;
+        }
+        let sprite = &self.sprites[reladdr as usize / 4];
+        match reladdr as usize % 4 {
+            3 => sprite.flags.bits(),
+            2 => sprite.tile_number,
+            1 => sprite.x.wrapping_add(8),
+            _ => sprite.y.wrapping_add(16),
+        }
+    }
 }
 
 struct DrawContainer<'a> {
@@ -248,7 +339,8 @@ struct DrawContainer<'a> {
     scanline: u8,
     video_ram: &'a VideoRam,
     large_sprites: bool,
-    //background_mask: &'a mut BitSet,
+    obj_palette0: Palette,
+    obj_palette1: Palette,
 }
 
 const TILE_MAP_SIZE: usize = 0x400;
@@ -442,29 +534,34 @@ impl Tile {
     }
 }
 
+bitflags!(
+  struct SpriteFlags: u8 {
+    const UNUSED_MASK = 0b_0000_1111;
+    const PALETTE     = 0b_0001_0000;
+    const FLIPX       = 0b_0010_0000;
+    const FLIPY       = 0b_0100_0000;
+    const PRIORITY    = 0b_1000_0000;
+  }
+);
 
 struct Sprite {
     sprite_num: u8,
     x: u8,
     y: u8,
     tile_number: u8,
-    prioritize_sprite: bool,
-    flip_x: bool,
-    flip_y: bool,
-    palette: Palette,
+    flags: SpriteFlags,
+
 }
 
 impl Sprite {
-    pub fn new(sprite_num: u8, palette: Palette) -> Self {
+    pub fn new(sprite_num: u8) -> Self {
         Sprite {
             sprite_num,
             x: 0,
             y: 0,
             tile_number: 0,
-            prioritize_sprite: true,
-            flip_x: false,
-            flip_y: false,
-            palette,
+            flags: SpriteFlags::empty(),
+
         }
     }
 
@@ -483,14 +580,20 @@ impl Sprite {
         let iter = (0..SPRITE_WIDTH).map(move |i| {
             let mut x = i;
             let mut y = ppu.scanline - self.y;
-            if self.flip_x { x = 7 - x; }
-            if self.flip_y { y = Sprite::height(ppu) - 1 - y; }
+            if self.flags.contains(SpriteFlags::FLIPX) { x = 7 - x; }
+            if self.flags.contains(SpriteFlags::FLIPY) { y = Sprite::height(ppu) - 1 - y; }
             //TODO VERIFY  (this.x + i >= Screen.WIDTH || this.x + i < 0)
-            if (self.x + 1 >= SCREEN_WIDTH as u8) || (!self.prioritize_sprite && background_mask.contains(self.x as usize + i)) {
+            if (self.x + 1 >= SCREEN_WIDTH as u8) || (!self.flags.contains(SpriteFlags::PRIORITY) && background_mask.contains(self.x as usize + i)) {
                 None
             } else {
                 let tile = &ppu.video_ram.tiles[self.tile_number as usize + (y as usize / TILE_HEIGHT)];
-                let shade = tile.shade_at(x as u8, y, &self.palette);
+
+                let palette = if self.flags.contains(SpriteFlags::PALETTE) {
+                    ppu.obj_palette1
+                } else {
+                    ppu.obj_palette0
+                };
+                let shade = tile.shade_at(x as u8, y, &palette);
 
                 //TODO         private int spritePaletteIndex() {
                 //             return palette == objectPalette0 ? 0 : 1;
@@ -524,10 +627,3 @@ impl Palette {
     }
 }
 
-pub struct ObjectAttributeMemory {
-    unused_data: [u8; SPRITE_COUNT]
-}
-//
-// impl Memory for ObjectAttributeMemory {
-//
-// }
