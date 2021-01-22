@@ -74,8 +74,9 @@ impl Mode {
 
 
 pub struct Ppu<T: Screen> {
-    screen: T,
+    render_container: RenderContainer<T>,
     color_palette: ColorPalette,
+    background_palette: Palette,
     scanline: u8,
     large_sprites: bool,
     background_mask: BitSet,
@@ -84,8 +85,30 @@ pub struct Ppu<T: Screen> {
     stat: Stat,
     current_line: u8,
     compare_line: u8,
+    scroll_x: u8,
+    scroll_y: u8,
+    tile_offset: u8,
     mode: Mode,
+    window_x: u8,
+    window_y: u8,
+    // tile_map1: [u8; TILE_MAP_SIZE],
+    // tile_map2: [u8; TILE_MAP_SIZE],
     sprites: [Sprite; OAM_SPRITES],
+}
+
+struct RenderContainer<T: Screen> {
+    screen: T,
+}
+
+impl<T: Screen> RenderContainer<T> {
+    fn draw_pixel(&mut self, x: u8, y: u8, color: Color) {
+        // if shade != Shade::LIGHTEST {
+        //     self.background_mask.insert(x as usize);
+        // } else {
+        //     self.background_mask.remove(x as usize);
+        // }
+        self.screen.set_pixel(x, y, color);
+    }
 }
 
 impl<T: Screen> Ppu<T> {
@@ -95,7 +118,8 @@ impl<T: Screen> Ppu<T> {
         } else {
             self.background_mask.remove(x as usize);
         }
-        self.screen.set_pixel(x, self.scanline - 1, color);
+        // self.render_container.screen.set_pixel(x, self.scanline - 1, color);
+        self.render_container.draw_pixel(x, self.scanline - 1, color);
     }
 
     pub fn get_memory_as_mut(&mut self) -> &impl Memory {
@@ -104,6 +128,21 @@ impl<T: Screen> Ppu<T> {
 
     pub fn get_control(&self) -> u8 {
         self.control.bits
+    }
+
+    pub fn draw_scan_line(&mut self) {
+        if self.control.contains(Control::BG_ON) {
+            for x in 0..SCREEN_WIDTH {
+                if self.control.contains(Control::WINDOW_ON) && self.window_y <= self.scanline {
+                    self.draw_background_window_pixel(x as u8);
+                } else {
+                    self.draw_background_pixel(x as u8);
+                }
+            }
+        }
+        if self.control.contains(Control::OBJ_ON) {
+            self.draw_sprites();
+        }
     }
 
     pub fn set_control(&mut self, value: u8) {
@@ -138,16 +177,78 @@ impl<T: Screen> Ppu<T> {
         }
     }
 
-    //    private void drawSprites() {
-    //         for (int i = 0; i < sprites.length; i++) {
-    //             sprites[i].render();
-    //         }
-    //     }
-    pub fn draw_sprites(&mut self) {
-        for sprite in self.sprites.iter() {
-           sprite.render(self);
+
+    pub fn draw_background_window_pixel(&mut self, x: u8) {
+        let y = self.scanline + self.window_y;
+        let adjusted_x = ((x + self.window_x - 7) + SCREEN_WIDTH as u8) % SCREEN_WIDTH as u8;
+        let tile_map = if self.control.contains(Control::WINDOW_MAP) {
+            &self.video_ram.tile_map1
+        } else {
+            &self.video_ram.tile_map0
+        };
+        let tile = self.tile_at(adjusted_x, y, tile_map);
+        let shade = tile.shade_at(adjusted_x, y, &self.background_palette);
+        self.draw_pixel(x, shade, self.color_palette.background(shade));
+    }
+
+
+    pub fn draw_background_pixel(&mut self, x: u8) {
+        let y = self.scanline + self.scroll_y;
+        let adjusted_x = x + self.scroll_x;
+        let tile_map = if self.control.contains(Control::BG_MAP) {
+            &self.video_ram.tile_map1
+        } else {
+            &self.video_ram.tile_map0
+        };
+        let tile = self.tile_at(adjusted_x, y, tile_map);
+        let shade = tile.shade_at(adjusted_x, y, &self.background_palette);
+        self.draw_pixel(x, shade, self.color_palette.background(shade));
+    }
+
+    pub fn draw_blank_screen(&mut self) {
+        for y in 0..SCREEN_HEIGHT {
+            for x in 0..SCREEN_WIDTH {
+                self.render_container.screen.set_pixel(x as u8, y as u8, self.color_palette.background(Shade::LIGHTEST))
+            }
         }
     }
+
+    pub fn tile_at(&self, x: u8, y: u8, tile_map: &[u8; TILE_MAP_SIZE]) -> &Tile {
+        let col = x as usize / TILE_WIDTH;
+        let row = y as usize / TILE_HEIGHT;
+        let raw_tile_num = tile_map[row * 32 + col];
+        let addr_select = self.control.contains(Control::BG_ADDR);
+        let tile_num = if addr_select {
+            raw_tile_num as usize
+        } else {
+            128 + ((raw_tile_num as i8 as i16) + 128) as usize
+        };
+        &self.video_ram.tiles[tile_num]
+    }
+    pub fn draw_sprites(&mut self) {
+        let draw_container = DrawContainer {
+            color_palette: &self.color_palette,
+            scanline: self.scanline,
+            video_ram: &self.video_ram,
+            large_sprites: self.large_sprites,
+        };
+
+        for sprite in &self.sprites {
+            if let Some(result) = sprite.render(&draw_container, &mut self.background_mask) {
+                for res in result {
+                    self.render_container.draw_pixel(res.0, self.scanline - 1, res.2);
+                }
+            }
+        }
+    }
+}
+
+struct DrawContainer<'a> {
+    color_palette: &'a ColorPalette,
+    scanline: u8,
+    video_ram: &'a VideoRam,
+    large_sprites: bool,
+    //background_mask: &'a mut BitSet,
 }
 
 const TILE_MAP_SIZE: usize = 0x400;
@@ -278,10 +379,10 @@ pub enum Shade {
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum TilePixelValue {
-    Zero = 0,
-    One = 1,
-    Two = 2,
-    Three = 3,
+    Zero,
+    One,
+    Two,
+    Three,
 }
 
 impl Into<u8> for TilePixelValue {
@@ -333,7 +434,7 @@ impl From<u8> for Shade {
 
 type TileRow = [TilePixelValue; 8];
 
-struct Tile(u8, [TileRow; 8]);
+pub struct Tile(u8, [TileRow; 8]);
 
 impl Tile {
     fn shade_at(&self, x: u8, y: u8, palette: &Palette) -> Shade {
@@ -367,94 +468,50 @@ impl Sprite {
         }
     }
 
-    fn is_on_scan_line<T: Screen>(&self, ppu: &Ppu<T>) -> bool {
+    fn is_on_scan_line(&self, ppu: &DrawContainer) -> bool {
         let y = self.y;
         ppu.scanline >= y && ppu.scanline < (y + Sprite::height(ppu))
     }
-    fn height<T: Screen>(ppu: &Ppu<T>) -> u8 {
+    fn height(ppu: &DrawContainer) -> u8 {
         if ppu.large_sprites { SPRITE_HEIGHT as u8 } else { SPRITE_HEIGHT as u8 / 2 }
     }
-
-    pub fn render<'a, T: Screen +'a  >(&self, ppu: &'a Ppu<T>) -> Option<impl Iterator<Item=(u8, Shade, Color)> + 'a> {
+    pub fn render<'a>(&'a self, ppu: &'a DrawContainer, background_mask: &'a mut BitSet) -> Option<impl Iterator<Item=(u8, Shade, Color)> + 'a> {
         if !self.is_on_scan_line(ppu) {
             return None;
         }
-        let prioritize_sprite = self.prioritize_sprite;
-        let flip_x = self.flip_x;
-        let flip_y = self.flip_y;
-        let tile_number = self.tile_number;
-        let palette = self.palette;
-        let self_x = self.x;
-        let self_y = self.y;
+
         let iter = (0..SPRITE_WIDTH).map(move |i| {
             let mut x = i;
-            let mut y = (ppu.scanline - self_y);
-            if flip_x { x = 7 - x; }
-            if flip_y { y = Sprite::height(ppu) - 1 - y; }
-
+            let mut y = ppu.scanline - self.y;
+            if self.flip_x { x = 7 - x; }
+            if self.flip_y { y = Sprite::height(ppu) - 1 - y; }
             //TODO VERIFY  (this.x + i >= Screen.WIDTH || this.x + i < 0)
-            if self_x + 1 >= SCREEN_WIDTH as u8 {
-                //   continue;
+            if (self.x + 1 >= SCREEN_WIDTH as u8) || (!self.prioritize_sprite && background_mask.contains(self.x as usize + i)) {
+                None
+            } else {
+                let tile = &ppu.video_ram.tiles[self.tile_number as usize + (y as usize / TILE_HEIGHT)];
+                let shade = tile.shade_at(x as u8, y, &self.palette);
+
+                //TODO         private int spritePaletteIndex() {
+                //             return palette == objectPalette0 ? 0 : 1;
+                //         }
+                let color = ppu.color_palette.sprite(shade, 0);
+                if shade != Shade::LIGHTEST {
+                    background_mask.insert(x as usize);
+                } else {
+                    background_mask.remove(x as usize);
+                }
+                Some((self.x + i as u8, shade, color))
             }
-            if !prioritize_sprite && ppu.background_mask.contains(self_x as usize + i) {
-                //      continue;
-            }
-
-            let tile = &ppu.video_ram.tiles[tile_number as usize + (y as usize / TILE_HEIGHT)];
-
-
-            let shade = tile.shade_at(x as u8, y, &palette);
-
-            //TODO         private int spritePaletteIndex() {
-            //             return palette == objectPalette0 ? 0 : 1;
-            //         }
-            let color = ppu.color_palette.sprite(shade, 0);
-            (self_x + i as u8, shade, color)
-        });
+        }).filter(|val| { val.is_some() })
+            .map(|val| { val.unwrap() });
         Some(iter)
-        // for i in 0..SPRITE_WIDTH {
-        //
-        //     ppu.draw_pixel(self.x + i as u8, shade, color);
-        // }
     }
-
-
-    // pub fn render<T: Screen>(&self, ppu: &mut Ppu<T>) {
-    //     if !self.is_on_scan_line(ppu) {
-    //         return;
-    //     }
-    //     // (0..SPRITE_WIDTH).map(|i| {
-    //     //
-    //     // })
-    //     for i in 0..SPRITE_WIDTH {
-    //         let mut x = i;
-    //         let mut y = (ppu.scanline - self.y);
-    //         if self.flip_x { x = 7 - x; }
-    //         if self.flip_y { y = Sprite::height(ppu) - 1 - y; }
-    //
-    //         //TODO VERIFY  (this.x + i >= Screen.WIDTH || this.x + i < 0)
-    //         if self.x + 1 >= SCREEN_WIDTH as u8 {
-    //             continue;
-    //         }
-    //         if !self.prioritize_sprite && ppu.background_mask.contains(self.x as usize + i) {
-    //             continue;
-    //         }
-    //
-    //         let tile = &ppu.video_ram.tiles[self.tile_number as usize + (y as usize / TILE_HEIGHT)];
-    //
-    //
-    //         let shade = tile.shade_at(x as u8, y, &self.palette);
-    //
-    //         //TODO         private int spritePaletteIndex() {
-    //         //             return palette == objectPalette0 ? 0 : 1;
-    //         //         }
-    //         let color = ppu.color_palette.sprite(shade, 0);
-    //         ppu.draw_pixel(self.x + i as u8, shade, color);
-    //     }
 }
 
 #[derive(Copy, Clone)]
 pub struct Palette(u8);
+
 
 impl Palette {
     pub fn shade(&self, input: TilePixelValue) -> Shade {
@@ -466,3 +523,11 @@ impl Palette {
         }
     }
 }
+
+pub struct ObjectAttributeMemory {
+    unused_data: [u8; SPRITE_COUNT]
+}
+//
+// impl Memory for ObjectAttributeMemory {
+//
+// }
