@@ -3,7 +3,7 @@ use bit_set::BitSet;
 use crate::hardware::color_palette::{ColorPalette, Color};
 use crate::memory::nmmu::Memory;
 use bitflags::bitflags;
-use crate::cpu::interrupt_handler::{InterruptLine, InterruptHandler};
+use crate::hardware::interrupt_handler::{InterruptLine, InterruptHandler};
 
 const TILE_MAP_ADDRESS_0: usize = 0x9800;
 const TILE_MAP_ADDRESS_1: usize = 0x9C00;

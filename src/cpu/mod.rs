@@ -1,10 +1,9 @@
 use crate::cpu::address::Cpu;
-use crate::cpu::interrupt_handler::InterruptLine;
 use crate::cpu::registers::Registers;
+use crate::hardware::interrupt_handler::InterruptLine;
 
 pub mod flags;
 
-pub mod interrupt_handler;
 pub mod registers;
 pub mod address;
 pub mod alu;
@@ -24,7 +23,7 @@ pub enum Step {
 
 pub trait Interface {
     fn set_interrupt_disabled(&mut self, disabled: bool);
-    fn enable(&mut self, interrupt: InterruptLine, enable: bool);
+
     fn request(&mut self, interrupt: InterruptLine, requested: bool);
     fn acknowledge(&mut self, interrupt: InterruptLine);
     fn interrupt_master_enabled(&self) -> bool;

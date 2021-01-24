@@ -1,5 +1,5 @@
 use crate::cpu::address::Cpu;
-use crate::cpu::interrupt_handler::{InterruptHandler, InterruptLine};
+use crate::hardware::interrupt_handler::{InterruptHandler, InterruptLine};
 use crate::cpu::{Interface, Step};
 
 
@@ -65,9 +65,9 @@ impl Interface for TestHardware {
         self.interrupt_handler.set_interrupt_disabled(disabled);
     }
 
-    fn enable(&mut self, interrupt: InterruptLine, enable: bool) {
-        self.interrupt_handler.enable(interrupt, enable);
-    }
+    // fn enable(&mut self, interrupt: InterruptLine, enable: bool) {
+    //     self.interrupt_handler.enable(interrupt, enable);
+    // }
 
     fn request(&mut self, interrupt: InterruptLine, requested: bool) {
         self.interrupt_handler.request(interrupt, requested);

@@ -36,10 +36,10 @@ impl InterruptHandler {
     }
     pub fn step(&mut self) {
         match self.enable_delay {
-            2 => self.enable_delay = self.enable_delay - 1,
+            2 => self.enable_delay -= 1,
             1 => {
                 self.interrupt_master_enabled = true;
-                self.enable_delay = self.enable_delay - 1
+                self.enable_delay -= 1
             }
             _ => {}
         }

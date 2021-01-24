@@ -1,11 +1,20 @@
+use crate::cpu::{Interface, Step};
+use crate::cpu::address::Cpu;
+use crate::hardware::color_palette::Color;
+use crate::hardware::interrupt_handler::{InterruptLine, InterruptHandler};
+use crate::hardware::work_ram::WorkRam;
+use crate::hardware::timer::Timer;
+
 mod ppu;
 mod color_palette;
+pub mod interrupt_handler;
+mod work_ram;
+mod boot_rom;
+mod timer;
+mod cartridge;
 
-use crate::cpu::address::Cpu;
-use crate::cpu::interrupt_handler::{InterruptHandler, InterruptLine};
-use crate::cpu::{Interface, Step};
-use crate::hardware::color_palette::Color;
-
+pub const HIRAM_SIZE: usize = 0x80;
+pub type HiramData = [u8; HIRAM_SIZE];
 
 pub trait Screen {
     fn turn_on(&mut self);
@@ -16,62 +25,56 @@ pub trait Screen {
 
 
 
-/////////////////////////
-trait AInterface {}
-
-struct AInterfaceImpl {}
-
-impl AInterface for AInterfaceImpl {}
-
-struct ACpu<'a, T: AInterface> {
-    pub interface: Option<&'a mut T>
+struct Hardware {
+    interrupt_handler: InterruptHandler,
+    work_ram: WorkRam,
+    hiram: HiramData,
+    timer: Timer,
 }
 
+impl Interface for Hardware {
 
-struct AHardware {
-    pub interface: AInterfaceImpl,
-    pub cpu: ACpu<'static, AInterfaceImpl>,
-}
+    fn set_interrupt_disabled(&mut self, disabled: bool) {
+        self.interrupt_handler.set_interrupt_disabled(disabled);
+    }
 
-impl AHardware {
-    fn new() -> Self {
-        let mut inter = AInterfaceImpl {};
-        let mut hrd = AHardware {
-            interface: inter,
-            cpu: ACpu {
-                interface: None,
-            },
-        };
-        // hrd.cpu.interface = Some((&mut hrd.interface));
-        hrd
+    // fn enable(&mut self, interrupt: InterruptLine, enable: bool) {
+    //     self.interrupt_handler.enable(interrupt,enable);
+    // }
+
+    fn request(&mut self, interrupt: InterruptLine, requested: bool) {
+        self.interrupt_handler.request(interrupt, requested);
+    }
+
+    fn acknowledge(&mut self, interrupt: InterruptLine) {
+        self.interrupt_handler.acknowledge(interrupt);
+    }
+
+    fn interrupt_master_enabled(&self) -> bool {
+        self.interrupt_handler.interrupt_master_enabled
+    }
+
+    fn requested_interrupts(&self) -> InterruptLine {
+        self.requested_interrupts()
+    }
+
+    fn change_interrupt_master_enabled(&mut self, boolean: bool) {
+        self.interrupt_handler.interrupt_master_enabled = boolean;
+    }
+
+    fn any_enabled(&self) -> bool {
+        self.interrupt_handler.any_enabled()
+    }
+
+    fn set_byte(&mut self, address: u16, value: u8) {
+        unimplemented!()
+    }
+
+    fn get_byte(&self, address: u16) -> Option<u8> {
+        unimplemented!()
+    }
+
+    fn step(&mut self) {
+        unimplemented!()
     }
 }
-
-fn test() {
-    let my_string = [1, 2, 3];
-    copy_if(&my_string, |a_number| true);
-}
-
-fn copy_if<'b, F>(slice: &'b [i32], pred: F) -> Vec<i32>
-    where F: for<'a> Fn(&'a i32) -> bool
-{
-    let mut result = vec![];
-    for element in slice {
-        if pred(&element) {
-            result.push(*element);
-        }
-    }
-    result
-}
-
-// fn load_from_file<T>(path: String) -> T
-//     where
-//         T: for<'de> serde::Deserialize<'de>
-// {
-//     let mut file = File::open(path).unwrap();
-//     serde_json::from_reader(&mut file).unwrap()
-// }
-// fn f<'a, 'b>(x: &'a i32, mut y: &'b i32) where 'a: 'b {
-//     y = x;                      // &'a i32 is a subtype of &'b i32 because 'a: 'b
-//     let r: &'b &'a i32 = &&0;   // &'b &'a i32 is well formed because 'a: 'b
-// }
