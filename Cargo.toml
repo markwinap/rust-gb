@@ -8,8 +8,10 @@ edition = "2018"
 
 [dependencies]
 phf = { version = "0.8" }
-num-traits = "0.2"
 bitflags = "1.0"
+num = "0.3.1"
+num-derive = "0.3.3"
+num-traits = "0.2.14"
 
 [dependencies.failure]
 version = "~0.1"

@@ -84,4 +84,16 @@ impl InterruptHandler {
     pub fn any_enabled(&self) -> bool {
         !(self.enabled_interrupts & self.requested_interrupts).is_empty()
     }
+
+    pub fn get_interrupt_flag(&self) -> u8 {
+        const IF_UNUSED_MASK: u8 = (1 << 5) | (1 << 6) | (1 << 7);
+
+        self.requested_interrupts.bits() | IF_UNUSED_MASK
+    }
+
+    pub fn get_enabled_interrupts_flag(&self) -> u8 {
+        const IF_UNUSED_MASK: u8 = (1 << 5) | (1 << 6) | (1 << 7);
+
+        self.enabled_interrupts.bits() | IF_UNUSED_MASK
+    }
 }

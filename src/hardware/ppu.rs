@@ -30,6 +30,8 @@ const ACCESS_VRAM_CYCLES: isize = 43;
 const HBLANK_CYCLES: isize = 50;
 const VBLANK_LINE_CYCLES: isize = 114;
 
+const UNDEFINED_READ: u8 = 0xff;
+
 #[derive(Copy, Clone, PartialEq, Eq)]
 enum Mode {
     AccessOam,
@@ -185,6 +187,9 @@ impl<T: Screen> Ppu<T> {
         &mut self.video_ram
     }
 
+    pub fn get_memory(&self) -> &impl Memory {
+        &self.video_ram
+    }
     pub fn get_control(&self) -> u8 {
         self.control.bits
     }
@@ -331,6 +336,63 @@ impl<T: Screen> Ppu<T> {
             1 => sprite.x.wrapping_add(8),
             _ => sprite.y.wrapping_add(16),
         }
+    }
+
+    // pub fn read_character_ram(&self, reladdr: u16) -> u8 {
+    //     if self.mode == Mode::AccessVram {
+    //         return UNDEFINED_READ;
+    //     }
+    //     self.video_ram.read_tile_byte(reladdr)
+    // }
+    //
+    // pub fn read_tile_map1(&self, reladdr: u16) -> u8 {
+    //     if self.mode == Mode::AccessVram {
+    //         return UNDEFINED_READ;
+    //     }
+    //     self.video_ram.read_tile_map_byte(reladdr)
+    // }
+    // pub fn read_tile_map2(&self, reladdr: u16) -> u8 {
+    //     if self.mode == Mode::AccessVram {
+    //         return UNDEFINED_READ;
+    //     }
+    //     self.tile_map2[reladdr as usize]
+    // }
+
+    pub fn read_memory(&self, address: u16) -> Option<u8> {
+        self.video_ram.get_byte(address)
+    }
+
+    pub fn get_scroll_y(&self) -> u8 {
+        self.scroll_y
+    }
+
+    pub fn get_scroll_x(&self) -> u8 {
+        self.scroll_x
+    }
+
+    pub fn get_current_line(&self) -> u8 {
+        self.scanline
+    }
+    pub fn get_compare_line(&self) -> u8 {
+        self.compare_line
+    }
+
+    pub fn get_obj_palette0(&self) -> u8 {
+        self.obj_palette0.0
+    }
+    pub fn get_obj_palette1(&self) -> u8 {
+        self.obj_palette1.0
+    }
+
+    pub fn get_window_x(&self) -> u8 {
+        self.window_x
+    }
+    pub fn get_window_y(&self) -> u8 {
+        self.window_y
+    }
+
+    pub fn get_bg_palette(&self) -> u8 {
+        self.background_palette.0
     }
 }
 
