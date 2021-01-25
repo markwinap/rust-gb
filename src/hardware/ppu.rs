@@ -183,7 +183,7 @@ impl<T: Screen> Ppu<T> {
         self.render_container.draw_pixel(x, self.scanline - 1, color);
     }
 
-    pub fn get_memory_as_mut(&mut self) -> &impl Memory {
+    pub fn get_memory_as_mut(&mut self) -> &mut impl Memory {
         &mut self.video_ram
     }
 
@@ -370,6 +370,22 @@ impl<T: Screen> Ppu<T> {
         self.scroll_x
     }
 
+    pub fn set_scroll_y(&mut self, value: u8) {
+        self.scroll_y = value;
+    }
+
+    pub fn set_scroll_x(&mut self, value: u8) {
+        self.scroll_x = value;
+    }
+
+    pub fn reset_current_line(&mut self) {
+        self.scanline = 0;
+    }
+
+    pub fn set_compare_line(&mut self, value: u8) {
+        self.compare_line = value;
+    }
+
     pub fn get_current_line(&self) -> u8 {
         self.scanline
     }
@@ -384,6 +400,13 @@ impl<T: Screen> Ppu<T> {
         self.obj_palette1.0
     }
 
+    pub fn set_obj_palette0(&mut self,  value: u8)  {
+        self.obj_palette0.0 = value;
+    }
+    pub fn set_obj_palette1(&mut self,  value: u8)  {
+        self.obj_palette1.0 = value;
+    }
+
     pub fn get_window_x(&self) -> u8 {
         self.window_x
     }
@@ -391,8 +414,19 @@ impl<T: Screen> Ppu<T> {
         self.window_y
     }
 
+    pub fn set_window_x(&mut self,  value: u8)  {
+        self.window_x = value;
+    }
+    pub fn set_window_y(&mut self,  value: u8)  {
+        self.window_y = value;
+    }
+
     pub fn get_bg_palette(&self) -> u8 {
         self.background_palette.0
+    }
+
+    pub fn set_bg_palette(&mut self, value: u8) {
+        self.background_palette.0 = value;
     }
 }
 

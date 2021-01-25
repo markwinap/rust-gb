@@ -91,9 +91,19 @@ impl InterruptHandler {
         self.requested_interrupts.bits() | IF_UNUSED_MASK
     }
 
+
+    pub fn set_interrupt_flag(&mut self, value: u8)  {
+        self.requested_interrupts = InterruptLine::from_bits_truncate(value);
+    }
+
     pub fn get_enabled_interrupts_flag(&self) -> u8 {
         const IF_UNUSED_MASK: u8 = (1 << 5) | (1 << 6) | (1 << 7);
 
         self.enabled_interrupts.bits() | IF_UNUSED_MASK
     }
+
+    pub fn set_enabled_interrupts_flag(&mut self, value: u8)  {
+        self.enabled_interrupts = InterruptLine::from_bits_truncate(value);
+    }
+
 }

@@ -40,7 +40,7 @@ struct Hardware<T: Screen> {
     bootrom: Bootrom,
 }
 
-impl <T: Screen> Interface for Hardware<T> {
+impl<T: Screen> Interface for Hardware<T> {
     fn set_interrupt_disabled(&mut self, disabled: bool) {
         self.interrupt_handler.set_interrupt_disabled(disabled);
     }
@@ -74,7 +74,61 @@ impl <T: Screen> Interface for Hardware<T> {
     }
 
     fn set_byte(&mut self, address: u16, value: u8) {
-        unimplemented!()
+        match (address >> 8) as u8 {
+            0x0000 if self.bootrom.is_active() => {}
+            0x00..=0x7f => self.cartridge.set_byte(address, value),
+            0x80..=0x97 => self.gpu.get_memory_as_mut().set_byte(address, value),
+            0x98..=0x9b => self.gpu.get_memory_as_mut().set_byte(address, value),
+            0x9c..=0x9f => self.gpu.get_memory_as_mut().set_byte(address, value),
+            0xa0..=0xbf => self.cartridge.set_byte(address, value),
+            0xc0..=0xcf => self.work_ram.write_lower(address, value),
+            0xd0..=0xdf => self.work_ram.write_upper(address, value),
+
+            0xe0..=0xef => self.work_ram.write_lower(address, value),
+            0xf0..=0xfd => self.work_ram.write_upper(address, value),
+            0xfe => match address & 0xff {
+                0x00..=0x9f => { //TODO OAM
+                    // self.generic_mem_cycle(|hw| {
+                    //     if !hw.oam_dma.is_active() {
+                    //         hw.gpu.write_oam(addr as u8, value)
+                    //     }
+                    // })
+                },
+                _ => (),
+            },
+            0xff => match address as u8 {
+                0x00 => (), //Joypad
+                0x01 => (), //Serial
+                0x02 => (), //Serial
+                0x04 => self.timer.set_byte(address, value),
+                0x05 => self.timer.set_byte(address, value),
+                0x06 => self.timer.set_byte(address, value),
+                0x07 => self.timer.set_byte(address, value),
+                0x0f => self.interrupt_handler.set_interrupt_flag(value),
+                0x10..=0x3f => (), //APU
+                0x40 => self.gpu.set_control(value),
+                0x41 => self.gpu.set_stat(value),
+                0x42 => self.gpu.set_scroll_y(value),
+                0x43 => self.gpu.set_scroll_x(value),
+                0x44 => self.gpu.reset_current_line(),
+                0x45 => self.gpu.set_compare_line(value),
+                0x46 => (), //OAM TODO
+                0x47 => self.gpu.set_bg_palette(value),
+                0x48 => self.gpu.set_obj_palette0(value),
+                0x49 => self.gpu.set_obj_palette1(value),
+                0x4a => self.gpu.set_window_y(value),
+                0x4b => self.gpu.set_window_x(value),
+                0x50 => {
+                    if self.bootrom.is_active() && value & 0b1 != 0 {
+                        self.bootrom.deactivate();
+                    }
+                },
+                0x80..=0xfe => self.hiram[(address as usize) & 0x7f] = value,
+                0xff => self.interrupt_handler.set_enabled_interrupts_flag(value),
+                _ => ()
+            }
+            _ => {}
+        }
     }
 
     fn get_byte(&self, address: u16) -> Option<u8> {
@@ -92,7 +146,7 @@ impl <T: Screen> Interface for Hardware<T> {
             0xe0..=0xef => Some(self.work_ram.read_lower(address)),
             0xf0..=0xfd => Some(self.work_ram.read_upper(address)),
             0xff => {
-                match address {
+                match address as u8 {
                     0x00 => Some(0b0), //Joypad
                     0x01 => Some(0b0), //Serial
                     0x02 => Some(0b0), //Serial
@@ -120,7 +174,6 @@ impl <T: Screen> Interface for Hardware<T> {
                     0xff => Some(self.interrupt_handler.get_enabled_interrupts_flag()),
                     _ => Some(0xff)
                 }
-
             }
 
             _ => None
@@ -130,6 +183,6 @@ impl <T: Screen> Interface for Hardware<T> {
     }
 
     fn step(&mut self) {
-        unimplemented!()
+        // unimplemented!()
     }
 }
