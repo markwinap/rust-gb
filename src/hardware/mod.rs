@@ -29,6 +29,10 @@ pub trait Screen {
     fn draw(&mut self);
 }
 
+struct Dma {
+    source: u8,
+
+}
 
 struct Hardware<T: Screen> {
     interrupt_handler: InterruptHandler,
@@ -38,6 +42,17 @@ struct Hardware<T: Screen> {
     cartridge: Box<dyn Cartridge>,
     gpu: Ppu<T>,
     bootrom: Bootrom,
+    dma: Dma,
+}
+
+impl<T: Screen> Hardware<T> {
+    fn transfer_dma(&mut self, offset: u8) {
+        for i in 0..0xFE9F - 0xFE00 + 1 {
+            let source = ((offset as u16) << 8) + i;
+            let target = 0xFE00 + i;
+            self.gpu.write_oam(target as u8, self.get_byte(source).unwrap());
+        }
+    }
 }
 
 impl<T: Screen> Interface for Hardware<T> {
@@ -93,7 +108,8 @@ impl<T: Screen> Interface for Hardware<T> {
                     //         hw.gpu.write_oam(addr as u8, value)
                     //     }
                     // })
-                },
+                    self.gpu.write_oam(address as u8, value);
+                }
                 _ => (),
             },
             0xff => match address as u8 {
@@ -112,7 +128,7 @@ impl<T: Screen> Interface for Hardware<T> {
                 0x43 => self.gpu.set_scroll_x(value),
                 0x44 => self.gpu.reset_current_line(),
                 0x45 => self.gpu.set_compare_line(value),
-                0x46 => (), //OAM TODO
+                0x46 => self.transfer_dma(value), //OAM TODO
                 0x47 => self.gpu.set_bg_palette(value),
                 0x48 => self.gpu.set_obj_palette0(value),
                 0x49 => self.gpu.set_obj_palette1(value),
@@ -122,7 +138,7 @@ impl<T: Screen> Interface for Hardware<T> {
                     if self.bootrom.is_active() && value & 0b1 != 0 {
                         self.bootrom.deactivate();
                     }
-                },
+                }
                 0x80..=0xfe => self.hiram[(address as usize) & 0x7f] = value,
                 0xff => self.interrupt_handler.set_enabled_interrupts_flag(value),
                 _ => ()
@@ -130,6 +146,7 @@ impl<T: Screen> Interface for Hardware<T> {
             _ => {}
         }
     }
+
 
     fn get_byte(&self, address: u16) -> Option<u8> {
         let result = match (address >> 8) as u8 {
@@ -145,6 +162,22 @@ impl<T: Screen> Interface for Hardware<T> {
 
             0xe0..=0xef => Some(self.work_ram.read_lower(address)),
             0xf0..=0xfd => Some(self.work_ram.read_upper(address)),
+            0xfe => {
+                match address & 0xff {
+                    0x00..=0x9f => {
+                        // if hw.oam_dma.is_active() {
+                        //     0xff
+                        // } else {
+                        //     hw.gpu.read_oam(addr as u8)
+                        // }
+                        Some(self.gpu.read_oam(address as u8))
+                        //None
+                    }
+                    // 0x00 ..= 0x9f => handle_oam!(),
+                    // 0xa0 ..= 0xff => handle_unusable!(),
+                    _ => panic!("Unsupported read at ${:04x}", address),
+                }
+            }
             0xff => {
                 match address as u8 {
                     0x00 => Some(0b0), //Joypad
@@ -163,7 +196,7 @@ impl<T: Screen> Interface for Hardware<T> {
                     0x43 => Some(self.gpu.get_scroll_x()),
                     0x44 => Some(self.gpu.get_current_line()),
                     0x45 => Some(self.gpu.get_compare_line()),
-                    0x46 => Some(0b0), //TODO OAM
+                    0x46 => Some(self.dma.source),
                     0x47 => Some(self.gpu.get_bg_palette()),
                     0x48 => Some(self.gpu.get_obj_palette0()),
                     0x49 => Some(self.gpu.get_obj_palette1()),
