@@ -7,24 +7,4 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-phf = { version = "0.8" }
-bitflags = "1.0"
-num = "0.3.1"
-num-derive = "0.3.3"
-num-traits = "0.2.14"
-
-[dependencies.failure]
-version = "~0.1"
-
-[dependencies.failure_derive]
-version = "~0.1"
-
-[dependencies.enum-display-derive]
-version = "0.1.0"
-
-[dependencies.bit-set]
-version = "0.5.2"
-
-[dev-dependencies]
-quickcheck = "0.9"
-
+gb-core = { version = "*", path = "gb-core" }
