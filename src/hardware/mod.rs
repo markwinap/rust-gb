@@ -9,19 +9,19 @@ use crate::hardware::boot_rom::{BootromData, Bootrom};
 use crate::hardware::ppu::Ppu;
 use crate::memory::nmmu::Memory;
 
-mod ppu;
-mod color_palette;
+pub mod ppu;
+pub mod color_palette;
 pub mod interrupt_handler;
-mod work_ram;
-mod boot_rom;
-mod timer;
-mod cartridge;
-mod rom;
+pub mod work_ram;
+pub mod boot_rom;
+pub mod timer;
+pub mod cartridge;
+pub mod rom;
 
 pub const HIRAM_SIZE: usize = 0x80;
 
 pub type HiramData = [u8; HIRAM_SIZE];
-
+pub const HIRAM_EMPTY: HiramData = [0; HIRAM_SIZE];
 pub trait Screen {
     fn turn_on(&mut self);
     fn turn_off(&mut self);
@@ -34,7 +34,7 @@ struct Dma {
 
 }
 
-struct Hardware<T: Screen> {
+pub struct Hardware<T: Screen> {
     interrupt_handler: InterruptHandler,
     work_ram: WorkRam,
     hiram: HiramData,
@@ -45,6 +45,7 @@ struct Hardware<T: Screen> {
     dma: Dma,
 }
 
+
 impl<T: Screen> Hardware<T> {
     fn transfer_dma(&mut self, offset: u8) {
         for i in 0..0xFE9F - 0xFE00 + 1 {
@@ -53,7 +54,25 @@ impl<T: Screen> Hardware<T> {
             self.gpu.write_oam(target as u8, self.get_byte(source).unwrap());
         }
     }
+
+    fn do_step(&mut self) {
+
+    }
+    pub fn create <S: Screen>(screen: S, cartridge: Box<dyn Cartridge>, boot_rom: Bootrom) -> Hardware<S> {
+        let ppu = Ppu::new(screen);
+        Hardware {
+            interrupt_handler: InterruptHandler::new(),
+            work_ram: WorkRam::new(),
+            hiram: HIRAM_EMPTY,
+            timer: Timer::new(),
+            cartridge,
+            gpu: ppu,
+            bootrom: boot_rom,
+            dma: Dma { source: 0 }
+        }
+    }
 }
+
 
 impl<T: Screen> Interface for Hardware<T> {
     fn set_interrupt_disabled(&mut self, disabled: bool) {

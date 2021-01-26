@@ -38,6 +38,18 @@ pub struct Timer {
 }
 
 impl Timer {
+
+    pub fn new() -> Self {
+        Timer {
+            enabled: false,
+            divider: 0,
+            counter: 0,
+            modulo: 0,
+            tac: TacReg::empty(),
+            internalcnt: 0,
+            internaldiv: 0
+        }
+    }
     pub fn do_cycle(&mut self, ticks: u32, interrupts: &mut InterruptHandler) {
         self.internaldiv += ticks;
         while self.internaldiv >= 256 {

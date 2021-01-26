@@ -4,6 +4,8 @@ mod hardware;
 mod memory;
 //mod util;
 mod util;
+mod gameboy;
+
 extern crate phf;
 extern crate num_traits;
 #[macro_use]

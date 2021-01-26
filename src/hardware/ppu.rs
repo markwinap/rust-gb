@@ -1,6 +1,6 @@
 use crate::hardware::{Screen};
 use bit_set::BitSet;
-use crate::hardware::color_palette::{ColorPalette, Color};
+use crate::hardware::color_palette::{ColorPalette, Color, ORIGINAL_GREEN};
 use crate::memory::nmmu::Memory;
 use bitflags::bitflags;
 use crate::hardware::interrupt_handler::{InterruptLine, InterruptHandler};
@@ -97,8 +97,7 @@ pub struct Ppu<T: Screen> {
     window_x: u8,
     window_y: u8,
     cycle_counter: isize,
-    // tile_map1: [u8; TILE_MAP_SIZE],
-    // tile_map2: [u8; TILE_MAP_SIZE],
+
     sprites: [Sprite; OAM_SPRITES],
 }
 
@@ -116,8 +115,41 @@ impl<T: Screen> RenderContainer<T> {
         self.screen.set_pixel(x, y, color);
     }
 }
+// tile_map0: [u8; TILE_MAP_SIZE],
+// tile_map1: [u8; TILE_MAP_SIZE],
+// tiles: [Tile; TILE_COUNT],
 
 impl<T: Screen> Ppu<T> {
+
+    pub fn new<S: Screen>(screen: S) -> Ppu<S> {
+        let render  = RenderContainer { screen };
+        Ppu {
+            render_container: render,
+            color_palette: ORIGINAL_GREEN,
+            background_palette: Palette(0),
+            obj_palette0: Palette(0),
+            obj_palette1: Palette(0),
+            scanline: 0,
+            large_sprites: false,
+            background_mask: Default::default(),
+            video_ram: VideoRam {
+                tile_map0: [0; TILE_MAP_SIZE],
+                tile_map1:  [0; TILE_MAP_SIZE],
+                tiles: [Tile::new(); TILE_COUNT ]
+            },
+            control: Control::empty(),
+            stat:  Stat::empty(),
+            compare_line: 0,
+            scroll_x: 0,
+            scroll_y: 0,
+            tile_offset: 0,
+            mode: Mode::AccessOam,
+            window_x: 0,
+            window_y: 0,
+            cycle_counter: 0,
+            sprites: [Sprite::new(0); SPRITE_COUNT]
+        }
+    }
     pub fn step(&mut self, cycles: isize, interrupts: &mut InterruptHandler) {
         if self.update_current_mode(interrupts) {
             return;
@@ -627,6 +659,10 @@ pub struct Tile(u8, [TileRow; 8]);
 impl Tile {
     fn shade_at(&self, x: u8, y: u8, palette: &Palette) -> Shade {
         palette.shade(self.1[(y as usize % TILE_HEIGHT)][(x as usize % TILE_WIDTH)])
+    }
+
+    fn new() -> Tile {
+        Tile (0, [[TilePixelValue::default(); 8]; 8] )
     }
 }
 
