@@ -656,6 +656,7 @@ impl From<u8> for Shade {
 
 type TileRow = [TilePixelValue; 8];
 
+#[derive(Copy, Clone)]
 pub struct Tile(u8, [TileRow; 8]);
 
 impl Tile {
@@ -678,6 +679,7 @@ bitflags!(
   }
 );
 
+#[derive(Copy, Clone)]
 struct Sprite {
     sprite_num: u8,
     x: u8,
