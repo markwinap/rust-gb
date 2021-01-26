@@ -60,9 +60,6 @@ impl<T: Screen> Interface for Hardware<T> {
         self.interrupt_handler.set_interrupt_disabled(disabled);
     }
 
-    // fn enable(&mut self, interrupt: InterruptLine, enable: bool) {
-    //     self.interrupt_handler.enable(interrupt,enable);
-    // }
 
     fn request(&mut self, interrupt: InterruptLine, requested: bool) {
         self.interrupt_handler.request(interrupt, requested);
@@ -128,7 +125,7 @@ impl<T: Screen> Interface for Hardware<T> {
                 0x43 => self.gpu.set_scroll_x(value),
                 0x44 => self.gpu.reset_current_line(),
                 0x45 => self.gpu.set_compare_line(value),
-                0x46 => self.transfer_dma(value), //OAM TODO
+                0x46 => self.transfer_dma(value),
                 0x47 => self.gpu.set_bg_palette(value),
                 0x48 => self.gpu.set_obj_palette0(value),
                 0x49 => self.gpu.set_obj_palette1(value),
@@ -213,6 +210,6 @@ impl<T: Screen> Interface for Hardware<T> {
     }
 
     fn step(&mut self) {
-        // unimplemented!()
+        self.interrupt_handler.step();
     }
 }
