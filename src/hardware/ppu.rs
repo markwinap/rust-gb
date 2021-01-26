@@ -119,10 +119,12 @@ impl<T: Screen> RenderContainer<T> {
 // tile_map1: [u8; TILE_MAP_SIZE],
 // tiles: [Tile; TILE_COUNT],
 
+// impl <T> Ppu<T> {
+//
+// }
 impl<T: Screen> Ppu<T> {
-
-    pub fn new<S: Screen>(screen: S) -> Ppu<S> {
-        let render  = RenderContainer { screen };
+    pub fn new(screen: T) -> Ppu<T> {
+        let render: RenderContainer<T> = RenderContainer { screen };
         Ppu {
             render_container: render,
             color_palette: ORIGINAL_GREEN,
@@ -134,11 +136,11 @@ impl<T: Screen> Ppu<T> {
             background_mask: Default::default(),
             video_ram: VideoRam {
                 tile_map0: [0; TILE_MAP_SIZE],
-                tile_map1:  [0; TILE_MAP_SIZE],
-                tiles: [Tile::new(); TILE_COUNT ]
+                tile_map1: [0; TILE_MAP_SIZE],
+                tiles: [Tile::new(); TILE_COUNT],
             },
             control: Control::empty(),
-            stat:  Stat::empty(),
+            stat: Stat::empty(),
             compare_line: 0,
             scroll_x: 0,
             scroll_y: 0,
@@ -147,7 +149,7 @@ impl<T: Screen> Ppu<T> {
             window_x: 0,
             window_y: 0,
             cycle_counter: 0,
-            sprites: [Sprite::new(0); SPRITE_COUNT]
+            sprites: [Sprite::new(0); SPRITE_COUNT],
         }
     }
     pub fn step(&mut self, cycles: isize, interrupts: &mut InterruptHandler) {
@@ -432,10 +434,10 @@ impl<T: Screen> Ppu<T> {
         self.obj_palette1.0
     }
 
-    pub fn set_obj_palette0(&mut self,  value: u8)  {
+    pub fn set_obj_palette0(&mut self, value: u8) {
         self.obj_palette0.0 = value;
     }
-    pub fn set_obj_palette1(&mut self,  value: u8)  {
+    pub fn set_obj_palette1(&mut self, value: u8) {
         self.obj_palette1.0 = value;
     }
 
@@ -446,10 +448,10 @@ impl<T: Screen> Ppu<T> {
         self.window_y
     }
 
-    pub fn set_window_x(&mut self,  value: u8)  {
+    pub fn set_window_x(&mut self, value: u8) {
         self.window_x = value;
     }
-    pub fn set_window_y(&mut self,  value: u8)  {
+    pub fn set_window_y(&mut self, value: u8) {
         self.window_y = value;
     }
 
@@ -662,7 +664,7 @@ impl Tile {
     }
 
     fn new() -> Tile {
-        Tile (0, [[TilePixelValue::default(); 8]; 8] )
+        Tile(0, [[TilePixelValue::default(); 8]; 8])
     }
 }
 

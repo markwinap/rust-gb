@@ -21,7 +21,9 @@ pub mod rom;
 pub const HIRAM_SIZE: usize = 0x80;
 
 pub type HiramData = [u8; HIRAM_SIZE];
+
 pub const HIRAM_EMPTY: HiramData = [0; HIRAM_SIZE];
+
 pub trait Screen {
     fn turn_on(&mut self);
     fn turn_off(&mut self);
@@ -35,12 +37,12 @@ struct Dma {
 }
 
 pub struct Hardware<T: Screen> {
-    interrupt_handler: InterruptHandler,
+    pub interrupt_handler: InterruptHandler,
     work_ram: WorkRam,
     hiram: HiramData,
-    timer: Timer,
-    cartridge: Box<dyn Cartridge>,
-    gpu: Ppu<T>,
+    pub timer: Timer,
+    pub cartridge: Box<dyn Cartridge>,
+    pub gpu: Ppu<T>,
     bootrom: Bootrom,
     dma: Dma,
 }
@@ -55,11 +57,9 @@ impl<T: Screen> Hardware<T> {
         }
     }
 
-    fn do_step(&mut self) {
-
-    }
-    pub fn create <S: Screen>(screen: S, cartridge: Box<dyn Cartridge>, boot_rom: Bootrom) -> Hardware<S> {
-        let ppu = Ppu::new(screen);
+    fn do_step(&mut self) {}
+    pub fn create(screen: T, cartridge: Box<dyn Cartridge>, boot_rom: Bootrom) -> Hardware<T> {
+        let ppu: Ppu<T> = Ppu::new(screen);
         Hardware {
             interrupt_handler: InterruptHandler::new(),
             work_ram: WorkRam::new(),
@@ -68,7 +68,7 @@ impl<T: Screen> Hardware<T> {
             cartridge,
             gpu: ppu,
             bootrom: boot_rom,
-            dma: Dma { source: 0 }
+            dma: Dma { source: 0 },
         }
     }
 }
@@ -165,7 +165,7 @@ impl<T: Screen> Interface for Hardware<T> {
 
 
     fn get_byte(&self, address: u16) -> Option<u8> {
-       match (address >> 8) as u8 {
+        match (address >> 8) as u8 {
             0x0000 if self.bootrom.is_active() => Some(self.bootrom[address]),
             0x00..=0x3f => self.cartridge.get_byte(address),
             0x40..=0x7f => self.cartridge.get_byte(address),

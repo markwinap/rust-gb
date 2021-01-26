@@ -1,34 +1,31 @@
 use crate::cpu::address::Cpu;
 use crate::hardware::{Screen, Hardware};
-use crate::hardware::color_palette::Color;
+use crate::hardware::cartridge::Cartridge;
+use crate::hardware::boot_rom::Bootrom;
 
-pub struct GameBoy {
-    cpu: Cpu<Hardware<DummyScreen>>,
+pub struct GameBoy<S: Screen> {
+    cpu: Cpu<Hardware<S>>,
     elapsed_cycles: usize,
 }
 
-impl GameBoy {
-    pub fn create() -> Self {
-        let hardware = Hardware::create()
+impl<S: Screen> GameBoy<S> {
+    pub fn create(screen: S, cartridge: Box<dyn Cartridge>, boot_rom: Bootrom) -> GameBoy<S> {
+        let hardware = Hardware::create(screen, cartridge, boot_rom);
+        let cpu = Cpu::new(hardware);
+        GameBoy {
+            cpu,
+            elapsed_cycles: 0,
+        }
     }
 }
 
-pub struct DummyScreen {}
 
-impl Screen for DummyScreen {
-    fn turn_on(&mut self) {
-      //  unimplemented!()
-    }
-
-    fn turn_off(&mut self) {
-      //  unimplemented!()
-    }
-
-    fn set_pixel(&mut self, x: u8, y: u8, color: Color) {
-       // unimplemented!()
-    }
-
-    fn draw(&mut self) {
-        //unimplemented!()
+impl<S: Screen> GameBoy<S> {
+    pub fn tick(&mut self) {
+        let cycles = self.cpu.step();
+        let interrupts = &mut self.cpu.interface.interrupt_handler;
+        self.cpu.interface.timer.do_cycle(cycles as u32, interrupts);
+        self.cpu.interface.gpu.step(cycles as isize, interrupts);
+        self.cpu.interface.cartridge.step();
     }
 }
