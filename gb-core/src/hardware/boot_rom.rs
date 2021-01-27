@@ -2,6 +2,7 @@
 
 use std::ops::Index;
 use std::sync::Arc;
+use std::path::Path;
 
 pub struct BootromData(pub [u8; 0x100]);
 
@@ -15,6 +16,15 @@ impl Clone for BootromData {
     fn clone(&self) -> BootromData {
         BootromData((*self).0)
     }
+}
+
+fn read_boot_rom(path: &str, expected_model: Option<Model>) -> Bootrom {
+    let bootrom = Bootrom::from_path(&Path::new(path)).unwrap_or_else(|err| {
+        error!("Failed to read boot rom from \"{}\" ({})", path, err);
+        process::exit(1)
+    });
+
+    bootrom
 }
 
 #[derive(Clone)]

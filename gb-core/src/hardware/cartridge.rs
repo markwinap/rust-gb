@@ -6,13 +6,13 @@ pub trait Cartridge: Memory {
 }
 
 pub struct ReadOnlyMemoryCartridge {
-    bytes: Arc<[u8]>,
+    bytes: Arc<Vec<u8>>,
 }
 
 impl Cartridge for ReadOnlyMemoryCartridge {}
 
 impl ReadOnlyMemoryCartridge {
-    pub fn from_bytes(bytes: Arc<[u8]>) -> Self {
+    pub fn from_bytes(bytes: Arc<Vec<u8>>) -> Self {
         Self {
             bytes
         }

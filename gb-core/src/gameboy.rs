@@ -3,6 +3,9 @@ use crate::hardware::{Screen, Hardware};
 use crate::hardware::cartridge::Cartridge;
 use crate::hardware::boot_rom::Bootrom;
 
+pub const SCREEN_HEIGHT: usize = 144;
+pub const SCREEN_WIDTH: usize = 160;
+
 pub struct GameBoy<S: Screen> {
     cpu: Cpu<Hardware<S>>,
     elapsed_cycles: usize,

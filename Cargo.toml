@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 gb-core = { version = "*", path = "gb-core" }
+glium = { version = "0.29", default_features = false, features = [ "glutin" ] }

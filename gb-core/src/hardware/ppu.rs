@@ -4,6 +4,7 @@ use crate::hardware::color_palette::{ColorPalette, Color, ORIGINAL_GREEN};
 use crate::memory::nmmu::Memory;
 use bitflags::bitflags;
 use crate::hardware::interrupt_handler::{InterruptLine, InterruptHandler};
+use crate::gameboy::{SCREEN_HEIGHT, SCREEN_WIDTH};
 
 const TILE_MAP_ADDRESS_0: usize = 0x9800;
 const TILE_MAP_ADDRESS_1: usize = 0x9C00;
@@ -20,8 +21,7 @@ const SPRITE_BYTE_SIZE: usize = 4;
 const SPRITE_HEIGHT: usize = 16;
 const SPRITE_WIDTH: usize = 8;
 
-const SCREEN_HEIGHT: usize = 144;
-const SCREEN_WIDTH: usize = 160;
+
 const SCREEN_FREQUENCY: usize = 60;
 const STAT_UNUSED_MASK: u8 = (1 << 7);
 

@@ -102,7 +102,7 @@ impl Region {
 }
 
 pub struct Rom {
-    pub data: Arc<[u8]>,
+    pub data: Arc<Vec<u8>>,
     pub rom_type: RomType,
     pub rom_size: RomSize,
     pub ram_size: RamSize,
@@ -113,7 +113,7 @@ pub struct Rom {
 }
 
 impl Rom {
-    pub fn from_bytes(bytes: Arc<[u8]>) -> Self {
+    pub fn from_bytes(bytes: Arc<Vec<u8>>) -> Self {
         Self {
             data: bytes.clone(),
             rom_type: RomType::from_u8(bytes[0x147]).unwrap(),
@@ -125,7 +125,7 @@ impl Rom {
         }
     }
 
-    fn resolve_name(data: &Arc<[u8]>) -> String {
+    fn resolve_name(data: &Arc<Vec<u8>>) -> String {
         let new_cartridge = data[0x14b] == 0x33;
         {
             let slice = if new_cartridge {
