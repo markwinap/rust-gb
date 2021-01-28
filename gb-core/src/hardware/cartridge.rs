@@ -21,7 +21,7 @@ impl ReadOnlyMemoryCartridge {
 
 impl Memory for ReadOnlyMemoryCartridge {
     fn set_byte(&mut self, _: u16, _: u8) {
-        panic!("Write not allowed for read only rom")
+       // panic!("Write not allowed for read only rom")
     }
 
     fn get_byte(&self, address: u16) -> Option<u8> {

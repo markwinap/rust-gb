@@ -85,11 +85,11 @@ impl Screen for SynScreen {
     fn set_pixel(&mut self, x: u8, y: u8, color: Color) {
 
       //  let index = SynScreen::index(x, y);
-        println!("Setting pixel! x: {}, y: {}", x, y);
+     //   println!("Setting pixel! x: {}, y: {}", x, y);
         // self.off_screen_buffer.get_mut()[index] = color.red;
         // self.off_screen_buffer.get_mut()[index + 1] = color.green;
         // self.off_screen_buffer.get_mut()[index + 2] = color.blue;
-        println!("Calculated location: {}", y as usize * SCREEN_WIDTH * 3 + x as usize * 3 + 0);
+      //  println!("Calculated location: {}", y as usize * SCREEN_WIDTH * 3 + x as usize * 3 + 0);
         self.off_screen_buffer.get_mut()[y as usize * SCREEN_WIDTH * 3 + x as usize * 3 + 0] = color.red;;
         self.off_screen_buffer.get_mut()[y as usize * SCREEN_WIDTH * 3 + x as usize * 3 + 1] = color.green;
         self.off_screen_buffer.get_mut()[y as usize * SCREEN_WIDTH * 3 + x as usize * 3 + 2] = color.blue;

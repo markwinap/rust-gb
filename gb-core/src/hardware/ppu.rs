@@ -112,6 +112,7 @@ impl<T: Screen> RenderContainer<T> {
         // } else {
         //     self.background_mask.remove(x as usize);
         // }
+       // println!("DoiNG pixel");
         self.screen.set_pixel(x, y, color);
     }
 }
@@ -145,7 +146,7 @@ impl<T: Screen> Ppu<T> {
             scroll_x: 0,
             scroll_y: 0,
             tile_offset: 0,
-            mode: Mode::AccessOam,
+            mode: Mode::HBlank,
             window_x: 0,
             window_y: 0,
             cycle_counter: 0,
@@ -160,20 +161,22 @@ impl<T: Screen> Ppu<T> {
             self.draw_blank_screen();
             return;
         }
-        println!("cycle counter: {}", self.cycle_counter );
+     //   println!("cycle counter: {}", self.cycle_counter );
         self.cycle_counter -= cycles;
 
         if self.cycle_counter <= 0 {
-            println!("start PPU!");
+
             self.scanline = self.scanline.wrapping_add(1);
+           // println!("scanline: {}", self.scanline);
             self.cycle_counter = Mode::VBlank.minimum_cycles();
 
             if self.scanline == SCREEN_HEIGHT as u8 {
                 interrupts.request(InterruptLine::VBLANK, true);
             } else if self.scanline >= SCREEN_HEIGHT as u8 + 10 {
                 self.scanline = 0;
+           //     println!("About to draw!!");
                 self.draw_to_screen();
-            } else {
+            } else if self.scanline < SCREEN_HEIGHT as u8 {
                 self.draw_scan_line();
             }
         }
@@ -184,9 +187,9 @@ impl<T: Screen> Ppu<T> {
     }
 
     fn update_current_mode(&mut self, interrupts: &mut InterruptHandler) -> bool {
-        println!("control: LCD {}", self.control.contains(Control::LCD_ON));
+        //println!("control: LCD {}", self.control.contains(Control::LCD_ON));
         if !self.control.contains(Control::LCD_ON) {
-            println!("LCD OFF");
+          //  println!("LCD OFF");
             self.cycle_counter = Mode::VBlank.minimum_cycles();
             self.mode = Mode::VBlank;
             self.scanline = 0;
@@ -200,6 +203,10 @@ impl<T: Screen> Ppu<T> {
             self.update_current_mode_sec(interrupts, Mode::AccessVram, false);
         } else {
             self.update_current_mode_sec(interrupts, Mode::HBlank, self.stat.contains(Stat::HBLANK_INT));
+        }
+
+        if self.stat.contains(Stat::COMPARE) && self.scanline == self.compare_line {
+            interrupts.request(InterruptLine::STAT, true);
         }
         true
     }
@@ -218,6 +225,7 @@ impl<T: Screen> Ppu<T> {
             self.background_mask.remove(x as usize);
         }
         // self.render_container.screen.set_pixel(x, self.scanline - 1, color);
+     //   println!("THE DRAW");
         self.render_container.draw_pixel(x, self.scanline - 1, color);
     }
 
@@ -307,6 +315,7 @@ impl<T: Screen> Ppu<T> {
         } else {
             &self.video_ram.tile_map0
         };
+    //    dbg!("Debug draw_background_pixel", x, y, self.scroll_y,self.scroll_x, self.scanline);
         let tile = self.tile_at(adjusted_x, y, tile_map);
         let shade = tile.shade_at(adjusted_x, y, &self.background_palette);
         self.draw_pixel(x, shade, self.color_palette.background(shade));
@@ -583,7 +592,7 @@ impl VideoRam {
 
 impl Memory for VideoRam {
     fn set_byte(&mut self, address: u16, value: u8) {
-        println!("Set PPU BYTE address: {:X?} value: {:X?} ", address, value);
+   //     println!("Set PPU BYTE address: {:X?} value: {:X?} ", address, value);
         if address >= TILE_MAP_ADDRESS_0 as u16 {
             self.write_tile_map_byte(address, value);
         } else {

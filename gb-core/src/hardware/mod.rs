@@ -93,7 +93,7 @@ impl<T: Screen> Interface for Hardware<T> {
     }
 
     fn requested_interrupts(&self) -> InterruptLine {
-        self.requested_interrupts()
+        self.interrupt_handler.requested_interrupts
     }
 
     fn change_interrupt_master_enabled(&mut self, boolean: bool) {
