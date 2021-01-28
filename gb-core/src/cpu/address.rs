@@ -23,7 +23,9 @@ impl<T: Interface> Cpu< T> {
     pub fn read_next_word(&mut self) -> u16 {
         let lo = self.read_next_byte();
         let hi = self.read_next_byte();
-        u16::from_le_bytes([lo, hi])
+        let word = u16::from_le_bytes([lo, hi]);
+      //  println!("Word read: {:X?}", word);
+        word
     }
 
     pub fn push_u16(&mut self, value: u16) {
@@ -85,7 +87,7 @@ impl<T: Interface> In16<Reg16> for Cpu<T> {
 
 impl<T: Interface> Out16<Reg16> for Cpu<T> {
     fn write_16(&mut self, dst: Reg16, val: u16) {
-        println!("Inside write reg: {} with value: {}", dst, val);
+      //  println!("Inside write reg: {} with value: {}", dst, val);
         match dst {
             Reg16::AF => self.registers.set_af(val),
             Reg16::BC => self.registers.set_bc(val),
@@ -161,8 +163,8 @@ impl<T: Interface> In16<Addr16> for Cpu<T> {
                 let lo = self.interface.get_byte(addr).unwrap();
                 let hi = self.interface.get_byte(addr.wrapping_add(1)).unwrap();
                 let result = u16::from_le_bytes([lo, hi]);
-                println!("The result of fetch: {}", result);
-                println!("The result of fetch: {}", result);
+            //    println!("The result of fetch: {}", result);
+             //   println!("The result of fetch: {}", result);
                 result
                 // let addr = self.read_next_word();
                 // let lo = self.interface.get_byte(addr).unwrap() as u16;

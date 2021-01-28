@@ -153,16 +153,18 @@ impl<T: Screen> Ppu<T> {
         }
     }
     pub fn step(&mut self, cycles: isize, interrupts: &mut InterruptHandler) {
-        if self.update_current_mode(interrupts) {
+        if !self.update_current_mode(interrupts) {
             return;
         }
-        if self.cycle_counter == 0 {
+        if cycles == 0 {
             self.draw_blank_screen();
             return;
         }
+        println!("cycle counter: {}", self.cycle_counter );
         self.cycle_counter -= cycles;
 
         if self.cycle_counter <= 0 {
+            println!("start PPU!");
             self.scanline = self.scanline.wrapping_add(1);
             self.cycle_counter = Mode::VBlank.minimum_cycles();
 
@@ -182,7 +184,9 @@ impl<T: Screen> Ppu<T> {
     }
 
     fn update_current_mode(&mut self, interrupts: &mut InterruptHandler) -> bool {
+        println!("control: LCD {}", self.control.contains(Control::LCD_ON));
         if !self.control.contains(Control::LCD_ON) {
+            println!("LCD OFF");
             self.cycle_counter = Mode::VBlank.minimum_cycles();
             self.mode = Mode::VBlank;
             self.scanline = 0;
@@ -244,7 +248,9 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn set_control(&mut self, value: u8) {
+        println!("Set CONTROL");
         let new_control = Control::from_bits_truncate(value);
+        dbg!(new_control);
         if !new_control.contains(Control::LCD_ON) && self.control.contains(Control::LCD_ON) {
             // if self.mode != Mode::VBlank {
             //     panic!("Warning! LCD off, but not in VBlank");
@@ -261,6 +267,7 @@ impl<T: Screen> Ppu<T> {
         self.control = new_control;
     }
     pub fn set_stat(&mut self, value: u8) {
+        println!("Set STAT");
         let new_stat = Stat::from_bits_truncate(value);
         self.stat = (self.stat & Stat::COMPARE)
             | (new_stat & Stat::HBLANK_INT)
@@ -345,6 +352,7 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn write_oam(&mut self, reladdr: u8, value: u8) {
+        println!("Set OAM");
         if self.mode == Mode::AccessVram || self.mode == Mode::AccessOam {
             return;
         }
@@ -575,6 +583,7 @@ impl VideoRam {
 
 impl Memory for VideoRam {
     fn set_byte(&mut self, address: u16, value: u8) {
+        println!("Set PPU BYTE address: {:X?} value: {:X?} ", address, value);
         if address >= TILE_MAP_ADDRESS_0 as u16 {
             self.write_tile_map_byte(address, value);
         } else {

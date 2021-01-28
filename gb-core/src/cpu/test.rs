@@ -25,6 +25,7 @@ mod test_load16_sp_hl;
 mod test_pop16;
 mod test_push16;
 mod cb_test;
+mod boot_test;
 
 pub struct TestMachine {
     pub cpu: Cpu<TestHardware>,

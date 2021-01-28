@@ -15,7 +15,13 @@ pub enum Cond {
 
 impl<T: Interface> Cpu<T> {
     pub fn decode(&mut self) -> ((Step, u16), u8) {
-        let foo = match self.op_code {
+        let op_code = self.op_code;
+        // if self.registers.pc > 130 {
+        //     println!("current opcode: {:X?}, current pc: {}", self.op_code, self.registers.pc);
+        // }
+        println!("current opcode: {:X?}, current pc: {}", self.op_code, self.registers.pc);
+
+        let foo = match op_code {
             0x7f => (self.load_8(A, A), 4),
             0x78 => (self.load_8(A, B), 4),
             0x79 => (self.load_8(A, C), 4),
@@ -599,7 +605,9 @@ impl<T: Interface> Cpu<T> {
     pub fn bit<I: Copy>(&mut self, bit: usize, in8: I) -> (Step, u16)
         where Self: In8<I> {
         let value = self.read_8(in8) & (1 << bit);
+
         self.registers.flags.z = value == 0;
+        // println!("z value: {}", self.registers.flags.z);
         self.registers.flags.n = false;
         self.registers.flags.h = true;
         self.handle_return(self.registers.pc)
@@ -930,6 +938,7 @@ impl<T: Interface> Cpu<T> {
     pub fn load_8<I: Copy, O: Copy>(&mut self, out8: O, in8: I) -> (Step, u16)
         where Self: Out8<O> + In8<I> {
         let read = self.read_8(in8);
+        //println!("writing value: {}", read);
         self.write_8(out8, read);
         self.handle_return(self.registers.pc)
     }

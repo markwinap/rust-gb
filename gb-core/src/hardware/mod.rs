@@ -166,7 +166,10 @@ impl<T: Screen> Interface for Hardware<T> {
 
     fn get_byte(&self, address: u16) -> Option<u8> {
         match (address >> 8) as u8 {
-            0x0000 if self.bootrom.is_active() => Some(self.bootrom[address]),
+            0x00 if self.bootrom.is_active() => {
+               // println!("Read boot room: {}", address);
+                Some(self.bootrom[address])
+            },
             0x00..=0x3f => self.cartridge.get_byte(address),
             0x40..=0x7f => self.cartridge.get_byte(address),
             0x80..=0x97 => self.gpu.read_memory(address),

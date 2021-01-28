@@ -2,7 +2,7 @@ use std::sync::Arc;
 use num_traits::FromPrimitive;
 use crate::hardware::cartridge::{Cartridge, ReadOnlyMemoryCartridge};
 
-#[derive(FromPrimitive)]
+#[derive(FromPrimitive, Clone, Copy)]
 pub enum RomType {
     ROM_ONLY = 0x00,
 }
