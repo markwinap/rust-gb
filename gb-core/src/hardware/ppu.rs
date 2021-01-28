@@ -5,6 +5,7 @@ use crate::memory::nmmu::Memory;
 use bitflags::bitflags;
 use crate::hardware::interrupt_handler::{InterruptLine, InterruptHandler};
 use crate::gameboy::{SCREEN_HEIGHT, SCREEN_WIDTH};
+use bitflags::_core::time::Duration;
 
 const TILE_MAP_ADDRESS_0: usize = 0x9800;
 const TILE_MAP_ADDRESS_1: usize = 0x9C00;
@@ -113,6 +114,10 @@ impl<T: Screen> RenderContainer<T> {
         //     self.background_mask.remove(x as usize);
         // }
        // println!("DoiNG pixel");
+        if color.red != 224 && color.green != 251 && color.blue != 210 {
+            dbg!(color);
+        }
+
         self.screen.set_pixel(x, y, color);
     }
 }
@@ -126,6 +131,7 @@ impl<T: Screen> RenderContainer<T> {
 impl<T: Screen> Ppu<T> {
     pub fn new(screen: T) -> Ppu<T> {
         let render: RenderContainer<T> = RenderContainer { screen };
+        let tiles = (0..TILE_COUNT).map(|v| {Tile::newf(v)}).collect::<Vec<Tile>>();
         Ppu {
             render_container: render,
             color_palette: ORIGINAL_GREEN,
@@ -138,7 +144,7 @@ impl<T: Screen> Ppu<T> {
             video_ram: VideoRam {
                 tile_map0: [0; TILE_MAP_SIZE],
                 tile_map1: [0; TILE_MAP_SIZE],
-                tiles: [Tile::new(); TILE_COUNT],
+                tiles: tiles,
             },
             control: Control::empty(),
             stat: Stat::empty(),
@@ -171,6 +177,7 @@ impl<T: Screen> Ppu<T> {
             self.cycle_counter = Mode::VBlank.minimum_cycles();
 
             if self.scanline == SCREEN_HEIGHT as u8 {
+                println!("DOING VBLANK");
                 interrupts.request(InterruptLine::VBLANK, true);
             } else if self.scanline >= SCREEN_HEIGHT as u8 + 10 {
                 self.scanline = 0;
@@ -275,8 +282,9 @@ impl<T: Screen> Ppu<T> {
         self.control = new_control;
     }
     pub fn set_stat(&mut self, value: u8) {
-        println!("Set STAT");
+
         let new_stat = Stat::from_bits_truncate(value);
+
         self.stat = (self.stat & Stat::COMPARE)
             | (new_stat & Stat::HBLANK_INT)
             | (new_stat & Stat::VBLANK_INT)
@@ -519,7 +527,7 @@ bitflags!(
 struct VideoRam {
     tile_map0: [u8; TILE_MAP_SIZE],
     tile_map1: [u8; TILE_MAP_SIZE],
-    tiles: [Tile; TILE_COUNT],
+    tiles: Vec<Tile>,
 
 }
 
@@ -550,6 +558,11 @@ impl VideoRam {
 
     fn write_tile_byte(&mut self, address: u16, value: u8) {
         let virtual_address = address - 0x8000;
+        if  value != 0 {
+           println!("PRE-Write tile");
+           std::thread::sleep(Duration::from_secs(3));
+           println!("Write tile");
+        }
 
         let tile: &mut Tile = &mut self.tiles[virtual_address as usize / TILE_BYTE_SIZE];
         let row_data = virtual_address % TILE_BYTE_SIZE as u16;
@@ -594,6 +607,7 @@ impl Memory for VideoRam {
     fn set_byte(&mut self, address: u16, value: u8) {
    //     println!("Set PPU BYTE address: {:X?} value: {:X?} ", address, value);
         if address >= TILE_MAP_ADDRESS_0 as u16 {
+            println!("Writing to TILE MAP");
             self.write_tile_map_byte(address, value);
         } else {
             self.write_tile_byte(address, value);
@@ -640,9 +654,9 @@ impl From<u8> for TilePixelValue {
     fn from(value: u8) -> Self {
         match value {
             0 => { TilePixelValue::Zero }
-            1 => { TilePixelValue::Zero }
-            2 => { TilePixelValue::Zero }
-            3 => { TilePixelValue::Zero }
+            1 => { TilePixelValue::One }
+            2 => { TilePixelValue::Two }
+            3 => { TilePixelValue::Three }
             _ => { TilePixelValue::Zero }
         }
     }
@@ -675,7 +689,7 @@ impl From<u8> for Shade {
 type TileRow = [TilePixelValue; 8];
 
 #[derive(Copy, Clone)]
-pub struct Tile(u8, [TileRow; 8]);
+pub struct Tile(usize, [TileRow; 8]);
 
 impl Tile {
     fn shade_at(&self, x: u8, y: u8, palette: &Palette) -> Shade {
@@ -684,6 +698,9 @@ impl Tile {
 
     fn new() -> Tile {
         Tile(0, [[TilePixelValue::default(); 8]; 8])
+    }
+    fn newf(tile_number: usize) -> Tile {
+        Tile(tile_number, [[TilePixelValue::default(); 8]; 8])
     }
 }
 

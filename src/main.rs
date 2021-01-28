@@ -1,7 +1,9 @@
 pub mod gl_screen;
+mod fb_screen;
 
 extern crate glium;
 extern crate gb_core;
+
 
 use crate::gl_screen::{GlScreen, render};
 use gb_core::hardware::Screen;
@@ -13,9 +15,10 @@ use gb_core::hardware::rom::Rom;
 use gb_core::hardware::boot_rom::{BootromData, Bootrom};
 use std::ops::{Deref, DerefMut};
 use gb_core::hardware::color_palette::Color;
-use std::sync::mpsc::{sync_channel, SyncSender};
+use std::sync::mpsc::{sync_channel, SyncSender, Receiver};
 use std::cell::RefCell;
 use std::time::Duration;
+use crate::fb_screen::FbScreen;
 
 fn main() {
     construct_cpu()
@@ -25,43 +28,67 @@ fn main() {
 pub fn construct_cpu() {
     let boot_rom = std::path::PathBuf::from("C:\\gbrom\\dmg_boot.bin");
     let rom = std::path::PathBuf::from("C:\\gbrom\\tetris.gb");
-    let mut eventloop = glium::glutin::event_loop::EventLoop::new();
-
-
     let (sender2, receiver2) = mpsc::sync_channel::<Box<[u8; SCREEN_PIXELS]>>(1);
-    let mut gl_screen = GlScreen::init("foo".to_string(), &mut eventloop, receiver2);
+
+    let mut eventloop = glium::glutin::event_loop::EventLoop::new();
+    let gl_screen = GlScreen::init("foo".to_string(), &mut eventloop, receiver2);
+    //let fb_screen = FbScreen::init("".to_string(), receiver2);
+
     let sync_screen = SynScreen { sender: sender2, off_screen_buffer: RefCell::new(Box::new([0; SCREEN_PIXELS])) };
     let rom_bytes = std::path::PathBuf::from(rom);
     let mut data: Vec<u8> = vec![];
-    let file_rom = File::open(&rom_bytes).and_then(|mut f| f.read_to_end(&mut data)).map_err(|_| "Could not read ROM").unwrap();
-    // let fjf = data.as_slice()
-
-   // let gl_screenArc = Arc::new(RwLock::new(gl_screen));
+    File::open(&rom_bytes).and_then(|mut f| f.read_to_end(&mut data)).map_err(|_| "Could not read ROM").unwrap();
 
     let mut file = File::open(boot_rom).unwrap();
     let mut data2 = Box::new(BootromData::new());
     file.read_exact(&mut (data2.deref_mut()).0).unwrap();
     let boot_room_stuff = Bootrom::new(Some(Arc::new(*data2)));
 
-    // let thread_handler = render(gl_screen);
-    //  thread_handler.join();
 
-    let cputhread = std::thread::spawn(move|| {
+    let cputhread = std::thread::spawn(move || {
+        let periodic = timer_periodic(16);
+        let mut limit_speed = true;
+
+        let waitticks = (4194304f64 / 1000.0 * 16.0).round() as u32;
+        let mut ticks = 0;
+
         let rom = Rom::from_bytes(Arc::new(data).clone());
         let rom_type = rom.rom_type;
         let cart = rom_type.to_cartridge(&rom);
         let mut gameboy = GameBoy::create(sync_screen, cart, boot_room_stuff);
-        while true {
-         //   println!("In loop");
-            //std::thread::sleep(Duration::from_millis(2));
-            gameboy.tick()
+        // while true {
+        //  //   println!("In loop");
+        //     //std::thread::sleep(Duration::from_millis(2));
+        //     ticks += gameboy.tick()
+        // }
+
+        'outer: loop {
+            while ticks < waitticks {
+                ticks += gameboy.tick() as u32
+            }
+
+            ticks -= waitticks;
+
+            if limit_speed { let _ = periodic.recv(); }
         }
     });
 
     render(gl_screen);
-
+    //FbScreen::render(fb_screen);
     cputhread.join();
+}
 
+fn timer_periodic(ms: u64) -> Receiver<()> {
+    let (tx, rx) = std::sync::mpsc::sync_channel(1);
+    std::thread::spawn(move || {
+        loop {
+            std::thread::sleep(std::time::Duration::from_millis(ms));
+            if tx.send(()).is_err() {
+                break;
+            }
+        }
+    });
+    rx
 }
 
 pub struct SynScreen {
@@ -74,23 +101,24 @@ impl SynScreen {
         3 * ((y as usize * SCREEN_WIDTH) + x as usize)
     }
 }
+
 impl Screen for SynScreen {
     fn turn_on(&mut self) {
         //  unimplemented!()
     }
 
-    fn turn_off(&mut self) {
-    }
+    fn turn_off(&mut self) {}
 
     fn set_pixel(&mut self, x: u8, y: u8, color: Color) {
 
-      //  let index = SynScreen::index(x, y);
-     //   println!("Setting pixel! x: {}, y: {}", x, y);
+        //  let index = SynScreen::index(x, y);
+        //   println!("Setting pixel! x: {}, y: {}", x, y);
         // self.off_screen_buffer.get_mut()[index] = color.red;
         // self.off_screen_buffer.get_mut()[index + 1] = color.green;
         // self.off_screen_buffer.get_mut()[index + 2] = color.blue;
-      //  println!("Calculated location: {}", y as usize * SCREEN_WIDTH * 3 + x as usize * 3 + 0);
-        self.off_screen_buffer.get_mut()[y as usize * SCREEN_WIDTH * 3 + x as usize * 3 + 0] = color.red;;
+        //  println!("Calculated location: {}", y as usize * SCREEN_WIDTH * 3 + x as usize * 3 + 0);
+        self.off_screen_buffer.get_mut()[y as usize * SCREEN_WIDTH * 3 + x as usize * 3 + 0] = color.red;
+        ;
         self.off_screen_buffer.get_mut()[y as usize * SCREEN_WIDTH * 3 + x as usize * 3 + 1] = color.green;
         self.off_screen_buffer.get_mut()[y as usize * SCREEN_WIDTH * 3 + x as usize * 3 + 2] = color.blue;
     }

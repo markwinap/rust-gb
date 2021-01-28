@@ -80,7 +80,7 @@ pub fn render(mut screen: GlScreen) {
     //  let mut texture = screen.texture;
    // let mut pixel_buffer = screen.pixel_buffer;
    // let mut rw_lock = screen.rw_lock;
-    let mut receiver = screen.receiver;
+    let receiver = screen.receiver;
     even_loop.run_return(move |event, _evtarget, controlflow| {
         let mut stop = false;
         match event {
@@ -184,6 +184,8 @@ fn recalculate_screen(display: &glium::Display,
         glium::uniforms::MagnifySamplerFilter::Nearest
     };
 
+    println!("about to draw!");
+
     let rawimage2d = glium::texture::RawImage2d {
         data: std::borrow::Cow::Borrowed(datavec),
         width: SCREEN_WIDTH as u32,
@@ -192,25 +194,26 @@ fn recalculate_screen(display: &glium::Display,
     };
 
 
-    // let mut texture = glium::texture::texture2d::Texture2d::empty_with_format(
-    //     display,
-    //     glium::texture::UncompressedFloatFormat::U8U8U8,
-    //     glium::texture::MipmapsOption::NoMipmap,
-    //     SCREEN_WIDTH as u32,
-    //     SCREEN_HEIGHT as u32)
-    //     .unwrap();
-
-    let mut texture = glium::texture::texture2d::Texture2d::new(display, rawimage2d)
+    let mut texture = glium::texture::texture2d::Texture2d::empty_with_format(
+        display,
+        glium::texture::UncompressedFloatFormat::U8U8U8,
+        glium::texture::MipmapsOption::NoMipmap,
+        SCREEN_WIDTH as u32,
+        SCREEN_HEIGHT as u32)
         .unwrap();
 
-    // texture.write(
-    //     glium::Rect {
-    //         left: 0,
-    //         bottom: 0,
-    //         width: SCREEN_WIDTH as u32,
-    //         height: SCREEN_HEIGHT as u32,
-    //     },
-    //     rawimage2d);
+    //GOOD
+    // let mut texture = glium::texture::texture2d::Texture2d::new(display, rawimage2d)
+    //     .unwrap();
+
+    texture.write(
+        glium::Rect {
+            left: 0,
+            bottom: 0,
+            width: SCREEN_WIDTH as u32,
+            height: SCREEN_HEIGHT as u32,
+        },
+        rawimage2d);
 
     // We use a custom BlitTarget to transform OpenGL coordinates to row-column coordinates
     let target = display.draw();

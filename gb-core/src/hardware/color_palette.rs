@@ -1,6 +1,6 @@
 use crate::hardware::ppu::Shade;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Color {
     pub red: u8,
     pub green: u8,

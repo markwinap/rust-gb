@@ -25,12 +25,13 @@ impl<S: Screen> GameBoy<S> {
 
 
 impl<S: Screen> GameBoy<S> {
-    pub fn tick(&mut self) {
+    pub fn tick(&mut self) -> u8{
         let cycles = self.cpu.step();
        // println!("Current PC: {}", self.cpu.registers.pc);
         let interrupts = &mut self.cpu.interface.interrupt_handler;
         self.cpu.interface.timer.do_cycle(cycles as u32, interrupts);
         self.cpu.interface.gpu.step(cycles as isize, interrupts);
         self.cpu.interface.cartridge.step();
+        cycles
     }
 }

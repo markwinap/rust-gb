@@ -8,6 +8,7 @@ use crate::hardware::cartridge::Cartridge;
 use crate::hardware::boot_rom::{BootromData, Bootrom};
 use crate::hardware::ppu::Ppu;
 use crate::memory::nmmu::Memory;
+use std::time::Duration;
 
 pub mod ppu;
 pub mod color_palette;
@@ -106,7 +107,7 @@ impl<T: Screen> Interface for Hardware<T> {
 
     fn set_byte(&mut self, address: u16, value: u8) {
         match (address >> 8) as u8 {
-            0x0000 if self.bootrom.is_active() => {}
+            0x00 if self.bootrom.is_active() => {}
             0x00..=0x7f => self.cartridge.set_byte(address, value),
             0x80..=0x97 => self.gpu.get_memory_as_mut().set_byte(address, value),
             0x98..=0x9b => self.gpu.get_memory_as_mut().set_byte(address, value),
@@ -151,7 +152,10 @@ impl<T: Screen> Interface for Hardware<T> {
                 0x4a => self.gpu.set_window_y(value),
                 0x4b => self.gpu.set_window_x(value),
                 0x50 => {
+                    println!("DEACTIVATE BOOT");
                     if self.bootrom.is_active() && value & 0b1 != 0 {
+                        println!("DEACTIVATE BOOT");
+                        std::thread::sleep(Duration::from_secs(5));
                         self.bootrom.deactivate();
                     }
                 }
