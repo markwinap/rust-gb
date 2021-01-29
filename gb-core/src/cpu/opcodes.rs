@@ -16,13 +16,14 @@ pub enum Cond {
 impl<T: Interface> Cpu<T> {
     pub fn decode(&mut self) -> ((Step, u16), u8) {
         let op_code = self.op_code;
+
         // if self.registers.pc > 130 {
         //     println!("current opcode: {:X?}, current pc: {}", self.op_code, self.registers.pc);
         // }
       //  println!("current opcode: {:#04X?}, current pc: {:#06X?}", self.op_code, self.registers.pc.wrapping_sub(1));
-        if self.registers.pc > 0x00FF {
-            panic!("Jumped too far")
-        }
+      //   if self.registers.pc > 0x00FF {
+      //       panic!("Jumped too far")
+      //   }
 
         let foo = match op_code {
             0x7f => (self.load_8(A, A), 4),

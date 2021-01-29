@@ -114,9 +114,12 @@ impl<T: Screen> RenderContainer<T> {
         //     self.background_mask.remove(x as usize);
         // }
        // println!("DoiNG pixel");
-        if color.red != 224 && color.green != 251 && color.blue != 210 {
-            dbg!(color);
-        }
+       //  if color.red != 224 && color.green != 251 && color.blue != 210 {
+       //      println!("Print non light");
+       //      std::thread::sleep(Duration::from_secs(3));
+       //      dbg!(color);
+       //      println!("DONE non light");
+       //  }
 
         self.screen.set_pixel(x, y, color);
     }
@@ -177,7 +180,7 @@ impl<T: Screen> Ppu<T> {
             self.cycle_counter = Mode::VBlank.minimum_cycles();
 
             if self.scanline == SCREEN_HEIGHT as u8 {
-                println!("DOING VBLANK");
+               // println!("DOING VBLANK");
                 interrupts.request(InterruptLine::VBLANK, true);
             } else if self.scanline >= SCREEN_HEIGHT as u8 + 10 {
                 self.scanline = 0;
@@ -258,6 +261,7 @@ impl<T: Screen> Ppu<T> {
             }
         }
         if self.control.contains(Control::OBJ_ON) {
+            print!("draw objecrts");
             self.draw_sprites();
         }
     }
@@ -325,7 +329,13 @@ impl<T: Screen> Ppu<T> {
         };
     //    dbg!("Debug draw_background_pixel", x, y, self.scroll_y,self.scroll_x, self.scanline);
         let tile = self.tile_at(adjusted_x, y, tile_map);
+        // if x == 32 && y == 79 {
+        //     println!("Print non light");
+        //     std::thread::sleep(Duration::from_secs(3));
+        //     dbg!(x, y);
+        // }
         let shade = tile.shade_at(adjusted_x, y, &self.background_palette);
+
         self.draw_pixel(x, shade, self.color_palette.background(shade));
     }
 
@@ -553,15 +563,21 @@ impl VideoRam {
             offset_address = address - TILE_MAP_ADDRESS_1 as u16;
             &mut self.tile_map1
         };
+        // if value != 0 {
+        //     println!("PRE-write_tile_map_byte");
+        //     std::thread::sleep(Duration::from_secs(3));
+        //     println!("write_tile_map_byte");
+        // }
+
         tile_map[offset_address as usize] = value;
     }
 
     fn write_tile_byte(&mut self, address: u16, value: u8) {
         let virtual_address = address - 0x8000;
         if  value != 0 {
-           println!("PRE-Write tile");
-           std::thread::sleep(Duration::from_secs(3));
-           println!("Write tile");
+           // println!("PRE-Write tile");
+           // std::thread::sleep(Duration::from_secs(3));
+           // println!("Write tile");
         }
 
         let tile: &mut Tile = &mut self.tiles[virtual_address as usize / TILE_BYTE_SIZE];
@@ -607,7 +623,7 @@ impl Memory for VideoRam {
     fn set_byte(&mut self, address: u16, value: u8) {
    //     println!("Set PPU BYTE address: {:X?} value: {:X?} ", address, value);
         if address >= TILE_MAP_ADDRESS_0 as u16 {
-            println!("Writing to TILE MAP");
+          //  println!("Writing to TILE MAP");
             self.write_tile_map_byte(address, value);
         } else {
             self.write_tile_byte(address, value);
@@ -633,10 +649,10 @@ pub enum Shade {
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum TilePixelValue {
-    Zero,
-    One,
-    Two,
-    Three,
+    Zero =0 ,
+    One =1,
+    Two = 2,
+    Three =3 ,
 }
 
 impl Into<u8> for TilePixelValue {
@@ -693,7 +709,13 @@ pub struct Tile(usize, [TileRow; 8]);
 
 impl Tile {
     fn shade_at(&self, x: u8, y: u8, palette: &Palette) -> Shade {
-        palette.shade(self.1[(y as usize % TILE_HEIGHT)][(x as usize % TILE_WIDTH)])
+        let input = self.1[(y as usize % TILE_HEIGHT)][(x as usize % TILE_WIDTH)];
+        // if x == 32 && y == 79 {
+        //     println!("shade_at light");
+        //     std::thread::sleep(Duration::from_secs(3));
+        //     dbg!(x, y);
+        // }
+        palette.shade(input)
     }
 
     fn new() -> Tile {
@@ -749,6 +771,7 @@ impl Sprite {
         }
 
         let iter = (0..SPRITE_WIDTH).map(move |i| {
+            println!("IN SPRIT LOOP");
             let mut x = i;
             let mut y = ppu.scanline - self.y;
             if self.flags.contains(SpriteFlags::FLIPX) { x = 7 - x; }
@@ -775,6 +798,11 @@ impl Sprite {
                 } else {
                     background_mask.remove(x as usize);
                 }
+                // if shade != Shade::LIGHTEST {
+                //     println!("foo");
+                //     std::thread::sleep(Duration::from_secs(3));
+                //     println!("fooDONE");
+                // }
                 Some((self.x + i as u8, shade, color))
             }
         }).filter(|val| { val.is_some() })
@@ -789,12 +817,22 @@ pub struct Palette(u8);
 
 impl Palette {
     pub fn shade(&self, input: TilePixelValue) -> Shade {
-        match input {
-            TilePixelValue::Zero => { Shade::from((self.0 >> 0) & 0x3) }
-            TilePixelValue::One => { Shade::from((self.0 >> 2) & 0x3) }
-            TilePixelValue::Two => { Shade::from((self.0 >> 4) & 0x3) }
-            TilePixelValue::Three => { Shade::from((self.0 >> 6) & 0x3) }
+        let offset = input as u16 * 2;
+        let mask =  (0b0000_0011 << offset);
+        let result  =  (self.0 & mask) >> offset;
+        match result {
+            0 => Shade::LIGHTEST,
+            1 => Shade::LIGHT,
+            2 => Shade::DARK,
+            3 => Shade::DARKEST,
+            _ => Shade::LIGHTEST
         }
+        // match input {
+        //     TilePixelValue::Zero => { Shade::from((self.0 >> 0) & 0x3) }
+        //     TilePixelValue::One => { Shade::from((self.0 >> 2) & 0x3) }
+        //     TilePixelValue::Two => { Shade::from((self.0 >> 4) & 0x3) }
+        //     TilePixelValue::Three => { Shade::from((self.0 >> 6) & 0x3) }
+        // }
     }
 }
 

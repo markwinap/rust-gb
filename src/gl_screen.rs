@@ -184,7 +184,7 @@ fn recalculate_screen(display: &glium::Display,
         glium::uniforms::MagnifySamplerFilter::Nearest
     };
 
-    println!("about to draw!");
+
 
     let rawimage2d = glium::texture::RawImage2d {
         data: std::borrow::Cow::Borrowed(datavec),

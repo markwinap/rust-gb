@@ -46,7 +46,7 @@ impl FbScreen {
                     | (pixel[1] as u32) << 8
                     | (pixel[0] as u32)
         }
-        println!("About to draw");
+
         window.update_with_buffer(&buffer, SCREEN_WIDTH, SCREEN_HEIGHT).unwrap();
     }
 }
