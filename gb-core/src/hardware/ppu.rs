@@ -771,7 +771,7 @@ impl Sprite {
         }
 
         let iter = (0..SPRITE_WIDTH).map(move |i| {
-            println!("IN SPRIT LOOP");
+           // println!("IN SPRIT LOOP");
             let mut x = i;
             let mut y = ppu.scanline - self.y;
             if self.flags.contains(SpriteFlags::FLIPX) { x = 7 - x; }

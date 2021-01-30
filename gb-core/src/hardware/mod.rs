@@ -209,7 +209,7 @@ impl<T: Screen> Interface for Hardware<T> {
             }
             0xff => {
                 match address as u8 {
-                    0x00 => Some(0b0), //Joypad
+                    0x00 => Some(0b0000_1111), //Joypad
                     0x01 => Some(0b0), //Serial
                     0x02 => Some(0b0), //Serial
                     0x04 => self.timer.get_byte(address),

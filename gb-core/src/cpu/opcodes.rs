@@ -28,11 +28,11 @@ impl<T: Interface> Cpu<T> {
             self.tick_count = self.tick_count + 1;
         }
 
-        if self.tick_count == 2279219 {
-            println!("found!!");
-            std::thread::sleep(Duration::from_secs(3));
-            println!("done found");
-        }
+        // if self.tick_count == 2279219 {
+        //     println!("found!!");
+        //     std::thread::sleep(Duration::from_secs(3));
+        //     println!("done found");
+        // }
         // if self.tick_count == 2279244 {
         //  //   println!("found!!");
         //     //std::thread::sleep(Duration::from_secs(3));
