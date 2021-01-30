@@ -261,15 +261,15 @@ impl<T: Screen> Ppu<T> {
             }
         }
         if self.control.contains(Control::OBJ_ON) {
-            print!("draw objecrts");
+         //   print!("draw objecrts");
             self.draw_sprites();
         }
     }
 
     pub fn set_control(&mut self, value: u8) {
-        println!("Set CONTROL");
+    //    println!("Set CONTROL");
         let new_control = Control::from_bits_truncate(value);
-        dbg!(new_control);
+      //  dbg!(new_control);
         if !new_control.contains(Control::LCD_ON) && self.control.contains(Control::LCD_ON) {
             // if self.mode != Mode::VBlank {
             //     panic!("Warning! LCD off, but not in VBlank");
@@ -379,7 +379,7 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn write_oam(&mut self, reladdr: u8, value: u8) {
-        println!("Set OAM");
+//        println!("Set OAM");
         if self.mode == Mode::AccessVram || self.mode == Mode::AccessOam {
             return;
         }

@@ -1,4 +1,4 @@
-use crate::cpu::address::Cpu;
+use crate::cpu::address::{Cpu, PrevExec};
 use crate::cpu::registers::Registers;
 use crate::hardware::interrupt_handler::InterruptLine;
 
@@ -47,6 +47,9 @@ impl<T: Interface> Cpu<T> {
             op_code: 0x00,
             interface,
             state: Step::Run,
+            found: false,
+            prev_opcode: PrevExec::default(),
+            tick_count: 0,
         }
     }
 }
@@ -55,14 +58,15 @@ impl<T: Interface> Cpu<T> {
     pub fn step(&mut self) -> u8 {
         let (cycles, step) = match self.state {
             Step::Run => {
+             //   self.interface.step();
                 let ((step, _), cycles) = self.decode();
-                self.interface.step();
                 (cycles, step)
             }
             Step::Interrupt => {
                 self.interface.change_interrupt_master_enabled(false);
                 let interrupt = self.interface.requested_interrupts().highest_priority();
                 self.interface.acknowledge(interrupt);
+                self.push_u16(self.registers.pc);
                 self.registers.pc = match interrupt {
                     InterruptLine::VBLANK => 0x0040,
                     InterruptLine::STAT => 0x0048,
@@ -72,8 +76,9 @@ impl<T: Interface> Cpu<T> {
                     _ => 0x0000,
                 };
                 self.op_code = self.interface.get_byte(self.registers.pc).unwrap();
+                self.registers.pc = self.registers.pc.wrapping_add(1);
                 self.interface.step();
-                (0, Step::Run)
+                (20, Step::Run)
             }
             Step::Halt => {
                 if self.interface.any_enabled() {

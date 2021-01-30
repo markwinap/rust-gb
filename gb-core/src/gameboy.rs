@@ -26,6 +26,9 @@ impl<S: Screen> GameBoy<S> {
 
 impl<S: Screen> GameBoy<S> {
     pub fn tick(&mut self) -> u8{
+        if !self.cpu.interface.bootrom.is_active() && self.cpu.registers.pc > 634{
+     //       println!("current opcode: {:#04X?}, current pc: {}", self.cpu.op_code, self.cpu.registers.pc);
+        }
         let cycles = self.cpu.step();
        // println!("Current PC: {}", self.cpu.registers.pc);
         let interrupts = &mut self.cpu.interface.interrupt_handler;

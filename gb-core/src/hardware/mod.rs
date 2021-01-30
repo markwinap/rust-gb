@@ -44,7 +44,7 @@ pub struct Hardware<T: Screen> {
     pub timer: Timer,
     pub cartridge: Box<dyn Cartridge>,
     pub gpu: Ppu<T>,
-    bootrom: Bootrom,
+    pub bootrom: Bootrom,
     dma: Dma,
 }
 
@@ -152,14 +152,21 @@ impl<T: Screen> Interface for Hardware<T> {
                 0x4a => self.gpu.set_window_y(value),
                 0x4b => self.gpu.set_window_x(value),
                 0x50 => {
-                    println!("DEACTIVATE BOOT");
+                 //   println!("DEACTIVATE BOOT");
                     if self.bootrom.is_active() && value & 0b1 != 0 {
-                        println!("DEACTIVATE BOOT");
+               //         println!("DEACTIVATE BOOT");
                         std::thread::sleep(Duration::from_secs(5));
                         self.bootrom.deactivate();
                     }
                 }
-                0x80..=0xfe => self.hiram[(address as usize) & 0x7f] = value,
+                0x80..=0xfe => {
+                    if value == 255 && (((address as usize) & 0x7f) == 0) {
+                        println!("weird!!");
+                        std::thread::sleep(Duration::from_secs(3));
+                        println!("weird done!!");
+                    }
+                    self.hiram[(address as usize) & 0x7f] = value
+                },
                 0xff => self.interrupt_handler.set_enabled_interrupts_flag(value),
                 _ => ()
             }

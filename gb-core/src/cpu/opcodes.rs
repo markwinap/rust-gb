@@ -3,6 +3,7 @@ use crate::cpu::address::{Cpu, Out8, In8, Addr, Immediate8, ReadOffType, In16, O
 use crate::cpu::registers::Reg8::{A, B, C, D, E, H, L};
 use crate::cpu::registers::Reg16;
 use crate::util::int::IntExt;
+use std::time::Duration;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Cond {
@@ -17,13 +18,34 @@ impl<T: Interface> Cpu<T> {
     pub fn decode(&mut self) -> ((Step, u16), u8) {
         let op_code = self.op_code;
 
-        // if self.registers.pc > 130 {
-        //     println!("current opcode: {:X?}, current pc: {}", self.op_code, self.registers.pc);
+        // if self.registers.pc == 10295  {
+        //     self.found = true;
+        //     println!("found current opcode: {:#04X?}, current pc: {}", self.op_code, self.registers.pc);
+        //     std::thread::sleep(Duration::from_secs(3));
+        //     println!("found current opcode: {:#04X?}, current pc: {}", self.op_code, self.registers.pc);
         // }
-      //  println!("current opcode: {:#04X?}, current pc: {:#06X?}", self.op_code, self.registers.pc.wrapping_sub(1));
-      //   if self.registers.pc > 0x00FF {
-      //       panic!("Jumped too far")
-      //   }
+        if !(self.registers.pc == 0  && self.op_code == 0) {
+            self.tick_count = self.tick_count + 1;
+        }
+
+        if self.tick_count == 2279219 {
+            println!("found!!");
+            std::thread::sleep(Duration::from_secs(3));
+            println!("done found");
+        }
+        // if self.tick_count == 2279244 {
+        //  //   println!("found!!");
+        //     //std::thread::sleep(Duration::from_secs(3));
+        //    // println!("done found");
+        //     println!("::{}::current opcode: {:#04X?}, current pc: {} a: {} b: {} c: {} d: {} e: {} h: {} l: {} f: {}", self.tick_count, self.op_code, self.registers.pc, self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.registers.flags.read_value());
+        //     panic!("adios")
+        // } else {
+        //     println!("::{}::current opcode: {:#04X?}, current pc: {} a: {} b: {} c: {} d: {} e: {} h: {} l: {} f: {}", self.tick_count, self.op_code, self.registers.pc, self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.registers.flags.read_value());
+        // }
+
+        self.prev_opcode.prev_opcode = op_code;
+        self.prev_opcode.prev_pc = self.registers.pc;
+        let foo = 23;
 
         let foo = match op_code {
             0x7f => (self.load_8(A, A), 4),
@@ -746,6 +768,7 @@ impl<T: Interface> Cpu<T> {
 
     pub(crate) fn handle_return(&mut self, address: u16) -> (Step, u16) {
         self.op_code = self.interface.get_byte(address).unwrap();
+        self.interface.step();
         if self.interface.interrupt_master_enabled() && self.interface.any_enabled() {
             (Step::Interrupt, address)
         } else {
@@ -757,6 +780,7 @@ impl<T: Interface> Cpu<T> {
     pub fn halt(&mut self) -> (Step, u16) {
         //TODO: Do I need to increment PC?
         self.op_code = self.interface.get_byte(self.registers.pc).unwrap();
+        self.interface.step();
         if self.interface.any_enabled() {
             if self.interface.interrupt_master_enabled() {
                 (Step::Interrupt, self.registers.pc)
@@ -769,13 +793,13 @@ impl<T: Interface> Cpu<T> {
             (Step::Halt, self.registers.pc)
         }
     }
-
     pub fn stop(&mut self) -> (Step, u16) {
         panic!("adios! :p ")
     }
 
     pub fn di(&mut self) -> (Step, u16) {
         // self.ime = false;
+        self.interface.step();
         self.interface.set_interrupt_disabled(true);
         self.op_code = self.read_next_byte();
         (Step::Run, self.registers.pc.wrapping_add(1)) //TODO Do we increment? it has already been incremented
@@ -785,6 +809,7 @@ impl<T: Interface> Cpu<T> {
         let return_value = self.handle_return(self.registers.pc);
         //self.ime = false;
         self.interface.set_interrupt_disabled(false);
+        self.interface.step();
         return_value
     }
 
@@ -904,6 +929,11 @@ impl<T: Interface> Cpu<T> {
 
     pub fn call(&mut self) -> (Step, u16) {
         let address = self.read_next_word();
+        // if self.registers.pc == 675 {
+        //     println!("enter call");
+        //     std::thread::sleep(Duration::from_secs(3));
+        //     println!("end call");
+        // }
         self.ctr_call(address)
     }
 
@@ -1018,7 +1048,8 @@ impl<T: Interface> Cpu<T> {
         self.registers.a &= value;
         self.registers.flags.z = self.registers.a == 0;
         self.registers.flags.n = false;
-        self.registers.flags.n = false;
+        self.registers.flags.h = true;
+        self.registers.flags.c = false;
         self.handle_return(self.registers.pc)
     }
 

@@ -6,8 +6,15 @@ pub struct Cpu< T: Interface> {
     pub op_code: u8,
     pub interface: T,
     pub state: Step,
+    pub found: bool,
+    pub prev_opcode: PrevExec,
+    pub tick_count: usize,
 }
-
+#[derive(Default)]
+pub struct PrevExec {
+    pub prev_opcode: u8,
+    pub prev_pc: u16,
+}
 impl<T: Interface> Cpu< T> {
 
     pub fn get_interface(&mut self) -> &mut T {
@@ -260,7 +267,12 @@ impl<T: Interface> In8<Addr> for Cpu<T> {
                     ReadOffType::Register(r) => self.read_8(r),
                     ReadOffType::Immediate8 => self.read_8(Immediate8),
                 };
-                self.interface.get_byte(0xFF00 | offset as u16).unwrap()
+                let some = 3;
+                let ass_off = offset as u16;
+                let my_pony = 3;
+                let the_value = self.interface.get_byte(0xFF00 | offset as u16).unwrap();
+                let my_ponyy=  3;
+                the_value
             }
         }
     }
