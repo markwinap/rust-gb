@@ -1004,7 +1004,6 @@ impl<T: Interface> Cpu<T> {
         where Self: Read8<I> {
         let value = self.read_8(in8);
         let (result, carry) = (self.registers.a).overflowing_add(value);
-        let fpo = (self.registers.a).overflowing_add(value);
 
         let half_carry = (self.registers.a & 0x0f).checked_add(value | 0xf0).is_none();
         self.registers.flags.z = result == 0;

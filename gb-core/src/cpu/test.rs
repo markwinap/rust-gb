@@ -26,6 +26,7 @@ mod test_pop16;
 mod test_push16;
 mod cb_test;
 mod boot_test;
+mod test_roms;
 
 pub struct TestMachine {
     pub cpu: Cpu<TestHardware>,
@@ -121,3 +122,5 @@ pub fn run_test(instructions: &[u8], init: impl Fn(&mut TestMachine)) -> TestMac
     }
     machine
 }
+
+
