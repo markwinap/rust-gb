@@ -2,25 +2,25 @@ use gb_core::hardware::Screen;
 use gb_core::hardware::color_palette::Color;
 
 use std::sync::{Arc, RwLock, Mutex};
-use gb_core::gameboy::{SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_PIXELS};
+use gb_core::gameboy::{SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_PIXELS, GbEvents};
 use glium::glutin::event_loop::EventLoop;
-use std::sync::mpsc::{self, Receiver, SyncSender, TryRecvError, TrySendError};
+use std::sync::mpsc::{self, Receiver, SyncSender, TryRecvError, TrySendError, Sender};
 use std::cell::RefCell;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::JoinHandle;
 use glium::glutin::platform::run_return::EventLoopExtRunReturn;
-use glium::glutin::event::{Event, WindowEvent};
+use glium::glutin::event::{Event, WindowEvent, VirtualKeyCode};
 use std::time::Duration;
-
-
+use gb_core::hardware::input::Button;
+use glium::glutin::event::WindowEvent::KeyboardInput;
 
 
 // #[derive(Sync, Send)]
 pub struct GlScreen<'a> {
     rw_lock: Arc<RwLock<bool>>,
     turned_on: AtomicBool,
-  //  pixel_buffer: RefCell<[u8; SCREEN_PIXELS]>,
- //   off_screen_buffer: RefCell<[u8; SCREEN_PIXELS]>,
+    //  pixel_buffer: RefCell<[u8; SCREEN_PIXELS]>,
+    //   off_screen_buffer: RefCell<[u8; SCREEN_PIXELS]>,
     render_options: RenderOptions,
     receiver: Receiver<Box<[u8; SCREEN_PIXELS]>>,
     // sender: SyncSender<()>,
@@ -74,26 +74,42 @@ impl<'a> GlScreen<'a> {
     // }
 }
 
-pub fn render(mut screen: GlScreen) {
+pub fn render(mut screen: GlScreen, sender: Sender<GbEvents>) {
+    use glium::glutin::event::{Event, WindowEvent, KeyboardInput};
+    use glium::glutin::event::ElementState::{Pressed, Released};
+    use glium::glutin::event::VirtualKeyCode;
+
     let even_loop = screen.event_loop;
     let mut display = screen.display;
-    //  let mut texture = screen.texture;
-   // let mut pixel_buffer = screen.pixel_buffer;
-   // let mut rw_lock = screen.rw_lock;
+
     let receiver = screen.receiver;
     even_loop.run_return(move |event, _evtarget, controlflow| {
         let mut stop = false;
         match event {
             Event::WindowEvent { event, .. } => match event {
-                WindowEvent::CloseRequested
-                => stop = true,
+                WindowEvent::CloseRequested => stop = true,
+                WindowEvent::KeyboardInput { input, .. } => match input {
+                    KeyboardInput { state: Pressed, virtual_keycode: Some(VirtualKeyCode::Escape), .. }
+                    => stop = true,
+                    KeyboardInput { state: Pressed, virtual_keycode: Some(glutinkey), .. } => {
+                        if let Some(key) = glium_key_to_button(glutinkey) {
+                            let _ = sender.send(GbEvents::KeyDown(key));
+                        }
+                    }
+                    KeyboardInput { state: Released, virtual_keycode: Some(glutinkey), .. } => {
+                        if let Some(key) = glium_key_to_button(glutinkey) {
+                            let _ = sender.send(GbEvents::KeyUp(key));
+                        }
+                    }
+                    _ => (),
+                },
                 _ => ()
             },
             Event::MainEventsCleared => {
 
                 // the returned read_guard also implements `Deref`
                 match receiver.recv() {
-                    Ok( data) => recalculate_screen(&mut display, &data, &Default::default()),
+                    Ok(data) => recalculate_screen(&mut display, &data, &Default::default()),
                     Err(..) => stop = true, // Remote end has hung-up
                 }
             }
@@ -185,7 +201,6 @@ fn recalculate_screen(display: &glium::Display,
     };
 
 
-
     let rawimage2d = glium::texture::RawImage2d {
         data: std::borrow::Cow::Borrowed(datavec),
         width: SCREEN_WIDTH as u32,
@@ -228,4 +243,20 @@ fn recalculate_screen(display: &glium::Display,
         },
         interpolation_type);
     target.finish().unwrap();
+}
+
+
+fn glium_key_to_button(key: glium::glutin::event::VirtualKeyCode) -> Option<Button> {
+    use glium::glutin::event::VirtualKeyCode;
+    match key {
+        VirtualKeyCode::Z => Some(Button::A),
+        VirtualKeyCode::X => Some(Button::B),
+        VirtualKeyCode::Up => Some(Button::UP),
+        VirtualKeyCode::Down => Some(Button::DOWN),
+        VirtualKeyCode::Left => Some(Button::LEFT),
+        VirtualKeyCode::Right => Some(Button::RIGHT),
+        VirtualKeyCode::Space => Some(Button::SELECT),
+        VirtualKeyCode::Return => Some(Button::START),
+        _ => None,
+    }
 }

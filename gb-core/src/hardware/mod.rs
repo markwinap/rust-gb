@@ -9,6 +9,7 @@ use crate::hardware::boot_rom::{BootromData, Bootrom};
 use crate::hardware::ppu::Ppu;
 use crate::memory::nmmu::Memory;
 use std::time::Duration;
+use crate::hardware::input::{InputController, Controller};
 
 pub mod ppu;
 pub mod color_palette;
@@ -18,6 +19,7 @@ pub mod boot_rom;
 pub mod timer;
 pub mod cartridge;
 pub mod rom;
+pub mod input;
 
 pub const HIRAM_SIZE: usize = 0x80;
 
@@ -37,7 +39,7 @@ struct Dma {
 
 }
 
-pub struct Hardware<T: Screen> {
+pub struct Hardware<T: Screen, C: Controller> {
     pub interrupt_handler: InterruptHandler,
     work_ram: WorkRam,
     hiram: HiramData,
@@ -46,10 +48,11 @@ pub struct Hardware<T: Screen> {
     pub gpu: Ppu<T>,
     pub bootrom: Bootrom,
     dma: Dma,
+    pub input_controller: InputController<C>
 }
 
 
-impl<T: Screen> Hardware<T> {
+impl<T: Screen, C: Controller> Hardware<T, C> {
     fn transfer_dma(&mut self, offset: u8) {
         for i in 0..0xFE9F - 0xFE00 + 1 {
             let source = ((offset as u16) << 8) + i;
@@ -59,7 +62,7 @@ impl<T: Screen> Hardware<T> {
     }
 
     fn do_step(&mut self) {}
-    pub fn create(screen: T, cartridge: Box<dyn Cartridge>, boot_rom: Bootrom) -> Hardware<T> {
+    pub fn create(screen: T, controller: C, cartridge: Box<dyn Cartridge>, boot_rom: Bootrom) -> Hardware<T, C> {
         let ppu: Ppu<T> = Ppu::new(screen);
         Hardware {
             interrupt_handler: InterruptHandler::new(),
@@ -70,12 +73,13 @@ impl<T: Screen> Hardware<T> {
             gpu: ppu,
             bootrom: boot_rom,
             dma: Dma { source: 0 },
+            input_controller: InputController::new(controller),
         }
     }
 }
 
 
-impl<T: Screen> Interface for Hardware<T> {
+impl<T: Screen, C: Controller> Interface for Hardware<T, C> {
     fn set_interrupt_disabled(&mut self, disabled: bool) {
         self.interrupt_handler.set_interrupt_disabled(disabled);
     }
@@ -130,7 +134,7 @@ impl<T: Screen> Interface for Hardware<T> {
                 _ => (),
             },
             0xff => match address as u8 {
-                0x00 => (), //Joypad
+                0x00 => self.input_controller.write_register(value), //Joypad
                 0x01 => (), //Serial
                 0x02 => (), //Serial
                 0x04 => self.timer.set_byte(address, value),
@@ -160,11 +164,11 @@ impl<T: Screen> Interface for Hardware<T> {
                     }
                 }
                 0x80..=0xfe => {
-                    if value == 255 && (((address as usize) & 0x7f) == 0) {
-                        println!("weird!!");
-                        std::thread::sleep(Duration::from_secs(3));
-                        println!("weird done!!");
-                    }
+                    // if value == 255 && (((address as usize) & 0x7f) == 0) {
+                    //     println!("weird!!");
+                    //     std::thread::sleep(Duration::from_secs(3));
+                    //     println!("weird done!!");
+                    // }
                     self.hiram[(address as usize) & 0x7f] = value
                 },
                 0xff => self.interrupt_handler.set_enabled_interrupts_flag(value),
@@ -209,7 +213,7 @@ impl<T: Screen> Interface for Hardware<T> {
             }
             0xff => {
                 match address as u8 {
-                    0x00 => Some(0b0000_1111), //Joypad
+                    0x00 => Some(self.input_controller.read_register()), //Joypad
                     0x01 => Some(0b0), //Serial
                     0x02 => Some(0b0), //Serial
                     0x04 => self.timer.get_byte(address),

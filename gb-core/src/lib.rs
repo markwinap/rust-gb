@@ -6,6 +6,7 @@ pub mod gameboy;
 
 extern crate phf;
 extern crate num_traits;
+
 #[macro_use]
 extern crate enum_display_derive;
 
