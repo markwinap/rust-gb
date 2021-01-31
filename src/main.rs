@@ -49,7 +49,7 @@ pub fn construct_cpu() {
 //    let mut data: Vec<u8> = vec![];
     //  File::open(&rom_bytes).and_then(|mut f| f.read_to_end(&mut data)).map_err(|_| "Could not read ROM").unwrap();
 
-    let gb_rom = load_rom("test-roms/cpu_instrs.zip", "cpu_instrs/individual/04-op r,imm.gb");
+    let gb_rom = load_rom("test-roms/cpu_instrs.zip", "cpu_instrs/individual/05-op rp.gb");
     let (sender2, receiver2) = mpsc::sync_channel::<Box<[u8; SCREEN_PIXELS]>>(1);
 
     let (controlSender, controlReceiver) = mpsc::channel::<GbEvents>();

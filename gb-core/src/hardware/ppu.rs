@@ -113,13 +113,13 @@ impl<T: Screen> RenderContainer<T> {
         // } else {
         //     self.background_mask.remove(x as usize);
         // }
-       // println!("DoiNG pixel");
-       //  if color.red != 224 && color.green != 251 && color.blue != 210 {
-       //      println!("Print non light");
-       //      std::thread::sleep(Duration::from_secs(3));
-       //      dbg!(color);
-       //      println!("DONE non light");
-       //  }
+        // println!("DoiNG pixel");
+        //  if color.red != 224 && color.green != 251 && color.blue != 210 {
+        //      println!("Print non light");
+        //      std::thread::sleep(Duration::from_secs(3));
+        //      dbg!(color);
+        //      println!("DONE non light");
+        //  }
 
         self.screen.set_pixel(x, y, color);
     }
@@ -134,7 +134,7 @@ impl<T: Screen> RenderContainer<T> {
 impl<T: Screen> Ppu<T> {
     pub fn new(screen: T) -> Ppu<T> {
         let render: RenderContainer<T> = RenderContainer { screen };
-        let tiles = (0..TILE_COUNT).map(|v| {Tile::newf(v)}).collect::<Vec<Tile>>();
+        let tiles = (0..TILE_COUNT).map(|v| { Tile::newf(v) }).collect::<Vec<Tile>>();
         Ppu {
             render_container: render,
             color_palette: ORIGINAL_GREEN,
@@ -162,34 +162,47 @@ impl<T: Screen> Ppu<T> {
             sprites: [Sprite::new(0); SPRITE_COUNT],
         }
     }
+
+    pub fn reset(&mut self) {
+        self.control = Control::from_bits_truncate(0x91);
+        self.scroll_y = 0x00;
+        self.scroll_x = 0x00;
+        self.compare_line = 0x00;
+        self.background_palette = Palette(0xFC);
+        self.obj_palette0 = Palette(0xFF);
+        self.obj_palette1 = Palette(0xFF);
+        self.window_x = 0x00;
+        self.window_y = 0x00;
+    }
     pub fn step(&mut self, cycles: isize, interrupts: &mut InterruptHandler) {
+      //  println!("cycle_counter: {} scanline: {} cycle: {}", self.cycle_counter, self.scanline, cycles);
         if !self.update_current_mode(interrupts) {
             return;
         }
+
         if cycles == 0 {
             self.draw_blank_screen();
             return;
         }
-     //   println!("cycle counter: {}", self.cycle_counter );
         self.cycle_counter -= cycles;
 
         if self.cycle_counter <= 0 {
-            if self.scanline ==244 {
-                println!("ON SCANLINE");
+            if self.scanline == 244 {
+              //  println!("ON SCANLINE");
                 std::thread::sleep(Duration::from_secs(3));
-                println!("END SCANLINE");
+             //   println!("END SCANLINE");
             }
 
             self.scanline = self.scanline + 1;
-           // println!("scanline: {}", self.scanline);
+            // println!("scanline: {}", self.scanline);
             self.cycle_counter = Mode::VBlank.minimum_cycles();
 
             if self.scanline == SCREEN_HEIGHT as u8 {
-               // println!("DOING VBLANK");
+                // println!("DOING VBLANK");
                 interrupts.request(InterruptLine::VBLANK, true);
             } else if self.scanline >= SCREEN_HEIGHT as u8 + 10 {
                 self.scanline = 0;
-           //     println!("About to draw!!");
+                //     println!("About to draw!!");
                 self.draw_to_screen();
             } else if self.scanline < SCREEN_HEIGHT as u8 {
                 self.draw_scan_line();
@@ -204,7 +217,7 @@ impl<T: Screen> Ppu<T> {
     fn update_current_mode(&mut self, interrupts: &mut InterruptHandler) -> bool {
         //println!("control: LCD {}", self.control.contains(Control::LCD_ON));
         if !self.control.contains(Control::LCD_ON) {
-          //  println!("LCD OFF");
+            //  println!("LCD OFF");
             self.cycle_counter = Mode::VBlank.minimum_cycles();
             self.mode = Mode::VBlank;
             self.scanline = 0;
@@ -240,7 +253,7 @@ impl<T: Screen> Ppu<T> {
             self.background_mask.remove(x as usize);
         }
         // self.render_container.screen.set_pixel(x, self.scanline - 1, color);
-     //   println!("THE DRAW");
+        //   println!("THE DRAW");
         self.render_container.draw_pixel(x, self.scanline - 1, color);
     }
 
@@ -266,15 +279,15 @@ impl<T: Screen> Ppu<T> {
             }
         }
         if self.control.contains(Control::OBJ_ON) {
-         //   print!("draw objecrts");
+            //   print!("draw objecrts");
             self.draw_sprites();
         }
     }
 
     pub fn set_control(&mut self, value: u8) {
-    //    println!("Set CONTROL");
+        //    println!("Set CONTROL");
         let new_control = Control::from_bits_truncate(value);
-      //  dbg!(new_control);
+        //  dbg!(new_control);
         if !new_control.contains(Control::LCD_ON) && self.control.contains(Control::LCD_ON) {
             // if self.mode != Mode::VBlank {
             //     panic!("Warning! LCD off, but not in VBlank");
@@ -291,7 +304,6 @@ impl<T: Screen> Ppu<T> {
         self.control = new_control;
     }
     pub fn set_stat(&mut self, value: u8) {
-
         let new_stat = Stat::from_bits_truncate(value);
 
         self.stat = (self.stat & Stat::COMPARE)
@@ -332,7 +344,7 @@ impl<T: Screen> Ppu<T> {
         } else {
             &self.video_ram.tile_map0
         };
-    //    dbg!("Debug draw_background_pixel", x, y, self.scroll_y,self.scroll_x, self.scanline);
+        //    dbg!("Debug draw_background_pixel", x, y, self.scroll_y,self.scroll_x, self.scanline);
         let tile = self.tile_at(adjusted_x, y, tile_map);
         // if x == 32 && y == 79 {
         //     println!("Print non light");
@@ -579,10 +591,10 @@ impl VideoRam {
 
     fn write_tile_byte(&mut self, address: u16, value: u8) {
         let virtual_address = address - 0x8000;
-        if  value != 0 {
-           // println!("PRE-Write tile");
-           // std::thread::sleep(Duration::from_secs(3));
-           // println!("Write tile");
+        if value != 0 {
+            // println!("PRE-Write tile");
+            // std::thread::sleep(Duration::from_secs(3));
+            // println!("Write tile");
         }
 
         let tile: &mut Tile = &mut self.tiles[virtual_address as usize / TILE_BYTE_SIZE];
@@ -626,9 +638,9 @@ impl VideoRam {
 
 impl Memory for VideoRam {
     fn set_byte(&mut self, address: u16, value: u8) {
-   //     println!("Set PPU BYTE address: {:X?} value: {:X?} ", address, value);
+        //     println!("Set PPU BYTE address: {:X?} value: {:X?} ", address, value);
         if address >= TILE_MAP_ADDRESS_0 as u16 {
-          //  println!("Writing to TILE MAP");
+            //  println!("Writing to TILE MAP");
             self.write_tile_map_byte(address, value);
         } else {
             self.write_tile_byte(address, value);
@@ -654,10 +666,10 @@ pub enum Shade {
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum TilePixelValue {
-    Zero =0 ,
-    One =1,
+    Zero = 0,
+    One = 1,
     Two = 2,
-    Three =3 ,
+    Three = 3,
 }
 
 impl Into<u8> for TilePixelValue {
@@ -776,7 +788,7 @@ impl Sprite {
         }
 
         let iter = (0..SPRITE_WIDTH).map(move |i| {
-           // println!("IN SPRIT LOOP");
+            // println!("IN SPRIT LOOP");
             let mut x = i;
             let mut y = ppu.scanline - self.y;
             if self.flags.contains(SpriteFlags::FLIPX) { x = 7 - x; }
@@ -823,8 +835,8 @@ pub struct Palette(u8);
 impl Palette {
     pub fn shade(&self, input: TilePixelValue) -> Shade {
         let offset = input as u16 * 2;
-        let mask =  (0b0000_0011 << offset);
-        let result  =  (self.0 & mask) >> offset;
+        let mask = (0b0000_0011 << offset);
+        let result = (self.0 & mask) >> offset;
         match result {
             0 => Shade::LIGHTEST,
             1 => Shade::LIGHT,

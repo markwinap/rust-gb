@@ -18,9 +18,12 @@ impl<S: Screen, C: Controller> GameBoy<S, C> {
         let run_reset =  !boot_rom.is_active();
         let hardware = Hardware::create(screen,controller,  cartridge, boot_rom);
         let mut cpu = Cpu::new(hardware);
+
         if run_reset{
             cpu.reset();
+            cpu.interface.gpu.reset();
         }
+        cpu.handle_return(cpu.registers.pc);
         GameBoy {
             cpu,
             elapsed_cycles: 0,

@@ -44,15 +44,16 @@ impl<T: Interface> Cpu<T> {
         //     std::thread::sleep(Duration::from_secs(3));
         //     println!("done found");
         // }
-        // if self.tick_count == 2279244 {
-        //  //   println!("found!!");
-        //     //std::thread::sleep(Duration::from_secs(3));
-        //    // println!("done found");
-        //     println!("::{}::current opcode: {:#04X?}, current pc: {} a: {} b: {} c: {} d: {} e: {} h: {} l: {} f: {}", self.tick_count, self.op_code, self.registers.pc, self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.registers.flags.read_value());
-        //     panic!("adios")
-        // } else {
-        //     println!("::{}::current opcode: {:#04X?}, current pc: {} a: {} b: {} c: {} d: {} e: {} h: {} l: {} f: {}", self.tick_count, self.op_code, self.registers.pc, self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.registers.flags.read_value());
-        // }
+        if self.tick_count == 40706 {
+        //   println!("found!!");
+        //    std::thread::sleep(Duration::from_secs(3));
+        //   println!("done found");
+         //   println!("::{}::current opcode: {:#04X?}, current pc: {} a: {} b: {} c: {} d: {} e: {} h: {} l: {} f: {}", self.tick_count, self.op_code, self.registers.pc, self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.registers.flags.read_value());
+          //  panic!("adios")
+        } else {
+         //   println!("::{}::current opcode: {:#04X?}, current pc: {} a: {} b: {} c: {} d: {} e: {} h: {} l: {} f: {}", self.tick_count, self.op_code, self.registers.pc, self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.registers.flags.read_value());
+        }
+      //  println!("::{}::current opcode: {:#04X?}, current pc: {} a: {} b: {} c: {} d: {} e: {} h: {} l: {} f: {}", self.tick_count, self.op_code, self.registers.pc, self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.registers.flags.read_value());
 
         self.prev_opcode.prev_opcode = op_code;
         self.prev_opcode.prev_pc = self.registers.pc;
@@ -260,8 +261,8 @@ impl<T: Interface> Cpu<T> {
             // --- Control
             0xc3 => (self.jp(), 16),
             0xe9 => (self.jp_hl(), 4),
-            0x18 => (self.jr(), 8),
-            0xcd => (self.call(), 16),
+            0x18 => (self.jr(), 12),
+            0xcd => (self.call(), 24),
             0xc9 => (self.ret(), 16),
             0xd9 => (self.reti(), 16),
 
@@ -348,6 +349,7 @@ impl<T: Interface> Cpu<T> {
 
     pub fn cb_prefix(&mut self) -> ((Step, u16), u8) {
         self.op_code = self.read_next_byte();
+        let fpp =  self.op_code;
         let result = self.cb_decode_execute();
         result
     }
@@ -777,7 +779,7 @@ impl<T: Interface> Cpu<T> {
     // }
 
 
-    pub(crate) fn handle_return(&mut self, address: u16) -> (Step, u16) {
+    pub fn handle_return(&mut self, address: u16) -> (Step, u16) {
         self.op_code = self.interface.get_byte(address).unwrap();
         self.interface.step();
         if self.interface.interrupt_master_enabled() && self.interface.any_enabled() {
@@ -1170,7 +1172,7 @@ impl<T: Interface> Cpu<T> {
         where Self: Read8<IO> + Write8<IO>,
     {
         let value = self.read_8(io8);
-        let result = self.alu_rr(value, false, |flags, _| flags.c as u8);
+        let result = self.alu_rr(value, false, |flags, _|  if flags.c { 0b1000_0000 } else { 0 });
 
         self.write_8(io8, result);
         self.handle_return(self.registers.pc)
