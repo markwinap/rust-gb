@@ -10,3 +10,4 @@ edition = "2018"
 gb-core = { version = "*", path = "gb-core" }
 glium = { version = "0.29", default_features = false, features = [ "glutin" ] }
 minifb = "0.19.2"
+zip = "0.5"

@@ -22,33 +22,49 @@ use std::time::Duration;
 use crate::fb_screen::FbScreen;
 use gb_core::hardware::input::{Controller, Button};
 use std::collections::HashMap;
+use std::fs;
 
 fn main() {
     construct_cpu()
 }
+pub fn load_rom(zip_file: &str, rom_name: &str) -> Vec<u8> {
+    let file = fs::File::open(&zip_file).unwrap();
+    let mut archive = zip::ZipArchive::new(file).unwrap();
 
+    let bytes = match archive.by_name(rom_name) {
+        Ok(rom_file) => {
+            rom_file.bytes()
+        }
+        Err(_) => { panic!() }
+    };
+    let data: Result<Vec<_>, _> = bytes.collect();
+    data.unwrap()
+}
 
 pub fn construct_cpu() {
     let boot_rom = std::path::PathBuf::from("C:\\gbrom\\dmg_boot.bin");
-    let rom = std::path::PathBuf::from("C:\\gbrom\\tetris.gb");
+  //  let rom = std::path::PathBuf::from("C:\\gbrom\\tetris.gb");
+   // let rom = std::path::PathBuf::from("C:\\gbrom\\tetris.gb");
+    // let rom_bytes = std::path::PathBuf::from(rom);
+//    let mut data: Vec<u8> = vec![];
+    //  File::open(&rom_bytes).and_then(|mut f| f.read_to_end(&mut data)).map_err(|_| "Could not read ROM").unwrap();
+
+    let gb_rom = load_rom("test-roms/cpu_instrs.zip", "cpu_instrs/individual/03-op sp,hl.gb");
     let (sender2, receiver2) = mpsc::sync_channel::<Box<[u8; SCREEN_PIXELS]>>(1);
 
     let (controlSender, controlReceiver) = mpsc::channel::<GbEvents>();
 
     let mut eventloop = glium::glutin::event_loop::EventLoop::new();
     let gl_screen = GlScreen::init("foo".to_string(), &mut eventloop, receiver2);
-    //let fb_screen = FbScreen::init("".to_string(), receiver2);
+
 
     let sync_screen = SynScreen { sender: sender2, off_screen_buffer: RefCell::new(Box::new([0; SCREEN_PIXELS])) };
-    let rom_bytes = std::path::PathBuf::from(rom);
-    let mut data: Vec<u8> = vec![];
-    File::open(&rom_bytes).and_then(|mut f| f.read_to_end(&mut data)).map_err(|_| "Could not read ROM").unwrap();
 
     let mut file = File::open(boot_rom).unwrap();
     let mut data2 = Box::new(BootromData::new());
     file.read_exact(&mut (data2.deref_mut()).0).unwrap();
-    let boot_room_stuff = Bootrom::new(Some(Arc::new(*data2)));
-
+  //  let boot_room_stuff = Bootrom::new(Some(Arc::new(*data2)));
+    let boot_room_stuff = Bootrom::new(None);
 
     let cputhread = std::thread::spawn(move || {
         let periodic = timer_periodic(16);
@@ -57,7 +73,7 @@ pub fn construct_cpu() {
         let waitticks = (4194304f64 / 1000.0 * 16.0).round() as u32;
         let mut ticks = 0;
 
-        let rom = Rom::from_bytes(Arc::new(data).clone());
+        let rom = Rom::from_bytes(Arc::new(gb_rom).clone());
         let rom_type = rom.rom_type;
         let cart = rom_type.to_cartridge(&rom);
         let mut gameboy = GameBoy::create(sync_screen, DummyController::new(), cart, boot_room_stuff);

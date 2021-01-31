@@ -1,6 +1,7 @@
 use crate::cpu::address::{Cpu, PrevExec};
 use crate::cpu::registers::Registers;
 use crate::hardware::interrupt_handler::InterruptLine;
+use crate::cpu::flags::Flags;
 
 pub mod flags;
 
@@ -29,6 +30,7 @@ pub trait Interface {
     fn interrupt_master_enabled(&self) -> bool;
     fn requested_interrupts(&self) -> InterruptLine;
     fn change_interrupt_master_enabled(&mut self, boolean: bool);
+    fn reset(&mut self);
     // fn is_enabled(&self, interrupt: InterruptLine) -> bool;
     // fn is_requested(&self, interrupt: InterruptLine) -> bool;
     fn any_enabled(&self) -> bool;
@@ -55,6 +57,19 @@ impl<T: Interface> Cpu<T> {
 }
 
 impl<T: Interface> Cpu<T> {
+
+    pub fn reset(&mut self) {
+        //
+        self.registers.pc = 0x100;
+        self.push_u16(0xFFFE);
+        self.registers.set_af(0x01B0);
+        self.registers.set_bc(0x0013);
+        self.registers.set_de(0x00D8);
+        self.registers.set_hl(0x014D);
+
+        self.interface.reset();
+    }
+
     pub fn step(&mut self) -> u8 {
         let (cycles, step) = match self.state {
             Step::Run => {

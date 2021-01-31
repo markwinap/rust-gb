@@ -15,8 +15,12 @@ pub struct GameBoy<S: Screen, C: Controller> {
 
 impl<S: Screen, C: Controller> GameBoy<S, C> {
     pub fn create(screen: S, controller: C, cartridge: Box<dyn Cartridge>, boot_rom: Bootrom) -> GameBoy<S, C> {
+        let run_reset =  !boot_rom.is_active();
         let hardware = Hardware::create(screen,controller,  cartridge, boot_rom);
-        let cpu = Cpu::new(hardware);
+        let mut cpu = Cpu::new(hardware);
+        if run_reset{
+            cpu.reset();
+        }
         GameBoy {
             cpu,
             elapsed_cycles: 0,

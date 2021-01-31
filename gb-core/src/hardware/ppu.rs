@@ -320,7 +320,7 @@ impl<T: Screen> Ppu<T> {
 
 
     pub fn draw_background_pixel(&mut self, x: u8) {
-        let y = self.scanline + self.scroll_y;
+        let y = self.scanline.wrapping_add(self.scroll_y);
         let adjusted_x = x + self.scroll_x;
         let tile_map = if self.control.contains(Control::BG_MAP) {
             &self.video_ram.tile_map1

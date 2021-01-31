@@ -91,6 +91,11 @@ impl Interface for TestHardware {
         self.interrupt_handler.interrupt_master_enabled = boolean;
     }
 
+    fn reset(&mut self) {
+        self.interrupt_handler.requested_interrupts = InterruptLine::empty();
+        self.interrupt_handler.enabled_interrupts = InterruptLine::empty();
+    }
+
 
     fn any_enabled(&self) -> bool {
         self.interrupt_handler.any_enabled()

@@ -84,6 +84,11 @@ impl<T: Screen, C: Controller> Interface for Hardware<T, C> {
         self.interrupt_handler.set_interrupt_disabled(disabled);
     }
 
+    fn reset(&mut self) {
+        self.interrupt_handler.requested_interrupts = InterruptLine::empty();
+        self.interrupt_handler.enabled_interrupts = InterruptLine::empty();
+    }
+
 
     fn request(&mut self, interrupt: InterruptLine, requested: bool) {
         self.interrupt_handler.request(interrupt, requested);

@@ -116,7 +116,7 @@ impl Rom {
     pub fn from_bytes(bytes: Arc<Vec<u8>>) -> Self {
         Self {
             data: bytes.clone(),
-            rom_type: RomType::from_u8(bytes[0x147]).unwrap(),
+            rom_type: RomType::ROM_ONLY,
             rom_size: RomSize::from_u8(bytes[0x148]).unwrap(),
             ram_size: RamSize::from_u8(bytes[0x149]).unwrap(),
             model: Model::from_value(bytes[0x143]),
