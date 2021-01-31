@@ -175,7 +175,7 @@ impl<T: Screen> Ppu<T> {
         self.window_y = 0x00;
     }
     pub fn step(&mut self, cycles: isize, interrupts: &mut InterruptHandler) {
-      //  println!("cycle_counter: {} scanline: {} cycle: {}", self.cycle_counter, self.scanline, cycles);
+     //   println!("cycle_counter: {} scanline: {} cycle: {}", self.cycle_counter, self.scanline, cycles);
         if !self.update_current_mode(interrupts) {
             return;
         }
