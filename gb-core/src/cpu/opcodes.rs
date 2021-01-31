@@ -24,10 +24,21 @@ impl<T: Interface> Cpu<T> {
         //     std::thread::sleep(Duration::from_secs(3));
         //     println!("found current opcode: {:#04X?}, current pc: {}", self.op_code, self.registers.pc);
         // }
-        if !(self.registers.pc == 0  && self.op_code == 0) {
-            self.tick_count = self.tick_count + 1;
+        if !(self.registers.pc == 256  && self.op_code == 0) {
+            self.tick_count = self.tick_count.wrapping_add(1)
         }
 
+        // if self.tick_count == 6147 {
+        //         println!("found current opcode: {:#04X?}, current pc: {}", self.op_code, self.registers.pc);
+        //         std::thread::sleep(Duration::from_secs(3));
+        //         println!("found current opcode: {:#04X?}, current pc: {}", self.op_code, self.registers.pc);
+        // }
+        //
+        // println!("::{}::current opcode: {:#04X?}, current pc: {} a: {} b: {} c: {} d: {} e: {} h: {} l: {} f: {}", self.tick_count, self.op_code, self.registers.pc, self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.registers.flags.read_value());
+        // if self.registers.pc == 52022 {
+        //     panic!();
+        //
+        // }
         // if self.tick_count == 2279219 {
         //     println!("found!!");
         //     std::thread::sleep(Duration::from_secs(3));

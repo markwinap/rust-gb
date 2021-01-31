@@ -1,20 +1,26 @@
 use std::sync::Arc;
 use num_traits::FromPrimitive;
-use crate::hardware::cartridge::{Cartridge, ReadOnlyMemoryCartridge};
+use crate::hardware::cartridge::{Cartridge, ReadOnlyMemoryCartridge, Mbc1Cartridge, BankableRam};
 
 #[derive(FromPrimitive, Clone, Copy)]
 pub enum RomType {
     ROM_ONLY = 0x00,
+    MBC1 = 0x01
 }
 
 impl RomType {
     pub fn battery(&self) -> bool {
-        match self { RomType::ROM_ONLY => { false } }
+        match self {
+            RomType::ROM_ONLY => { false },
+            RomType::MBC1 => { false },
+            _ => { false }
+        }
     }
 
     pub fn to_cartridge(&self, rom: &Rom) -> Box<dyn Cartridge> {
         match self {
-            RomType::ROM_ONLY => Box::new(ReadOnlyMemoryCartridge::from_bytes(rom.data.clone()))
+            RomType::ROM_ONLY => Box::new(ReadOnlyMemoryCartridge::from_bytes(rom.data.clone())),
+            RomType::MBC1 => Box::new(Mbc1Cartridge::new(rom.data.clone(), BankableRam::new(rom.ram_size.banks())))
         }
     }
 }
@@ -114,9 +120,11 @@ pub struct Rom {
 
 impl Rom {
     pub fn from_bytes(bytes: Arc<Vec<u8>>) -> Self {
+        let  rom_num = bytes[0x147];
+        println!("Cart type: {}", rom_num);
         Self {
             data: bytes.clone(),
-            rom_type: RomType::ROM_ONLY,
+            rom_type: RomType::from_u8(bytes[0x147]).unwrap(),
             rom_size: RomSize::from_u8(bytes[0x148]).unwrap(),
             ram_size: RamSize::from_u8(bytes[0x149]).unwrap(),
             model: Model::from_value(bytes[0x143]),

@@ -174,8 +174,13 @@ impl<T: Screen> Ppu<T> {
         self.cycle_counter -= cycles;
 
         if self.cycle_counter <= 0 {
+            if self.scanline ==244 {
+                println!("ON SCANLINE");
+                std::thread::sleep(Duration::from_secs(3));
+                println!("END SCANLINE");
+            }
 
-            self.scanline = self.scanline.wrapping_add(1);
+            self.scanline = self.scanline + 1;
            // println!("scanline: {}", self.scanline);
             self.cycle_counter = Mode::VBlank.minimum_cycles();
 
