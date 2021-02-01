@@ -76,7 +76,6 @@ impl Mode {
 
 
 pub struct Ppu<T: Screen> {
-    render_container: RenderContainer<T>,
     color_palette: ColorPalette,
     background_palette: Palette,
     obj_palette0: Palette,
@@ -95,26 +94,17 @@ pub struct Ppu<T: Screen> {
     window_x: u8,
     window_y: u8,
     cycle_counter: isize,
-
+    screen: T,
     sprites: [Sprite; OAM_SPRITES],
 }
 
-struct RenderContainer<T: Screen> {
-    screen: T,
-}
 
-impl<T: Screen> RenderContainer<T> {
-    fn draw_pixel(&mut self, x: u8, y: u8, color: Color) {
-        self.screen.set_pixel(x, y, color);
-    }
-}
 
 impl<T: Screen> Ppu<T> {
     pub fn new(screen: T) -> Ppu<T> {
-        let render: RenderContainer<T> = RenderContainer { screen };
+
         let tiles = (0..TILE_COUNT).map(|v| { Tile::newf(v) }).collect::<Vec<Tile>>();
         Ppu {
-            render_container: render,
             color_palette: ORIGINAL_GREEN,
             background_palette: Palette(0),
             obj_palette0: Palette(0),
@@ -138,6 +128,7 @@ impl<T: Screen> Ppu<T> {
             window_y: 0,
             cycle_counter: 0,
             sprites: [Sprite::new(0); SPRITE_COUNT],
+            screen: screen,
         }
     }
 
@@ -176,8 +167,11 @@ impl<T: Screen> Ppu<T> {
         }
     }
 
+    fn draw_plain_pixel(&mut self, x: u8, y: u8, color: Color) {
+        self.screen.set_pixel(x, y, color);
+    }
     fn draw_to_screen(&mut self) {
-        self.render_container.screen.draw();
+        self.screen.draw();
     }
 
     fn update_current_mode(&mut self, interrupts: &mut InterruptHandler) -> bool {
@@ -216,7 +210,7 @@ impl<T: Screen> Ppu<T> {
         } else {
             self.background_mask.remove(x as usize);
         }
-        self.render_container.draw_pixel(x, self.scanline - 1, color);
+        self.draw_plain_pixel(x, self.scanline - 1, color);
     }
 
     pub fn get_memory_as_mut(&mut self) -> &mut impl Memory {
@@ -250,7 +244,7 @@ impl<T: Screen> Ppu<T> {
         }
         if new_control.contains(Control::LCD_ON) && !self.control.contains(Control::LCD_ON) {
             self.stat.insert(Stat::COMPARE);
-            self.render_container.screen.turn_on();
+            self.screen.turn_on();
         }
 
         self.control = new_control;
@@ -305,7 +299,7 @@ impl<T: Screen> Ppu<T> {
     pub fn draw_blank_screen(&mut self) {
         for y in 0..SCREEN_HEIGHT {
             for x in 0..SCREEN_WIDTH {
-                self.render_container.screen.set_pixel(x as u8, y as u8, self.color_palette.background(Shade::LIGHTEST))
+                self.screen.set_pixel(x as u8, y as u8, self.color_palette.background(Shade::LIGHTEST))
             }
         }
     }
@@ -335,9 +329,10 @@ impl<T: Screen> Ppu<T> {
         for sprite in &self.sprites {
             if let Some(result) = sprite.render(&draw_container, &mut self.background_mask) {
                 for res in result {
-                    self.render_container.draw_pixel(res.0, self.scanline - 1, res.2);
+                    let y = self.scanline -1 ;
+                    self.screen.set_pixel(res.0, y, res.2);
                 }
-            }
+            };
         }
     }
 
