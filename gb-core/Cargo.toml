@@ -16,6 +16,7 @@ quickcheck = "0.9"
 strum = "0.20"
 strum_macros = "0.20"
 zip = "0.5"
+arrayvec = "0.5.2"
 [dependencies.failure]
 version = "~0.1"
 
