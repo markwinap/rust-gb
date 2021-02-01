@@ -17,15 +17,7 @@ impl Clone for BootromData {
         BootromData((*self).0)
     }
 }
-//
-// fn read_boot_rom(path: &str, expected_model: Option<Model>) -> Bootrom {
-//     let bootrom = Bootrom::from_path(&Path::new(path)).unwrap_or_else(|err| {
-//       //  error!("Failed to read boot rom from \"{}\" ({})", path, err);
-//        // process::exit(1)
-//     });
-//
-//     bootrom
-// }
+
 
 #[derive(Clone)]
 pub struct Bootrom {

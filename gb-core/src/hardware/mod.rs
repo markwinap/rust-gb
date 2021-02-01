@@ -39,7 +39,7 @@ struct Dma {
 
 }
 
-pub struct Hardware<T: Screen, C: Controller> {
+pub struct Hardware<T: Screen> {
     pub interrupt_handler: InterruptHandler,
     work_ram: WorkRam,
     hiram: HiramData,
@@ -48,11 +48,11 @@ pub struct Hardware<T: Screen, C: Controller> {
     pub gpu: Ppu<T>,
     pub bootrom: Bootrom,
     dma: Dma,
-    pub input_controller: InputController<C>
+    pub input_controller: InputController
 }
 
 
-impl<T: Screen, C: Controller> Hardware<T, C> {
+impl<T: Screen> Hardware<T> {
     fn transfer_dma(&mut self, offset: u8) {
         for i in 0..0xFE9F - 0xFE00 + 1 {
             let source = ((offset as u16) << 8) + i;
@@ -62,7 +62,7 @@ impl<T: Screen, C: Controller> Hardware<T, C> {
     }
 
     fn do_step(&mut self) {}
-    pub fn create(screen: T, controller: C, cartridge: Box<dyn Cartridge>, boot_rom: Bootrom) -> Hardware<T, C> {
+    pub fn create(screen: T, cartridge: Box<dyn Cartridge>, boot_rom: Bootrom) -> Hardware<T> {
         let ppu: Ppu<T> = Ppu::new(screen);
         Hardware {
             interrupt_handler: InterruptHandler::new(),
@@ -73,13 +73,13 @@ impl<T: Screen, C: Controller> Hardware<T, C> {
             gpu: ppu,
             bootrom: boot_rom,
             dma: Dma { source: 0 },
-            input_controller: InputController::new(controller),
+            input_controller: InputController::new(),
         }
     }
 }
 
 
-impl<T: Screen, C: Controller> Interface for Hardware<T, C> {
+impl<T: Screen> Interface for Hardware<T> {
     fn set_interrupt_disabled(&mut self, disabled: bool) {
         self.interrupt_handler.set_interrupt_disabled(disabled);
     }
@@ -202,17 +202,7 @@ impl<T: Screen, C: Controller> Interface for Hardware<T, C> {
             0xf0..=0xfd => Some(self.work_ram.read_upper(address)),
             0xfe => {
                 match address & 0xff {
-                    0x00..=0x9f => {
-                        // if hw.oam_dma.is_active() {
-                        //     0xff
-                        // } else {
-                        //     hw.gpu.read_oam(addr as u8)
-                        // }
-                        Some(self.gpu.read_oam(address as u8))
-                        //None
-                    }
-                    // 0x00 ..= 0x9f => handle_oam!(),
-                    // 0xa0 ..= 0xff => handle_unusable!(),
+                    0x00..=0x9f => Some(self.gpu.read_oam(address as u8)),
                     _ => panic!("Unsupported read at ${:04x}", address),
                 }
             }

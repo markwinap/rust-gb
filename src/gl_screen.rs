@@ -15,28 +15,18 @@ use gb_core::hardware::input::Button;
 use glium::glutin::event::WindowEvent::KeyboardInput;
 
 
-// #[derive(Sync, Send)]
 pub struct GlScreen<'a> {
     rw_lock: Arc<RwLock<bool>>,
     turned_on: AtomicBool,
-    //  pixel_buffer: RefCell<[u8; SCREEN_PIXELS]>,
-    //   off_screen_buffer: RefCell<[u8; SCREEN_PIXELS]>,
     render_options: RenderOptions,
     receiver: Receiver<Box<[u8; SCREEN_PIXELS]>>,
-    // sender: SyncSender<()>,
     event_loop: &'a mut EventLoop<()>,
-    //  texture: glium::texture::texture2d::Texture2d,
     display: glium::Display,
 }
 
-// vec![0; SCREEN_WIDTH * SCREEN_HEIGHT * 3],
-// let (sender2, receiver2) = mpsc::sync_channel(1);
 unsafe impl<'a> Send for GlScreen<'a> {}
 
 impl<'a> GlScreen<'a> {
-    // fn switch_buffer(&mut self) {
-    //     self.pixel_buffer.swap(&self.off_screen_buffer)
-    // }
 
     pub fn init(rom_name: String, event_loop: &'a mut glium::glutin::event_loop::EventLoop<()>, receiver: Receiver<Box<[u8; SCREEN_PIXELS]>>) -> Self {
         let window_builder = create_window_builder(&rom_name);
@@ -47,8 +37,6 @@ impl<'a> GlScreen<'a> {
         Self {
             rw_lock: Arc::new(Default::default()),
             turned_on: AtomicBool::new(true),
-            //pixel_buffer: RefCell::new([0; SCREEN_PIXELS]),
-            //off_screen_buffer: RefCell::new([0; SCREEN_PIXELS]),
             render_options,
             event_loop,
             receiver,
@@ -56,22 +44,10 @@ impl<'a> GlScreen<'a> {
         }
     }
 
-    //  private int index(int x, int y) {
-    //         return 3 * ((y * Screen.WIDTH) + x);
-    //     }
-
     fn index(x: u8, y: u8) -> usize {
         3 * ((y as usize * SCREEN_WIDTH) + x as usize)
     }
 
-    // fn draw(&mut self) {
-    //     //  let lock = self.rw_lock.clone();
-    //     // if let Ok(_) = lock.write() {
-    //     //     self.switch_buffer();
-    //     // };
-    //     self.switch_buffer();
-    //     self.sender.send(()).unwrap();
-    // }
 }
 
 pub fn render(mut screen: GlScreen, sender: Sender<GbEvents>) {
@@ -119,43 +95,7 @@ pub fn render(mut screen: GlScreen, sender: Sender<GbEvents>) {
             *controlflow = glium::glutin::event_loop::ControlFlow::Exit;
         }
     });
-    // std::thread::spawn(move || {
-    //     while screen.turned_on.load(Ordering::SeqCst) {
-    //         let lock = screen.rw_lock.clone();
-    //         if let Ok(read_guard) = lock.read() {
-    //             // the returned read_guard also implements `Deref`
-    //             println!("Read value: {}", *read_guard);
-    //             recalculate_screen(&mut screen.display, &mut screen.texture, screen.pixel_buffer.get_mut(), &Default::default())
-    //         };
-    //     }
-    // })
 }
-//
-// impl<'a> Screen for GlScreen<'a> {
-//     fn turn_on(&mut self) {
-//         *self.turned_on.get_mut() = true;
-//     }
-//
-//     fn turn_off(&mut self) {
-//         *self.turned_on.get_mut() = false;
-//     }
-//
-//     fn set_pixel(&mut self, x: u8, y: u8, color: Color) {
-//         let index = GlScreen::index(x, y);
-//         self.off_screen_buffer.get_mut()[index] = color.red;
-//         self.off_screen_buffer.get_mut()[index + 1] = color.green;
-//         self.off_screen_buffer.get_mut()[index + 2] = color.blue;
-//     }
-//
-//     fn draw(&mut self) {
-//         //  let lock = self.rw_lock.clone();
-//         // if let Ok(_) = lock.write() {
-//         //     self.switch_buffer();
-//         // };
-//         self.switch_buffer();
-//         self.sender.send(()).unwrap();
-//     }
-// }
 
 #[derive(Default)]
 struct RenderOptions {
@@ -172,7 +112,7 @@ fn create_window_builder(romname: &str) -> glium::glutin::window::WindowBuilder 
             SCREEN_WIDTH as u32,
             SCREEN_HEIGHT as u32,
         )))
-        .with_title("RBoy - ".to_owned() + romname);
+        .with_title("Rust-GB ".to_owned() + romname);
 }
 
 fn set_window_size(window: &glium::glutin::window::Window, scale: u32) {
@@ -188,7 +128,6 @@ fn set_window_size(window: &glium::glutin::window::Window, scale: u32) {
 
 
 fn recalculate_screen(display: &glium::Display,
-                      //  texture: &mut glium::texture::texture2d::Texture2d,
                       datavec: &[u8; SCREEN_PIXELS],
                       renderoptions: &RenderOptions)
 {
@@ -217,9 +156,6 @@ fn recalculate_screen(display: &glium::Display,
         SCREEN_HEIGHT as u32)
         .unwrap();
 
-    //GOOD
-    // let mut texture = glium::texture::texture2d::Texture2d::new(display, rawimage2d)
-    //     .unwrap();
 
     texture.write(
         glium::Rect {

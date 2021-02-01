@@ -8,15 +8,15 @@ pub const SCREEN_HEIGHT: usize = 144;
 pub const SCREEN_WIDTH: usize = 160;
 pub const SCREEN_PIXELS: usize = SCREEN_WIDTH * SCREEN_HEIGHT * 3;
 
-pub struct GameBoy<S: Screen, C: Controller> {
-    pub cpu: Cpu<Hardware<S, C>>,
+pub struct GameBoy<S: Screen> {
+    pub cpu: Cpu<Hardware<S>>,
     elapsed_cycles: usize,
 }
 
-impl<S: Screen, C: Controller> GameBoy<S, C> {
-    pub fn create(screen: S, controller: C, cartridge: Box<dyn Cartridge>, boot_rom: Bootrom) -> GameBoy<S, C> {
+impl<S: Screen> GameBoy<S> {
+    pub fn create(screen: S, cartridge: Box<dyn Cartridge>, boot_rom: Bootrom) -> GameBoy<S> {
         let run_reset =  !boot_rom.is_active();
-        let hardware = Hardware::create(screen,controller,  cartridge, boot_rom);
+        let hardware = Hardware::create(screen,  cartridge, boot_rom);
         let mut cpu = Cpu::new(hardware);
 
         if run_reset{
@@ -32,7 +32,7 @@ impl<S: Screen, C: Controller> GameBoy<S, C> {
 }
 
 
-impl<S: Screen, C: Controller> GameBoy<S, C> {
+impl<S: Screen> GameBoy<S> {
     pub fn tick(&mut self) -> u8{
         if !self.cpu.interface.bootrom.is_active() && self.cpu.registers.pc > 634{
      //       println!("current opcode: {:#04X?}, current pc: {}", self.cpu.op_code, self.cpu.registers.pc);

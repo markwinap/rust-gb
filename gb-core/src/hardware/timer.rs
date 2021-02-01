@@ -1,5 +1,7 @@
 use crate::memory::nmmu::Memory;
 use crate::hardware::interrupt_handler::{InterruptHandler, InterruptLine};
+use std::ops::Index;
+use bitflags::_core::ops::IndexMut;
 bitflags!(
   struct TacReg: u8 {
     const ENABLE = 0b100;
@@ -71,6 +73,7 @@ impl Timer {
         }
     }
 }
+
 
 impl Memory for Timer {
     fn set_byte(&mut self, address: u16, value: u8) {

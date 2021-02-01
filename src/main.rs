@@ -1,5 +1,6 @@
 pub mod gl_screen;
 mod fb_screen;
+mod controller;
 
 extern crate glium;
 extern crate gb_core;
@@ -22,6 +23,7 @@ use crate::fb_screen::FbScreen;
 use gb_core::hardware::input::{Controller, Button};
 use std::collections::HashMap;
 use std::fs;
+use crate::controller::GliumController;
 
 fn main() {
     construct_cpu()
@@ -44,12 +46,12 @@ pub fn load_rom(zip_file: &str, rom_name: &str) -> Vec<u8> {
 pub fn construct_cpu() {
     let boot_rom = std::path::PathBuf::from("C:\\gbrom\\dmg_boot.bin");
 
-    // let rom = std::path::PathBuf::from("C:\\gbrom\\tetris.gb");
-    // let rom_bytes = std::path::PathBuf::from(rom);
-    // let mut gb_rom: Vec<u8> = vec![];
-    // File::open(&rom_bytes).and_then(|mut f| f.read_to_end(&mut gb_rom)).map_err(|_| "Could not read ROM").unwrap();
+    let rom = std::path::PathBuf::from("C:\\gbrom\\tetris.gb");
+    let rom_bytes = std::path::PathBuf::from(rom);
+    let mut gb_rom: Vec<u8> = vec![];
+    File::open(&rom_bytes).and_then(|mut f| f.read_to_end(&mut gb_rom)).map_err(|_| "Could not read ROM").unwrap();
 
-    let gb_rom = load_rom("test-roms/cpu_instrs.zip", "cpu_instrs/individual/01-special.gb");
+    // let gb_rom = load_rom("test-roms/cpu_instrs.zip", "cpu_instrs/cpu_instrs.gb");
     let (sender2, receiver2) = mpsc::sync_channel::<Box<[u8; SCREEN_PIXELS]>>(1);
 
     let (controlSender, controlReceiver) = mpsc::channel::<GbEvents>();
@@ -63,7 +65,6 @@ pub fn construct_cpu() {
     let mut file = File::open(boot_rom).unwrap();
     let mut data2 = Box::new(BootromData::new());
     file.read_exact(&mut (data2.deref_mut()).0).unwrap();
-    //  let boot_room_stuff = Bootrom::new(Some(Arc::new(*data2)));
     let boot_room_stuff = Bootrom::new(None);
 
     let cputhread = std::thread::spawn(move || {
@@ -76,7 +77,7 @@ pub fn construct_cpu() {
         let rom = Rom::from_bytes(Arc::new(gb_rom).clone());
         let rom_type = rom.rom_type;
         let cart = rom_type.to_cartridge(&rom);
-        let mut gameboy = GameBoy::create(sync_screen, DummyController::new(), cart, boot_room_stuff);
+        let mut gameboy = GameBoy::create(sync_screen, cart, boot_room_stuff);
 
 
         'outer: loop {
@@ -89,10 +90,9 @@ pub fn construct_cpu() {
             'recv: loop {
                 match controlReceiver.try_recv() {
                     Ok(event) => {
-                        // println!("KEY DETECTED");
                         match event {
-                            GbEvents::KeyUp(key) => gameboy.cpu.interface.input_controller.controller.key_released(key),
-                            GbEvents::KeyDown(key) => gameboy.cpu.interface.input_controller.controller.key_pressed(key),
+                            GbEvents::KeyUp(key) => gameboy.cpu.interface.input_controller.key_released(key),
+                            GbEvents::KeyDown(key) => gameboy.cpu.interface.input_controller.key_pressed(key),
                         }
                     }
                     Err(TryRecvError::Empty) => break 'recv,
@@ -104,7 +104,6 @@ pub fn construct_cpu() {
     });
 
     render(gl_screen, controlSender);
-    //FbScreen::render(fb_screen);
     cputhread.join();
 }
 
@@ -129,9 +128,7 @@ pub struct SynScreen {
 
 
 impl Screen for SynScreen {
-    fn turn_on(&mut self) {
-        //  unimplemented!()
-    }
+    fn turn_on(&mut self) {}
 
     fn turn_off(&mut self) {}
 
@@ -147,39 +144,3 @@ impl Screen for SynScreen {
     }
 }
 
-struct DummyController {
-    state: HashMap<Button, bool>
-}
-
-impl DummyController {
-    pub fn new() -> Self {
-        Self {
-            state: HashMap::new()
-        }
-    }
-
-    pub fn key_pressed(&mut self, button: Button) {
-        //  println!("Key press!!");
-        self.state.insert(button, true);
-    }
-
-    pub fn key_released(&mut self, button: Button) {
-        self.state.insert(button, false);
-    }
-}
-
-impl Controller for DummyController {
-    fn is_pressed(&self, button: Button) -> bool {
-        let result = match self.state.get(&button) {
-            Some(value) => *value,
-            None => false
-        };
-        // if result {
-        //     println!("{} : {}", button, result);
-        // }
-
-        result
-    }
-
-    fn tick(&self) {}
-}

@@ -8,8 +8,8 @@ bitflags!(
     const TIMER = 1 << 2;
     const SERIAL = 1 << 3;
     const JOYPAD = 1 << 4;
-  }//1001
-); //RTSV
+  }
+);
 
 impl InterruptLine {
     pub fn highest_priority(&self) -> InterruptLine {

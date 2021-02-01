@@ -44,41 +44,28 @@ pub trait Controller {
     }
 }
 
-pub struct InputController<C: Controller> {
+pub struct InputController {
     pub register: P1,
-    pub controller: C,
+    pressed_directional: P1,
+    pressed_button: P1,
 }
 
-impl<C: Controller> InputController<C> {
-    pub fn new(controller: C) -> InputController<C> {
+impl InputController {
+    pub fn new() -> InputController {
         Self {
             register: P1::INITIAL_STATE,
-            controller,
+            pressed_button: P1::empty(),
+            pressed_directional: P1::empty(),
         }
     }
     pub fn update_state(&mut self, interrupts: &mut InterruptHandler) {
         let mut register = self.register.clone();
-        self.controller.tick();
-
-        // if self.controller.any_pressed() {
-        //  //   println!("SOMETHING IS PRESSED: Button: {} DIRECT: {}", self.register.contains(P1::SELECT_BUTTON), self.register.contains(P1::SELECT_DIRECTIONAL));
-        // }
-
         if self.register.contains(P1::SELECT_BUTTON) {
-            //  println!("check Button");
-            if self.controller.is_pressed(Button::START) { register.insert(P1::P13) } else { register.remove(P1::P13) }
-            if self.controller.is_pressed(Button::SELECT) { register.insert(P1::P12) } else { register.remove(P1::P12) }
-            if self.controller.is_pressed(Button::A) { register.insert(P1::P10) } else { register.remove(P1::P10) }
-            if self.controller.is_pressed(Button::B) { register.insert(P1::P11) } else { register.remove(P1::P11) }
+            register |= self.pressed_button;
         } else if self.register.contains(P1::SELECT_DIRECTIONAL) {
-            // println!("check direction");
-            if self.controller.is_pressed(Button::DOWN) { register.insert(P1::P13) } else { register.remove(P1::P13) }
-            if self.controller.is_pressed(Button::UP) { register.insert(P1::P12) } else { register.remove(P1::P12) }
-            if self.controller.is_pressed(Button::RIGHT) { register.insert(P1::P10) } else { register.remove(P1::P10) }
-            if self.controller.is_pressed(Button::LEFT) { register.insert(P1::P11) } else { register.remove(P1::P11) }
+            register |= self.pressed_directional;
         }
         if register != self.register {
-          //  println!("Trigger joypad");
             self.register = register;
             interrupts.request(InterruptLine::JOYPAD, true);
         }
@@ -90,8 +77,17 @@ impl<C: Controller> InputController<C> {
     }
 
     pub fn read_register(&self) -> u8 {
-     //   println!("Reading Joy Reg: {:#b}", !self.register.bits());
         !self.register.bits()
+    }
+
+    pub fn key_pressed(&mut self, button: Button) {
+        self.pressed_directional.insert(P1::directional(&button));
+        self.pressed_button.insert(P1::button(&button));
+    }
+
+    pub fn key_released(&mut self, button: Button) {
+        self.pressed_directional.remove(P1::directional(&button));
+        self.pressed_button.remove(P1::button(&button));
     }
 }
 
