@@ -81,7 +81,6 @@ pub struct Ppu<T: Screen> {
     obj_palette0: Palette,
     obj_palette1: Palette,
     scanline: u8,
-    large_sprites: bool,
     background_mask: BitSet,
     video_ram: VideoRam,
     control: Control,
@@ -110,7 +109,6 @@ impl<T: Screen> Ppu<T> {
             obj_palette0: Palette(0),
             obj_palette1: Palette(0),
             scanline: 0,
-            large_sprites: false,
             background_mask: Default::default(),
             video_ram: VideoRam {
                 tile_map0: [0; TILE_MAP_SIZE],
@@ -127,8 +125,8 @@ impl<T: Screen> Ppu<T> {
             window_x: 0,
             window_y: 0,
             cycle_counter: 0,
-            sprites: [Sprite::new(0); SPRITE_COUNT],
-            screen: screen,
+            sprites: [Sprite::new(0, Palette(0)); SPRITE_COUNT],
+            screen,
         }
     }
 
@@ -321,7 +319,7 @@ impl<T: Screen> Ppu<T> {
             color_palette: &self.color_palette,
             scanline: self.scanline,
             video_ram: &self.video_ram,
-            large_sprites: self.large_sprites,
+            large_sprites: self.control.contains(Control::OBJ_SIZE),
             obj_palette0: self.obj_palette0,
             obj_palette1: self.obj_palette1,
         };
@@ -335,6 +333,8 @@ impl<T: Screen> Ppu<T> {
             };
         }
     }
+
+
 
     pub fn write_oam(&mut self, reladdr: u8, value: u8) {
         if self.mode == Mode::AccessVram || self.mode == Mode::AccessOam {
@@ -660,17 +660,19 @@ struct Sprite {
     y: u8,
     tile_number: u8,
     flags: SpriteFlags,
+    palette: Palette,
 
 }
 
 impl Sprite {
-    pub fn new(sprite_num: u8) -> Self {
+    pub fn new(sprite_num: u8, palette: Palette) -> Self {
         Sprite {
             sprite_num,
             x: 0,
             y: 0,
             tile_number: 0,
             flags: SpriteFlags::empty(),
+            palette,
 
         }
     }
