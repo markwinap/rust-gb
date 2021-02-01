@@ -5,7 +5,6 @@ extern crate glium;
 extern crate gb_core;
 
 
-
 use crate::gl_screen::{GlScreen, render};
 use gb_core::hardware::Screen;
 use gb_core::gameboy::{GameBoy, SCREEN_PIXELS, SCREEN_WIDTH, GbEvents};
@@ -27,6 +26,7 @@ use std::fs;
 fn main() {
     construct_cpu()
 }
+
 pub fn load_rom(zip_file: &str, rom_name: &str) -> Vec<u8> {
     let file = fs::File::open(&zip_file).unwrap();
     let mut archive = zip::ZipArchive::new(file).unwrap();
@@ -43,13 +43,13 @@ pub fn load_rom(zip_file: &str, rom_name: &str) -> Vec<u8> {
 
 pub fn construct_cpu() {
     let boot_rom = std::path::PathBuf::from("C:\\gbrom\\dmg_boot.bin");
-  //  let rom = std::path::PathBuf::from("C:\\gbrom\\tetris.gb");
-   // let rom = std::path::PathBuf::from("C:\\gbrom\\tetris.gb");
-    // let rom_bytes = std::path::PathBuf::from(rom);
-//    let mut data: Vec<u8> = vec![];
-    //  File::open(&rom_bytes).and_then(|mut f| f.read_to_end(&mut data)).map_err(|_| "Could not read ROM").unwrap();
 
-    let gb_rom = load_rom("test-roms/cpu_instrs.zip", "cpu_instrs/individual/09-op r,r.gb");
+    // let rom = std::path::PathBuf::from("C:\\gbrom\\tetris.gb");
+    // let rom_bytes = std::path::PathBuf::from(rom);
+    // let mut gb_rom: Vec<u8> = vec![];
+    // File::open(&rom_bytes).and_then(|mut f| f.read_to_end(&mut gb_rom)).map_err(|_| "Could not read ROM").unwrap();
+
+    let gb_rom = load_rom("test-roms/cpu_instrs.zip", "cpu_instrs/individual/01-special.gb");
     let (sender2, receiver2) = mpsc::sync_channel::<Box<[u8; SCREEN_PIXELS]>>(1);
 
     let (controlSender, controlReceiver) = mpsc::channel::<GbEvents>();
@@ -63,7 +63,7 @@ pub fn construct_cpu() {
     let mut file = File::open(boot_rom).unwrap();
     let mut data2 = Box::new(BootromData::new());
     file.read_exact(&mut (data2.deref_mut()).0).unwrap();
-  //  let boot_room_stuff = Bootrom::new(Some(Arc::new(*data2)));
+    //  let boot_room_stuff = Bootrom::new(Some(Arc::new(*data2)));
     let boot_room_stuff = Bootrom::new(None);
 
     let cputhread = std::thread::spawn(move || {
@@ -89,13 +89,12 @@ pub fn construct_cpu() {
             'recv: loop {
                 match controlReceiver.try_recv() {
                     Ok(event) => {
-                       // println!("KEY DETECTED");
+                        // println!("KEY DETECTED");
                         match event {
                             GbEvents::KeyUp(key) => gameboy.cpu.interface.input_controller.controller.key_released(key),
-                            GbEvents::KeyDown(key) =>  gameboy.cpu.interface.input_controller.controller.key_pressed(key),
-
+                            GbEvents::KeyDown(key) => gameboy.cpu.interface.input_controller.controller.key_pressed(key),
                         }
-                    },
+                    }
                     Err(TryRecvError::Empty) => break 'recv,
                     Err(TryRecvError::Disconnected) => break 'outer,
                 }
@@ -108,7 +107,6 @@ pub fn construct_cpu() {
     //FbScreen::render(fb_screen);
     cputhread.join();
 }
-
 
 
 fn timer_periodic(ms: u64) -> Receiver<()> {
@@ -161,7 +159,7 @@ impl DummyController {
     }
 
     pub fn key_pressed(&mut self, button: Button) {
-      //  println!("Key press!!");
+        //  println!("Key press!!");
         self.state.insert(button, true);
     }
 
@@ -169,10 +167,10 @@ impl DummyController {
         self.state.insert(button, false);
     }
 }
-impl Controller for DummyController {
 
+impl Controller for DummyController {
     fn is_pressed(&self, button: Button) -> bool {
-       let result = match self.state.get(&button) {
+        let result = match self.state.get(&button) {
             Some(value) => *value,
             None => false
         };

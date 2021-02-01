@@ -44,16 +44,16 @@ impl<T: Interface> Cpu<T> {
         //     std::thread::sleep(Duration::from_secs(3));
         //     println!("done found");
         // }
-        if self.tick_count == 2604522 {
+        if self.tick_count == 170400 {
         //   println!("found!!");
         //    std::thread::sleep(Duration::from_secs(3));
         //   println!("done found");
-            println!("::{}::current opcode: {:#04X?}, current pc: {} a: {} b: {} c: {} d: {} e: {} h: {} l: {} f: {}", self.tick_count, self.op_code, self.registers.pc, self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.registers.flags.read_value());
-           // panic!("adios")
+        //    println!("::{}::current opcode: {:#04X?}, current pc: {} a: {} b: {} c: {} d: {} e: {} h: {} l: {} f: {}", self.tick_count, self.op_code, self.registers.pc, self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.registers.flags.read_value());
+          //  panic!("adios")
         } else {
          //   println!("::{}::current opcode: {:#04X?}, current pc: {} a: {} b: {} c: {} d: {} e: {} h: {} l: {} f: {}", self.tick_count, self.op_code, self.registers.pc, self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.registers.flags.read_value());
         }
-       // println!("::{}::current opcode: {:#04X?}, current pc: {} a: {} b: {} c: {} d: {} e: {} h: {} l: {} f: {}", self.tick_count, self.op_code, self.registers.pc, self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.registers.flags.read_value());
+    //    println!("::{}::current opcode: {:#04X?}, current pc: {} a: {} b: {} c: {} d: {} e: {} h: {} l: {} f: {}", self.tick_count, self.op_code, self.registers.pc, self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.registers.flags.read_value());
 
         self.prev_opcode.prev_opcode = op_code;
         self.prev_opcode.prev_pc = self.registers.pc;
@@ -121,7 +121,7 @@ impl<T: Interface> Cpu<T> {
             0x6b => (self.load_8(L, E), 4),
             0x6c => (self.load_8(L, H), 4),
             0x6d => (self.load_8(L, L), 4),
-            0x6e => (self.load_8(L, Addr::HL), 12),
+            0x6e => (self.load_8(L, Addr::HL), 8),
 
             0x3e => (self.load_8(A, Immediate8), 8),
             0x06 => (self.load_8(B, Immediate8), 8),
@@ -864,7 +864,7 @@ impl<T: Interface> Cpu<T> {
         self.registers.flags.z = self.registers.a == 0;
         self.registers.flags.h = false;
         self.registers.flags.c = carry;
-        (Step::Run, self.registers.pc.wrapping_add(1))
+        self.handle_return(self.registers.pc)
     }
 
     pub fn cpl(&mut self) -> (Step, u16) {
