@@ -15,23 +15,24 @@ use gb_core::hardware::input::Button;
 use glium::glutin::event::WindowEvent::KeyboardInput;
 
 
-pub struct GlScreen<'a> {
+pub struct GlScreen {
     rw_lock: Arc<RwLock<bool>>,
     turned_on: AtomicBool,
     render_options: RenderOptions,
     receiver: Receiver<Box<[u8; SCREEN_PIXELS]>>,
-    event_loop: &'a mut EventLoop<()>,
+    event_loop:  EventLoop<()>,
     display: glium::Display,
 }
 
-unsafe impl<'a> Send for GlScreen<'a> {}
+unsafe impl Send for GlScreen {}
 
-impl<'a> GlScreen<'a> {
+impl GlScreen {
 
-    pub fn init(rom_name: String, event_loop: &'a mut glium::glutin::event_loop::EventLoop<()>, receiver: Receiver<Box<[u8; SCREEN_PIXELS]>>) -> Self {
+    pub fn init(rom_name: String, receiver: Receiver<Box<[u8; SCREEN_PIXELS]>>) -> Self {
         let window_builder = create_window_builder(&rom_name);
         let context_builder = glium::glutin::ContextBuilder::new();
-        let display = glium::backend::glutin::Display::new(window_builder, context_builder, event_loop).unwrap();
+        let mut event_loop = glium::glutin::event_loop::EventLoop::new();
+        let display = glium::backend::glutin::Display::new(window_builder, context_builder, &event_loop).unwrap();
         set_window_size(display.gl_window().window(), 2);
         let render_options = <RenderOptions as Default>::default();
         Self {
@@ -55,7 +56,7 @@ pub fn render(mut screen: GlScreen, sender: Sender<GbEvents>) {
     use glium::glutin::event::ElementState::{Pressed, Released};
     use glium::glutin::event::VirtualKeyCode;
 
-    let even_loop = screen.event_loop;
+    let mut even_loop = screen.event_loop;
     let mut display = screen.display;
 
     let receiver = screen.receiver;
