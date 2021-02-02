@@ -49,15 +49,14 @@ pub fn load_rom_from_path(path: &PathBuf) -> Rom {
 }
 
 pub fn construct_cpu() {
-    let gb_rom_rom = load_rom_from_path(&std::path::PathBuf::from("C:\\gbrom\\tetris.gb"));
-    // let gb_rom = load_rom("test-roms/cpu_instrs.zip", "cpu_instrs/cpu_instrs.gb");
+    let gb_rom = load_rom_from_path(&std::path::PathBuf::from("C:\\gbrom\\sml.gb"));
+   // let gb_rom = load_rom("test-roms/cpu_instrs.zip", "cpu_instrs/cpu_instrs.gb");
     let boot_rom = std::path::PathBuf::from("C:\\gbrom\\dmg_boot.bin");
-
 
 
     let (sender2, receiver2) = mpsc::sync_channel::<Box<[u8; SCREEN_PIXELS]>>(1);
     let (controlSender, controlReceiver) = mpsc::channel::<GbEvents>();
-    let gl_screen = GlScreen::init("foo".to_string(),  receiver2);
+    let gl_screen = GlScreen::init("foo".to_string(), receiver2);
 
     let sync_screen = SynScreen { sender: sender2, off_screen_buffer: RefCell::new(Box::new([0; SCREEN_PIXELS])) };
 
@@ -73,7 +72,7 @@ pub fn construct_cpu() {
         let waitticks = (4194304f64 / 1000.0 * 16.0).round() as u32;
         let mut ticks = 0;
 
-        let rom = gb_rom_rom;
+        let rom = gb_rom;
         let rom_type = rom.rom_type;
         let cart = rom_type.to_cartridge(&rom);
         let mut gameboy = GameBoy::create(sync_screen, cart, boot_room_stuff);

@@ -1,6 +1,6 @@
 use crate::memory::nmmu::Memory;
 use std::sync::Arc;
-use bitflags::_core::ops::Index;
+use bitflags::_core::ops::{Index, IndexMut};
 
 pub trait Cartridge: Memory {
     fn step(&mut self) {}
@@ -49,29 +49,40 @@ pub struct Mbc1Cartridge {
 impl Cartridge for Mbc1Cartridge {}
 
 impl Memory for Mbc1Cartridge {
-    fn set_byte(&mut self, address: u16,mut  data: u8) {
-        if (address < 0x2000) {
+    fn set_byte(&mut self, address: u16, mut data: u8) {
+        if address < 0x2000 {
             self.bank_ram.enable((data & 0b0000_1010) != 0);
-        } else if (address < 0x4000) {
+        } else if address < 0x4000 {
             self.current_rom_bank = (data & 0b0001_1111);
-            if (self.current_rom_bank == 0 || self.current_rom_bank == 0x20 || self.current_rom_bank == 0x40 || self.current_rom_bank == 0x60) {
+            if self.current_rom_bank == 0 || self.current_rom_bank == 0x20 || self.current_rom_bank == 0x40 || self.current_rom_bank == 0x60 {
                 self.current_rom_bank += 1;
             }
-        } else if (address < 0x6000) {
-            if (self.mode == MemoryMode::MBIT_4_ROM_32KBYTE_RAM) {
+        } else if address < 0x6000 {
+            if self.mode == MemoryMode::MBIT_4_ROM_32KBYTE_RAM {
                 self.bank_ram.select_bank(data & 0b0000_0011);
             } else {
                 data = (data & 0b0000_0011) << 5;
-                self.current_rom_bank = (self.current_rom_bank  & 0b0001_1111) + data;
+                self.current_rom_bank = (self.current_rom_bank & 0b0001_1111) + data;
             }
+        } else if address < 0x8000 {
+            data = data & 0b0000_0001;
+            if data == 1 {
+                self.mode = MemoryMode::MBIT_4_ROM_32KBYTE_RAM;
+            } else {
+                self.mode = MemoryMode::MBIT_16_ROM_8KBYTE_RAM
+            }
+        } else if Mbc1Cartridge::compare(address, 0xA000, 0xBFFF) == 0 {
+            //self.bank_ram.set_byte(address - 0xA000, data);
+            self.bank_ram[address - 0xA000] = data;
         }
     }
 
     fn get_byte(&self, address: u16) -> Option<u8> {
         if Mbc1Cartridge::compare(address, 0x4000, 0x7FFF) == 0 {
-           return Some(self.bytes[(address + ((self.current_rom_bank  as u16 - 1) * (0x7FFF - 0x4000 + 1))) as usize]);
+            return Some(self.bytes[(address + ((self.current_rom_bank as u16 - 1) * (0x7FFF - 0x4000 + 1))) as usize]);
         } else if Mbc1Cartridge::compare(address, 0xA000, 0xBFFF) == 0 {
-          return Some( self.bank_ram[address - 0xA000]);
+            //return Some( self.bank_ram[address - 0xA000]);
+            return self.bank_ram.get_byte(address - 0xA000);
         }
         Some(self.bytes[address as usize])
     }
@@ -90,7 +101,7 @@ impl Memory for Mbc1Cartridge {
 impl Mbc1Cartridge {
     pub fn compare(value: u16, from: u16, to: u16) -> isize {
         if value < from {
-            return (value as isize - from as isize);
+            return value as isize - from as isize;
         } else if value > to {
             return value as isize - to as isize;
         }
@@ -131,6 +142,16 @@ impl BankableRam {
     }
 }
 
+impl Memory for BankableRam {
+    fn set_byte(&mut self, address: u16, value: u8) {
+        self.banks[self.current_bank as usize][address as usize] = value;
+    }
+
+    fn get_byte(&self, address: u16) -> Option<u8> {
+        Some(self.banks[self.current_bank as usize][address as usize])
+    }
+}
+
 impl Index<u16> for BankableRam {
     type Output = u8;
 
@@ -139,5 +160,11 @@ impl Index<u16> for BankableRam {
             return &0;
         }
         &(self.banks[self.current_bank as usize][index as usize])
+    }
+}
+
+impl IndexMut<u16> for BankableRam {
+    fn index_mut(&mut self, index: u16) -> &mut Self::Output {
+        &mut (self.banks[self.current_bank as usize][index as usize])
     }
 }
