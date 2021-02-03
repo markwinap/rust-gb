@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use num_traits::FromPrimitive;
-use crate::hardware::cartridge::{Cartridge, ReadOnlyMemoryCartridge, Mbc1Cartridge, BankableRam};
+use crate::hardware::cartridge::{Cartridge, ReadOnlyMemoryCartridge, Mbc1Cartridge, BankableRam, MBC1};
 
 #[derive(FromPrimitive, Clone, Copy)]
 pub enum RomType {
@@ -20,7 +20,7 @@ impl RomType {
     pub fn to_cartridge(&self, rom: &Rom) -> Box<dyn Cartridge> {
         match self {
             RomType::ROM_ONLY => Box::new(ReadOnlyMemoryCartridge::from_bytes(rom.data.clone())),
-            RomType::MBC1 => Box::new(Mbc1Cartridge::new(rom.data.clone(), BankableRam::new(rom.ram_size.banks())))
+            RomType::MBC1 => Box::new(MBC1::new(rom.data.clone()))
         }
     }
 }
@@ -120,8 +120,6 @@ pub struct Rom {
 
 impl Rom {
     pub fn from_bytes(bytes: Arc<Vec<u8>>) -> Self {
-        let  rom_num = bytes[0x147];
-        println!("Cart type: {}", rom_num);
         Self {
             data: bytes.clone(),
             rom_type: RomType::from_u8(bytes[0x147]).unwrap(),

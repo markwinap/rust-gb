@@ -1,5 +1,7 @@
 use bitflags::bitflags;
 use crate::util::int::IntExt;
+use std::fmt::Display;
+use bitflags::_core::fmt::Formatter;
 
 bitflags!(
   pub struct InterruptLine: u8 {
@@ -10,6 +12,7 @@ bitflags!(
     const JOYPAD = 1 << 4;
   }
 );
+
 
 impl InterruptLine {
     pub fn highest_priority(&self) -> InterruptLine {
@@ -70,6 +73,7 @@ impl InterruptHandler {
     }
 
     pub fn acknowledge(&mut self, interrupt: InterruptLine) {
+      //  println!("Acknowledge: {}", interrupt);
         self.request(interrupt, false);
     }
 

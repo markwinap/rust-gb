@@ -169,16 +169,7 @@ impl<T: Interface> Read16<Addr16> for Cpu<T> {
                 let addr = self.read_next_word();
                 let lo = self.interface.get_byte(addr).unwrap();
                 let hi = self.interface.get_byte(addr.wrapping_add(1)).unwrap();
-                let result = u16::from_le_bytes([lo, hi]);
-            //    println!("The result of fetch: {}", result);
-             //   println!("The result of fetch: {}", result);
-                result
-                // let addr = self.read_next_word();
-                // let lo = self.interface.get_byte(addr).unwrap() as u16;
-                // let hi = (self.interface.get_byte(addr.wrapping_add(1) ).unwrap() as u16 ) << 8;
-                // pr
-                // lo | hi
-
+                u16::from_le_bytes([lo, hi])
             }
         }
     }
@@ -267,12 +258,12 @@ impl<T: Interface> Read8<Addr> for Cpu<T> {
                     ReadOffType::Register(r) => self.read_8(r),
                     ReadOffType::Immediate8 => self.read_8(Immediate8),
                 };
-                let some = 3;
-                let ass_off = offset as u16;
-                let my_pony = 3;
-                let the_value = self.interface.get_byte(0xFF00 | offset as u16).unwrap();
-                let my_ponyy=  3;
-                the_value
+
+                let value = self.interface.get_byte(0xFF00 | offset as u16).unwrap();
+                if cfg!(feature = "debug") {
+                    println!("ReadOffset address: {:#04X?} with value: {}", 0xFF00 | offset as u16, value);
+                }
+                value
             }
         }
     }

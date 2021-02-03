@@ -18,48 +18,14 @@ impl<T: Interface> Cpu<T> {
     pub fn decode(&mut self) -> ((Step, u16), u8) {
         let op_code = self.op_code;
 
-        // if self.registers.pc == 10295  {
-        //     self.found = true;
-        //     println!("found current opcode: {:#04X?}, current pc: {}", self.op_code, self.registers.pc);
-        //     std::thread::sleep(Duration::from_secs(3));
-        //     println!("found current opcode: {:#04X?}, current pc: {}", self.op_code, self.registers.pc);
-        // }
-        if !(self.registers.pc == 256  && self.op_code == 0) {
-            self.tick_count = self.tick_count.wrapping_add(1)
+        if cfg!(feature = "debug") {
+            self.tick_count = self.tick_count.wrapping_add(1);
+            println!("::{}::current opcode: {:#04X?}, current pc: {} a: {} b: {} c: {} d: {} e: {} h: {} l: {} f: {}", self.tick_count, self.op_code, self.registers.pc, self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.registers.flags.read_value());
+            self.prev_opcode.prev_opcode = op_code;
+            self.prev_opcode.prev_pc = self.registers.pc;
         }
 
-        // if self.tick_count == 6147 {
-        //         println!("found current opcode: {:#04X?}, current pc: {}", self.op_code, self.registers.pc);
-        //         std::thread::sleep(Duration::from_secs(3));
-        //         println!("found current opcode: {:#04X?}, current pc: {}", self.op_code, self.registers.pc);
-        // }
-        //
-        // println!("::{}::current opcode: {:#04X?}, current pc: {} a: {} b: {} c: {} d: {} e: {} h: {} l: {} f: {}", self.tick_count, self.op_code, self.registers.pc, self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.registers.flags.read_value());
-        // if self.registers.pc == 52022 {
-        //     panic!();
-        //
-        // }
-        // if self.tick_count == 2279219 {
-        //     println!("found!!");
-        //     std::thread::sleep(Duration::from_secs(3));
-        //     println!("done found");
-        // }
-        if self.tick_count == 170400 {
-        //   println!("found!!");
-        //    std::thread::sleep(Duration::from_secs(3));
-        //   println!("done found");
-        //    println!("::{}::current opcode: {:#04X?}, current pc: {} a: {} b: {} c: {} d: {} e: {} h: {} l: {} f: {}", self.tick_count, self.op_code, self.registers.pc, self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.registers.flags.read_value());
-          //  panic!("adios")
-        } else {
-         //   println!("::{}::current opcode: {:#04X?}, current pc: {} a: {} b: {} c: {} d: {} e: {} h: {} l: {} f: {}", self.tick_count, self.op_code, self.registers.pc, self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.registers.flags.read_value());
-        }
-    //    println!("::{}::current opcode: {:#04X?}, current pc: {} a: {} b: {} c: {} d: {} e: {} h: {} l: {} f: {}", self.tick_count, self.op_code, self.registers.pc, self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.registers.flags.read_value());
-
-        self.prev_opcode.prev_opcode = op_code;
-        self.prev_opcode.prev_pc = self.registers.pc;
-        let foo = 23;
-
-        let foo = match op_code {
+        match op_code {
             0x7f => (self.load_8(A, A), 4),
             0x78 => (self.load_8(A, B), 4),
             0x79 => (self.load_8(A, C), 4),
@@ -295,7 +261,7 @@ impl<T: Interface> Cpu<T> {
             0xf7 => (self.rst(0x30), 16),
             0xff => (self.rst(0x38), 16),
 
-            0x76 => (self.halt(), 4), ///TODO THIS IS WRONG
+            0x76 => (self.halt(), 4),
             0x10 => (self.stop(), 4),
             0xf3 => (self.di(), 4),
             0xfb => (self.ei(), 4),
@@ -343,13 +309,11 @@ impl<T: Interface> Cpu<T> {
 
             0xcb => self.cb_prefix(),
             _ => panic!("Undefined opcode {}", self.op_code)
-        };
-        foo
+        }
     }
 
     pub fn cb_prefix(&mut self) -> ((Step, u16), u8) {
         self.op_code = self.read_next_byte();
-        let fpp =  self.op_code;
         let result = self.cb_decode_execute();
         result
     }
@@ -742,7 +706,7 @@ impl<T: Interface> Cpu<T> {
         self.registers.set_hl(result);
         self.handle_return(self.registers.pc)
     }
-    pub fn add16_sp_e(&mut self) -> (Step, u16)//todo
+    pub fn add16_sp_e(&mut self) -> (Step, u16)
     {
         let offset = self.read_next_byte() as i8 as i16 as u16;
         let sp = self.registers.sp;
@@ -771,14 +735,6 @@ impl<T: Interface> Cpu<T> {
         self.handle_return(self.registers.pc)
     }
 
-
-    // fn handle_return(&mut self, address: u16) -> (Step, u16) {
-    //     self.op_code = self.bus.get_byte(address).unwrap();
-    //     self.registers.pc = address.wrapping_add(1);
-    //     (Step::Run, address.wrapping_add(1))
-    // }
-
-
     pub fn handle_return(&mut self, address: u16) -> (Step, u16) {
         self.op_code = self.interface.get_byte(address).unwrap();
         self.interface.step();
@@ -791,15 +747,12 @@ impl<T: Interface> Cpu<T> {
     }
 
     pub fn halt(&mut self) -> (Step, u16) {
-        //TODO: Do I need to increment PC?
         self.op_code = self.interface.get_byte(self.registers.pc).unwrap();
         self.interface.step();
         if self.interface.any_enabled() {
             if self.interface.interrupt_master_enabled() {
                 (Step::Interrupt, self.registers.pc)
             } else {
-                // let (result, result2) = self.decode();
-                // result
                 (Step::HaltBug, self.registers.pc)
             }
         } else {
@@ -811,7 +764,6 @@ impl<T: Interface> Cpu<T> {
     }
 
     pub fn di(&mut self) -> (Step, u16) {
-        // self.ime = false;
         self.interface.step();
         self.interface.set_interrupt_disabled(true);
         self.op_code = self.read_next_byte();
@@ -820,7 +772,6 @@ impl<T: Interface> Cpu<T> {
 
     pub fn ei(&mut self) -> (Step, u16) {
         let return_value = self.handle_return(self.registers.pc);
-        //self.ime = false;
         self.interface.set_interrupt_disabled(false);
         self.interface.step();
         return_value
@@ -920,6 +871,7 @@ impl<T: Interface> Cpu<T> {
     pub fn jp_cc(&mut self, cond: Cond) -> (Step, u16) {
         let addr = self.read_next_word();
         if self.check_cond(cond) {
+            self.registers.pc = addr;
             self.handle_return(addr)
         } else {
             self.handle_return(self.registers.pc)
@@ -937,22 +889,19 @@ impl<T: Interface> Cpu<T> {
 
     pub fn ctr_return(&mut self) -> (Step, u16) {
         let addr = self.pop_u16();
-        self.handle_return(addr)
+        self.registers.pc = addr;
+        self.handle_return(self.registers.pc)
     }
 
     pub fn call(&mut self) -> (Step, u16) {
         let address = self.read_next_word();
-        // if self.registers.pc == 675 {
-        //     println!("enter call");
-        //     std::thread::sleep(Duration::from_secs(3));
-        //     println!("end call");
-        // }
         self.ctr_call(address)
     }
 
     fn ctr_call(&mut self, address: u16) -> (Step, u16) {
         self.push_u16(self.registers.pc);
-        self.handle_return(address)
+        self.registers.pc = address;
+        self.handle_return(self.registers.pc)
     }
 
     pub fn jr(&mut self) -> (Step, u16) {
@@ -962,24 +911,18 @@ impl<T: Interface> Cpu<T> {
 
     pub fn jp(&mut self) -> (Step, u16) {
         let address = self.read_next_word();
-        // self.ctrl_jp(address);
-        self.handle_return(address)
+        self.registers.pc = address;
+        self.handle_return(self.registers.pc)
     }
 
     pub fn jp_hl(&mut self) -> (Step, u16) {
-        //   self.registers.set_pc(self.registers.get_hl());
-        self.handle_return(self.registers.get_hl())
-
-        //TODO Review
+        self.registers.pc = self.registers.get_hl();
+        self.handle_return(self.registers.pc)
     }
 
-
-    // fn ctrl_jp(&mut self, addr: u16) {
-    //     self.registers.set_pc(addr);
-    // }
-
     fn ctrl_jr(&mut self, offset: i8) -> (Step, u16) {
-        self.handle_return(self.registers.pc.wrapping_add(offset as u16))
+        self.registers.pc = self.registers.pc.wrapping_add(offset as u16);
+        self.handle_return(self.registers.pc)
     }
 
     pub fn load_8<I: Copy, O: Copy>(&mut self, out8: O, in8: I) -> (Step, u16)
@@ -998,7 +941,6 @@ impl<T: Interface> Cpu<T> {
     }
 
 
-    //OUT: HL, IN: SP + e
     pub fn load_16_e<I: Copy, O: Copy>(&mut self, out16: O, in16: I) -> (Step, u16)
         where Self: Write16<O> + Read16<I> {
         let offset = self.read_next_byte() as i8 as u16;

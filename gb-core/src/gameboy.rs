@@ -3,6 +3,7 @@ use crate::hardware::{Screen, Hardware};
 use crate::hardware::cartridge::Cartridge;
 use crate::hardware::boot_rom::Bootrom;
 use crate::hardware::input::{Controller, Button};
+use crate::cpu::Step;
 
 pub const SCREEN_HEIGHT: usize = 144;
 pub const SCREEN_WIDTH: usize = 160;
@@ -35,6 +36,21 @@ impl<S: Screen> GameBoy<S> {
 impl<S: Screen> GameBoy<S> {
     pub fn tick(&mut self) -> u8 {
         let cycles = self.cpu.step();
+        let interrupts = &mut self.cpu.interface.interrupt_handler;
+        self.cpu.interface.input_controller.update_state(interrupts);
+        self.cpu.interface.timer.do_cycle(cycles as u32, interrupts);
+        self.cpu.interface.gpu.step(cycles as isize, interrupts);
+        self.cpu.interface.cartridge.step();
+        cycles
+    }
+
+
+    #[cfg(feature = "debug")]
+    pub fn tick(&mut self) -> u8 {
+        let mut cycles = self.cpu.step();
+        if self.cpu.state == Step::Interrupt {
+            cycles += self.cpu.step();
+        }
         let interrupts = &mut self.cpu.interface.interrupt_handler;
         self.cpu.interface.input_controller.update_state(interrupts);
         self.cpu.interface.timer.do_cycle(cycles as u32, interrupts);

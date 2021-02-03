@@ -27,7 +27,7 @@ const SPRITE_WIDTH: usize = 8;
 
 
 const SCREEN_FREQUENCY: usize = 60;
-const STAT_UNUSED_MASK: u8 = (1 << 7);
+const STAT_UNUSED_MASK: u8 = (0 << 7);
 
 const ACCESS_OAM_CYCLES: isize = 21;
 const ACCESS_VRAM_CYCLES: isize = 43;
@@ -146,6 +146,14 @@ impl<T: Screen> Ppu<T> {
         self.window_y = 0x00;
     }
     pub fn step(&mut self, cycles: isize, interrupts: &mut InterruptHandler) {
+        if self.scanline == self.compare_line {
+            self.stat.insert(Stat::COMPARE);
+        } else {
+            self.stat.remove(Stat::COMPARE);
+        }
+        if cfg!(feature = "debug") {
+            println!("cycle_counter: {} scanline: {} cycle: {} stat: {:#010b} control: {:#010b}", self.cycle_counter, self.scanline, cycles, self.get_stat(), self.get_control());
+        }
         if !self.update_current_mode(interrupts) {
             return;
         }
@@ -157,6 +165,12 @@ impl<T: Screen> Ppu<T> {
 
         if self.cycle_counter <= 0 {
             self.scanline = self.scanline + 1;
+            if self.scanline == self.compare_line {
+                self.stat.insert(Stat::COMPARE);
+            } else {
+                self.stat.remove(Stat::COMPARE);
+            }
+
             self.cycle_counter = Mode::VBlank.minimum_cycles();
             if self.scanline == SCREEN_HEIGHT as u8 {
                 interrupts.request(InterruptLine::VBLANK, true);
@@ -235,14 +249,10 @@ impl<T: Screen> Ppu<T> {
 
     pub fn set_control(&mut self, value: u8) {
         let new_control = Control::from_bits_truncate(value);
-        if !new_control.contains(Control::LCD_ON) && self.control.contains(Control::LCD_ON) {
-            self.scanline = 0;
-        }
         if new_control.contains(Control::LCD_ON) && !self.control.contains(Control::LCD_ON) {
             self.stat.insert(Stat::COMPARE);
             self.screen.turn_on();
         }
-
         self.control = new_control;
     }
     pub fn set_stat(&mut self, value: u8) {
@@ -256,24 +266,20 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn get_stat(&self) -> u8 {
-        if !self.control.contains(Control::LCD_ON) {
-            STAT_UNUSED_MASK
-        } else {
-            self.mode.bits() | self.stat.bits | STAT_UNUSED_MASK
-        }
+        self.mode.bits() | self.stat.bits | STAT_UNUSED_MASK
     }
 
 
     pub fn draw_background_window_pixel(&mut self, x: u8, background_priority: &mut [bool; SCREEN_WIDTH]) {
-        let y = self.scanline + self.window_y;
-        let adjusted_x = ((x + self.window_x - 7) + SCREEN_WIDTH as u8) % SCREEN_WIDTH as u8;
+        let y = self.scanline - self.window_y;
+        let adjusted_x = (((x as u16 + self.window_x as u16 - 7) + SCREEN_WIDTH as u16) % SCREEN_WIDTH as u16) as u8;
         let tile_map = if self.control.contains(Control::WINDOW_MAP) {
             &self.video_ram.tile_map1
         } else {
             &self.video_ram.tile_map0
         };
         let tile = self.tile_at(adjusted_x, y, tile_map);
-        let bit = (x % 8).wrapping_sub(7).wrapping_mul(0xff) as usize;
+        let bit = (adjusted_x % 8).wrapping_sub(7).wrapping_mul(0xff) as usize;
         let shade = tile.shade_at((y % 8) * 2, bit, &self.background_palette);
         background_priority[x as usize] = shade != Shade::LIGHTEST;
         self.draw_pixel(x, self.color_palette.background(shade));
@@ -282,14 +288,14 @@ impl<T: Screen> Ppu<T> {
 
     pub fn draw_background_pixel(&mut self, x: u8, background_priority: &mut [bool; SCREEN_WIDTH]) {
         let y = self.scanline.wrapping_add(self.scroll_y);
-        let adjusted_x = x + self.scroll_x;
+        let adjusted_x = x.wrapping_add(self.scroll_x);
         let tile_map = if self.control.contains(Control::BG_MAP) {
             &self.video_ram.tile_map1
         } else {
             &self.video_ram.tile_map0
         };
         let tile = self.tile_at(adjusted_x, y, tile_map);
-        let bit = (x % 8).wrapping_sub(7).wrapping_mul(0xff) as usize;
+        let bit = (adjusted_x % 8).wrapping_sub(7).wrapping_mul(0xff) as usize;
         let shade = tile.shade_at((y % 8) * 2, bit, &self.background_palette);
         background_priority[x as usize] = shade != Shade::LIGHTEST;
         self.draw_pixel(x, self.color_palette.background(shade));

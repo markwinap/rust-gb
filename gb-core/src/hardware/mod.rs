@@ -117,11 +117,11 @@ impl<T: Screen> Interface for Hardware<T> {
     fn set_byte(&mut self, address: u16, value: u8) {
         match (address >> 8) as u8 {
             0x00 if self.bootrom.is_active() => {}
-            0x00..=0x7f => self.cartridge.set_byte(address, value),
+            0x00..=0x7f => self.cartridge.write_rom(address, value),
             0x80..=0x97 => self.gpu.get_memory_as_mut().set_byte(address, value),
             0x98..=0x9b => self.gpu.get_memory_as_mut().set_byte(address, value),
             0x9c..=0x9f => self.gpu.get_memory_as_mut().set_byte(address, value),
-            0xa0..=0xbf => self.cartridge.set_byte(address, value),
+            0xa0..=0xbf => self.cartridge.write_ram(address, value),
             0xc0..=0xcf => self.work_ram.write_lower(address, value),
             0xd0..=0xdf => self.work_ram.write_upper(address, value),
 
@@ -189,12 +189,12 @@ impl<T: Screen> Interface for Hardware<T> {
             0x00 if self.bootrom.is_active() => {
                 Some(self.bootrom[address])
             },
-            0x00..=0x3f => self.cartridge.get_byte(address),
-            0x40..=0x7f => self.cartridge.get_byte(address),
+            0x00..=0x3f => Some(self.cartridge.read_rom(address)),
+            0x40..=0x7f => Some(self.cartridge.read_rom(address)),
             0x80..=0x97 => self.gpu.read_memory(address),
             0x98..=0x9b => self.gpu.read_memory(address),
             0x9c..=0x9f => self.gpu.read_memory(address),
-            0xa0..=0xbf => self.cartridge.get_byte(address),
+            0xa0..=0xbf => Some(self.cartridge.read_ram(address)),
             0xc0..=0xcf => Some(self.work_ram.read_lower(address)),
             0xd0..=0xdf => Some(self.work_ram.read_upper(address)),
 

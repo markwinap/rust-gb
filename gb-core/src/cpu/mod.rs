@@ -24,20 +24,15 @@ pub enum Step {
 
 pub trait Interface {
     fn set_interrupt_disabled(&mut self, disabled: bool);
-
     fn request(&mut self, interrupt: InterruptLine, requested: bool);
     fn acknowledge(&mut self, interrupt: InterruptLine);
     fn interrupt_master_enabled(&self) -> bool;
     fn requested_interrupts(&self) -> InterruptLine;
     fn change_interrupt_master_enabled(&mut self, boolean: bool);
     fn reset(&mut self);
-    // fn is_enabled(&self, interrupt: InterruptLine) -> bool;
-    // fn is_requested(&self, interrupt: InterruptLine) -> bool;
     fn any_enabled(&self) -> bool;
-
     fn set_byte(&mut self, address: u16, value: u8);
     fn get_byte(&self, address: u16) -> Option<u8>;
-
     fn step(&mut self) {}
 }
 
@@ -59,7 +54,6 @@ impl<T: Interface> Cpu<T> {
 impl<T: Interface> Cpu<T> {
 
     pub fn reset(&mut self) {
-        //
         self.registers.pc = 0x100;
         self.push_u16(0xFFFE);
         self.registers.set_af(0x01B0);
@@ -73,7 +67,6 @@ impl<T: Interface> Cpu<T> {
     pub fn step(&mut self) -> u8 {
         let (cycles, step) = match self.state {
             Step::Run => {
-             //   self.interface.step();
                 let ((step, _), cycles) = self.decode();
                 (cycles, step)
             }
@@ -82,6 +75,9 @@ impl<T: Interface> Cpu<T> {
                 let interrupt = self.interface.requested_interrupts().highest_priority();
                 self.interface.acknowledge(interrupt);
                 self.push_u16(self.registers.pc);
+                if cfg!(feature = "debug") {
+                    println!("Interrupt returns to: {}", self.registers.pc);
+                }
                 self.registers.pc = match interrupt {
                     InterruptLine::VBLANK => 0x0040,
                     InterruptLine::STAT => 0x0048,
