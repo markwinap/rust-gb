@@ -736,7 +736,7 @@ impl<T: Interface> Cpu<T> {
     }
 
     pub fn handle_return(&mut self, address: u16) -> (Step, u16) {
-        self.op_code = self.interface.get_byte(address).unwrap();
+        self.op_code = self.interface.get_byte(address);
         self.interface.step();
         if self.interface.interrupt_master_enabled() && self.interface.any_enabled() {
             (Step::Interrupt, address)
@@ -747,7 +747,7 @@ impl<T: Interface> Cpu<T> {
     }
 
     pub fn halt(&mut self) -> (Step, u16) {
-        self.op_code = self.interface.get_byte(self.registers.pc).unwrap();
+        self.op_code = self.interface.get_byte(self.registers.pc);
         self.interface.step();
         if self.interface.any_enabled() {
             if self.interface.interrupt_master_enabled() {

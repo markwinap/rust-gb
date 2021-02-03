@@ -57,7 +57,7 @@ impl<T: Screen> Hardware<T> {
         for i in 0..0xFE9F - 0xFE00 + 1 {
             let source = ((offset as u16) << 8) + i;
             let target = 0xFE00 + i;
-            self.gpu.write_oam(target as u8, self.get_byte(source).unwrap());
+            self.gpu.write_oam(target as u8, self.get_byte(source));
         }
     }
 
@@ -184,59 +184,59 @@ impl<T: Screen> Interface for Hardware<T> {
     }
 
 
-    fn get_byte(&self, address: u16) -> Option<u8> {
+    fn get_byte(&self, address: u16) -> u8 {
         match (address >> 8) as u8 {
             0x00 if self.bootrom.is_active() => {
-                Some(self.bootrom[address])
+                self.bootrom[address]
             },
-            0x00..=0x3f => Some(self.cartridge.read_rom(address)),
-            0x40..=0x7f => Some(self.cartridge.read_rom(address)),
+            0x00..=0x3f => self.cartridge.read_rom(address),
+            0x40..=0x7f => self.cartridge.read_rom(address),
             0x80..=0x97 => self.gpu.read_memory(address),
             0x98..=0x9b => self.gpu.read_memory(address),
             0x9c..=0x9f => self.gpu.read_memory(address),
-            0xa0..=0xbf => Some(self.cartridge.read_ram(address)),
-            0xc0..=0xcf => Some(self.work_ram.read_lower(address)),
-            0xd0..=0xdf => Some(self.work_ram.read_upper(address)),
+            0xa0..=0xbf => self.cartridge.read_ram(address),
+            0xc0..=0xcf => self.work_ram.read_lower(address),
+            0xd0..=0xdf => self.work_ram.read_upper(address),
 
-            0xe0..=0xef => Some(self.work_ram.read_lower(address)),
-            0xf0..=0xfd => Some(self.work_ram.read_upper(address)),
+            0xe0..=0xef => self.work_ram.read_lower(address),
+            0xf0..=0xfd => self.work_ram.read_upper(address),
             0xfe => {
                 match address & 0xff {
-                    0x00..=0x9f => Some(self.gpu.read_oam(address as u8)),
+                    0x00..=0x9f => self.gpu.read_oam(address as u8),
                     _ => panic!("Unsupported read at ${:04x}", address),
                 }
             }
             0xff => {
                 match address as u8 {
-                    0x00 => Some(self.input_controller.read_register()), //Joypad
-                    0x01 => Some(0b0), //Serial
-                    0x02 => Some(0b0), //Serial
+                    0x00 => self.input_controller.read_register(), //Joypad
+                    0x01 => 0b0, //Serial
+                    0x02 => 0b0, //Serial
                     0x04 => self.timer.get_byte(address),
                     0x05 => self.timer.get_byte(address),
                     0x06 => self.timer.get_byte(address),
                     0x07 => self.timer.get_byte(address),
-                    0x0f => Some(self.interrupt_handler.get_interrupt_flag()),
-                    0x10..=0x3f => Some(0b0), //Audio
+                    0x0f => self.interrupt_handler.get_interrupt_flag(),
+                    0x10..=0x3f => 0b0, //Audio
 
-                    0x40 => Some(self.gpu.get_control()),
-                    0x41 => Some(self.gpu.get_stat()),
-                    0x42 => Some(self.gpu.get_scroll_y()),
-                    0x43 => Some(self.gpu.get_scroll_x()),
-                    0x44 => Some(self.gpu.get_current_line()),
-                    0x45 => Some(self.gpu.get_compare_line()),
-                    0x46 => Some(self.dma.source),
-                    0x47 => Some(self.gpu.get_bg_palette()),
-                    0x48 => Some(self.gpu.get_obj_palette0()),
-                    0x49 => Some(self.gpu.get_obj_palette1()),
+                    0x40 => self.gpu.get_control(),
+                    0x41 => self.gpu.get_stat(),
+                    0x42 => self.gpu.get_scroll_y(),
+                    0x43 => self.gpu.get_scroll_x(),
+                    0x44 => self.gpu.get_current_line(),
+                    0x45 => self.gpu.get_compare_line(),
+                    0x46 => self.dma.source,
+                    0x47 => self.gpu.get_bg_palette(),
+                    0x48 => self.gpu.get_obj_palette0(),
+                    0x49 => self.gpu.get_obj_palette1(),
 
-                    0x4a => Some(self.gpu.get_window_y()),
-                    0x4b => Some(self.gpu.get_window_x()),
-                    0x80..=0xfe => Some(self.hiram[(address as usize) & 0x7f]),
-                    0xff => Some(self.interrupt_handler.get_enabled_interrupts_flag()),
-                    _ => Some(0xff)
+                    0x4a => self.gpu.get_window_y(),
+                    0x4b => self.gpu.get_window_x(),
+                    0x80..=0xfe => self.hiram[(address as usize) & 0x7f],
+                    0xff => self.interrupt_handler.get_enabled_interrupts_flag(),
+                    _ => 0xff
                 }
             }
-            _ => None
+            _ => 0
         }
     }
 

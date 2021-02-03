@@ -400,7 +400,7 @@ impl<T: Screen> Ppu<T> {
         }
     }
 
-    pub fn read_memory(&self, address: u16) -> Option<u8> {
+    pub fn read_memory(&self, address: u16) -> u8 {
         self.video_ram.get_byte(address)
     }
 
@@ -553,11 +553,11 @@ impl Memory for VideoRam {
         }
     }
 
-    fn get_byte(&self, address: u16) -> Option<u8> {
+    fn get_byte(&self, address: u16) -> u8 {
         if address >= TILE_MAP_ADDRESS_0 as u16 {
-            Some(self.read_tile_map_byte(address))
+            self.read_tile_map_byte(address)
         } else {
-            Some(self.read_tile_byte(address))
+            self.read_tile_byte(address)
         }
     }
 }

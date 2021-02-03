@@ -24,7 +24,7 @@ impl<T: Interface> Cpu< T> {
     pub fn read_next_byte(&mut self) -> u8 {
         let addr = self.registers.get_pc();
         self.registers.increment_pc();
-        self.interface.get_byte(addr).unwrap()
+        self.interface.get_byte(addr)
     }
 
     pub fn read_next_word(&mut self) -> u16 {
@@ -44,9 +44,9 @@ impl<T: Interface> Cpu< T> {
     }
 
     pub fn pop_u16(&mut self) -> u16 {
-        let lo = self.interface.get_byte(self.registers.sp).unwrap();
+        let lo = self.interface.get_byte(self.registers.sp);
         self.registers.sp = self.registers.sp.wrapping_add(1);
-        let hi = self.interface.get_byte(self.registers.sp).unwrap();
+        let hi = self.interface.get_byte(self.registers.sp);
         self.registers.sp = self.registers.sp.wrapping_add(1);
         u16::from_le_bytes([lo, hi])
     }
@@ -167,8 +167,8 @@ impl<T: Interface> Read16<Addr16> for Cpu<T> {
         match src {
             Addr16::Direct => {
                 let addr = self.read_next_word();
-                let lo = self.interface.get_byte(addr).unwrap();
-                let hi = self.interface.get_byte(addr.wrapping_add(1)).unwrap();
+                let lo = self.interface.get_byte(addr);
+                let hi = self.interface.get_byte(addr.wrapping_add(1));
                 u16::from_le_bytes([lo, hi])
             }
         }
@@ -231,27 +231,27 @@ impl<T: Interface> Read8<Addr> for Cpu<T> {
     fn read_8(&mut self, src: Addr) -> u8 {
         match src {
             Addr::BC => {
-                self.interface.get_byte(self.registers.get_bc()).unwrap()
+                self.interface.get_byte(self.registers.get_bc())
             }
             Addr::DE => {
-                self.interface.get_byte(self.registers.get_de()).unwrap()
+                self.interface.get_byte(self.registers.get_de())
             }
             Addr::HL => {
-                self.interface.get_byte(self.registers.get_hl()).unwrap()
+                self.interface.get_byte(self.registers.get_hl())
             }
             Addr::HLD => {
                 let addr = self.registers.get_hl();
                 self.registers.set_hl(addr.wrapping_sub(1));
-                self.interface.get_byte(addr).unwrap()
+                self.interface.get_byte(addr)
             }
             Addr::HLI => {
                 let addr = self.registers.get_hl();
                 self.registers.set_hl(addr.wrapping_add(1));
-                self.interface.get_byte(addr).unwrap()
+                self.interface.get_byte(addr)
             }
             Addr::Direct => {
                 let addr = self.read_next_word();
-                self.interface.get_byte(addr).unwrap()
+                self.interface.get_byte(addr)
             }
             Addr::ReadOffset(so) => {
                 let offset = match so {
@@ -259,7 +259,7 @@ impl<T: Interface> Read8<Addr> for Cpu<T> {
                     ReadOffType::Immediate8 => self.read_8(Immediate8),
                 };
 
-                let value = self.interface.get_byte(0xFF00 | offset as u16).unwrap();
+                let value = self.interface.get_byte(0xFF00 | offset as u16);
                 if cfg!(feature = "debug") {
                     println!("ReadOffset address: {:#04X?} with value: {}", 0xFF00 | offset as u16, value);
                 }

@@ -95,8 +95,8 @@ impl Memory for Timer {
         }
     }
 
-    fn get_byte(&self, address: u16) -> Option<u8> {
-        let value = match address {
+    fn get_byte(&self, address: u16) -> u8 {
+        match address {
             0xFF04 => self.divider_counter,
             0xFF05 => self.timer_counter,
             0xFF06 => self.timer_modulo,
@@ -105,7 +105,6 @@ impl Memory for Timer {
                 TAC_UNUSED | self.tac.bits()
             }
             _ => panic!("Timer does not handler read {:4X}", address),
-        };
-        Some(value)
+        }
     }
 }

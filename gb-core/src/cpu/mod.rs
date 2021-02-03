@@ -32,7 +32,7 @@ pub trait Interface {
     fn reset(&mut self);
     fn any_enabled(&self) -> bool;
     fn set_byte(&mut self, address: u16, value: u8);
-    fn get_byte(&self, address: u16) -> Option<u8>;
+    fn get_byte(&self, address: u16) -> u8;
     fn step(&mut self) {}
 }
 
@@ -52,7 +52,6 @@ impl<T: Interface> Cpu<T> {
 }
 
 impl<T: Interface> Cpu<T> {
-
     pub fn reset(&mut self) {
         self.registers.pc = 0x100;
         self.push_u16(0xFFFE);
@@ -86,7 +85,7 @@ impl<T: Interface> Cpu<T> {
                     InterruptLine::JOYPAD => 0x0060,
                     _ => 0x0000,
                 };
-                self.op_code = self.interface.get_byte(self.registers.pc).unwrap();
+                self.op_code = self.interface.get_byte(self.registers.pc);
                 self.registers.pc = self.registers.pc.wrapping_add(1);
                 self.interface.step();
                 (20, Step::Run)

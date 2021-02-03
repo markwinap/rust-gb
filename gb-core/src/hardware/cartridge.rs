@@ -18,13 +18,13 @@ pub struct ReadOnlyMemoryCartridge {
 
 impl Cartridge for ReadOnlyMemoryCartridge {
     fn read_rom(&self, address: u16) -> u8 {
-        self.get_byte(address).unwrap()
+        self.get_byte(address)
     }
 
     fn write_rom(&mut self, _: u16, _: u8) {}
 
     fn read_ram(&self, address: u16) -> u8 {
-        self.get_byte(address).unwrap()
+        self.get_byte(address)
     }
 
     fn write_ram(&mut self, _: u16, _: u8) {}
@@ -41,9 +41,9 @@ impl ReadOnlyMemoryCartridge {
 impl Memory for ReadOnlyMemoryCartridge {
     fn set_byte(&mut self, _: u16, _: u8) {}
 
-    fn get_byte(&self, address: u16) -> Option<u8> {
+    fn get_byte(&self, address: u16) -> u8 {
         let result = self.bytes[address as usize];
-        Some(result)
+        result
     }
 }
 
@@ -65,7 +65,7 @@ pub struct Mbc1Cartridge {
 
 impl Cartridge for Mbc1Cartridge {
     fn read_rom(&self, address: u16) -> u8 {
-        self.get_byte(address).unwrap()
+        self.get_byte(address)
     }
 
     fn write_rom(&mut self, address: u16, value: u8) {
@@ -76,7 +76,7 @@ impl Cartridge for Mbc1Cartridge {
         if self.bank_ram.enabled {
             return 0;
         }
-        self.get_byte(address).unwrap()
+        self.get_byte(address)
     }
 
     fn write_ram(&mut self, address: u16, value: u8) {
@@ -112,13 +112,13 @@ impl Memory for Mbc1Cartridge {
         }
     }
 
-    fn get_byte(&self, address: u16) -> Option<u8> {
+    fn get_byte(&self, address: u16) -> u8 {
         if Mbc1Cartridge::compare(address, 0x4000, 0x7FFF) == 0 {
-            return Some(self.bytes[(address + ((self.current_rom_bank as u16 - 1) * (0x7FFF - 0x4000 + 1))) as usize]);
+            return self.bytes[(address + ((self.current_rom_bank as u16 - 1) * (0x7FFF - 0x4000 + 1))) as usize];
         } else if Mbc1Cartridge::compare(address, 0xA000, 0xBFFF) == 0 {
             return self.bank_ram.get_byte(address - 0xA000);
         }
-        Some(self.bytes[address as usize])
+        self.bytes[address as usize]
     }
 }
 
@@ -171,8 +171,8 @@ impl Memory for BankableRam {
         self.banks[self.current_bank as usize][address as usize] = value;
     }
 
-    fn get_byte(&self, address: u16) -> Option<u8> {
-        Some(self.banks[self.current_bank as usize][address as usize])
+    fn get_byte(&self, address: u16) -> u8 {
+        self.banks[self.current_bank as usize][address as usize]
     }
 }
 
