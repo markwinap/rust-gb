@@ -1,4 +1,4 @@
-use crate::memory::nmmu::Memory;
+use crate::memory::Memory;
 use std::sync::Arc;
 use bitflags::_core::ops::{Index, IndexMut};
 
@@ -21,13 +21,13 @@ impl Cartridge for ReadOnlyMemoryCartridge {
         self.get_byte(address).unwrap()
     }
 
-    fn write_rom(&mut self, address: u16, value: u8) {}
+    fn write_rom(&mut self, _: u16, _: u8) {}
 
     fn read_ram(&self, address: u16) -> u8 {
         self.get_byte(address).unwrap()
     }
 
-    fn write_ram(&mut self, address: u16, value: u8) {}
+    fn write_ram(&mut self, _: u16, _: u8) {}
 }
 
 impl ReadOnlyMemoryCartridge {
@@ -39,21 +39,19 @@ impl ReadOnlyMemoryCartridge {
 }
 
 impl Memory for ReadOnlyMemoryCartridge {
-    fn set_byte(&mut self, _: u16, _: u8) {
-        // panic!("Write not allowed for read only rom")
-    }
+    fn set_byte(&mut self, _: u16, _: u8) {}
 
     fn get_byte(&self, address: u16) -> Option<u8> {
         let result = self.bytes[address as usize];
         Some(result)
     }
 }
-/////////////////////
+
 
 #[derive(Eq, PartialEq)]
 enum MemoryMode {
-    MBIT_16_ROM_8KBYTE_RAM,
-    MBIT_4_ROM_32KBYTE_RAM,
+    MBit16Rom8KByteRam,
+    MBit4Rom32KByteRam,
 }
 
 pub struct Mbc1Cartridge {
@@ -67,10 +65,7 @@ pub struct Mbc1Cartridge {
 
 impl Cartridge for Mbc1Cartridge {
     fn read_rom(&self, address: u16) -> u8 {
-        // self.get_byte(address).unwrap()
-        //  let idx = if address < 0x4000 { address as usize } else { self.current_rom_bank * 0x4000 | ((address as usize) & 0x3FFF) };
-        //*self.bytes.get(idx).unwrap_or(&0)
-        0
+        self.get_byte(address).unwrap()
     }
 
     fn write_rom(&mut self, address: u16, value: u8) {
@@ -81,9 +76,7 @@ impl Cartridge for Mbc1Cartridge {
         if self.bank_ram.enabled {
             return 0;
         }
-        let rambank = if self.ram_mode { self.current_rom_bank } else { 0 };
-        //   self.bank_ram.
-        0
+        self.get_byte(address).unwrap()
     }
 
     fn write_ram(&mut self, address: u16, value: u8) {
@@ -101,7 +94,7 @@ impl Memory for Mbc1Cartridge {
                 self.current_rom_bank += 1;
             }
         } else if address < 0x6000 {
-            if self.mode == MemoryMode::MBIT_4_ROM_32KBYTE_RAM {
+            if self.mode == MemoryMode::MBit4Rom32KByteRam {
                 self.bank_ram.select_bank(data & 0b0000_0011);
             } else {
                 data = (data & 0b0000_0011) << 5;
@@ -110,12 +103,11 @@ impl Memory for Mbc1Cartridge {
         } else if address < 0x8000 {
             data = data & 0b0000_0001;
             if data == 1 {
-                self.mode = MemoryMode::MBIT_4_ROM_32KBYTE_RAM;
+                self.mode = MemoryMode::MBit4Rom32KByteRam;
             } else {
-                self.mode = MemoryMode::MBIT_16_ROM_8KBYTE_RAM
+                self.mode = MemoryMode::MBit16Rom8KByteRam
             }
         } else if Mbc1Cartridge::compare(address, 0xA000, 0xBFFF) == 0 {
-            //self.bank_ram.set_byte(address - 0xA000, data);
             self.bank_ram[address - 0xA000] = data;
         }
     }
@@ -124,21 +116,10 @@ impl Memory for Mbc1Cartridge {
         if Mbc1Cartridge::compare(address, 0x4000, 0x7FFF) == 0 {
             return Some(self.bytes[(address + ((self.current_rom_bank as u16 - 1) * (0x7FFF - 0x4000 + 1))) as usize]);
         } else if Mbc1Cartridge::compare(address, 0xA000, 0xBFFF) == 0 {
-            //return Some( self.bank_ram[address - 0xA000]);
             return self.bank_ram.get_byte(address - 0xA000);
         }
         Some(self.bytes[address as usize])
     }
-
-
-    //      public int compareTo(int value) {
-    //             if (value < from) {
-    //                 return value - from;
-    //             } else if (value > to) {
-    //                 return value - to;
-    //             }
-    //             return 0;
-    //         }
 }
 
 impl Mbc1Cartridge {
@@ -156,13 +137,12 @@ impl Mbc1Cartridge {
             bytes,
             bank_ram,
             current_rom_bank: 1,
-            mode: MemoryMode::MBIT_16_ROM_8KBYTE_RAM,
+            mode: MemoryMode::MBit16Rom8KByteRam,
             ram_mode: false,
         }
     }
 }
 
-//0xA000, 0xBFFF
 pub struct BankableRam {
     banks: Vec<[u8; 0xBFFF - 0xA000 + 1]>,
     current_bank: u8,
@@ -210,87 +190,5 @@ impl Index<u16> for BankableRam {
 impl IndexMut<u16> for BankableRam {
     fn index_mut(&mut self, index: u16) -> &mut Self::Output {
         &mut (self.banks[self.current_bank as usize][index as usize])
-    }
-}
-
-
-
-
-pub struct MBC1 {
-    rom: Arc<Vec<u8>>,
-    ram: Vec<u8>,
-    ram_on: bool,
-    ram_mode: bool,
-    rombank: usize,
-    rambank: usize,
-}
-
-impl MBC1 {
-    pub fn new(data: Arc<Vec<u8>>) -> MBC1 {
-        let (ramsize) = match data[0x147] {
-            0x02 => (ram_size(data[0x149])),
-            0x03 => (ram_size(data[0x149])),
-            _ => (0),
-        };
-
-        let mut res = MBC1 {
-            rom: data,
-            ram: ::std::iter::repeat(0u8).take(ramsize).collect(),
-            ram_on: false,
-            ram_mode: false,
-            rombank: 1,
-            rambank: 0,
-
-        };
-        res
-    }
-}
-
-fn ram_size(v: u8) -> usize {
-    match v {
-        1 => 0x800,
-        2 => 0x2000,
-        3 => 0x8000,
-        4 => 0x20000,
-        _ => 0,
-    }
-}
-
-impl Cartridge for MBC1 {
-    fn read_rom(&self, a: u16) -> u8 {
-        let idx = if a < 0x4000 { a as usize } else { self.rombank * 0x4000 | ((a as usize) & 0x3FFF) };
-        *self.rom.get(idx).unwrap_or(&0)
-    }
-    fn read_ram(&self, a: u16) -> u8 {
-        if !self.ram_on { return 0; }
-        let rambank = if self.ram_mode { self.rambank } else { 0 };
-        self.ram[(rambank * 0x2000) | ((a & 0x1FFF) as usize)]
-    }
-
-    fn write_rom(&mut self, a: u16, v: u8) {
-        match a {
-            0x0000..=0x1FFF => { self.ram_on = v == 0x0A; }
-            0x2000..=0x3FFF => {
-                self.rombank = (self.rombank & 0x60) | match (v as usize) & 0x1F {
-                    0 => 1,
-                    n => n
-                }
-            }
-            0x4000..=0x5FFF => {
-                if !self.ram_mode {
-                    self.rombank = self.rombank & 0x1F | (((v as usize) & 0x03) << 5)
-                } else {
-                    self.rambank = (v as usize) & 0x03;
-                }
-            }
-            0x6000..=0x7FFF => { self.ram_mode = (v & 0x01) == 0x01; }
-            _ => panic!("Could not write to {:04X} (MBC1)", a),
-        }
-    }
-
-    fn write_ram(&mut self, a: u16, v: u8) {
-        if !self.ram_on { return; }
-        let rambank = if self.ram_mode { self.rambank } else { 0 };
-        self.ram[(rambank * 0x2000) | ((a & 0x1FFF) as usize)] = v;
     }
 }

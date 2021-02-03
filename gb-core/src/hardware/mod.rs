@@ -7,7 +7,7 @@ use crate::hardware::timer::Timer;
 use crate::hardware::cartridge::Cartridge;
 use crate::hardware::boot_rom::{BootromData, Bootrom};
 use crate::hardware::ppu::Ppu;
-use crate::memory::nmmu::Memory;
+use crate::memory::Memory;
 use std::time::Duration;
 use crate::hardware::input::{InputController, Controller};
 

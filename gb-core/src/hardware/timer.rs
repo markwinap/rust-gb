@@ -1,4 +1,4 @@
-use crate::memory::nmmu::Memory;
+use crate::memory::Memory;
 use crate::hardware::interrupt_handler::{InterruptHandler, InterruptLine};
 use std::ops::Index;
 use bitflags::_core::ops::IndexMut;

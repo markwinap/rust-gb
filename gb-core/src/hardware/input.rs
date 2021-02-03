@@ -3,8 +3,7 @@ use std::fmt::Display;
 use bitflags::_core::fmt::Formatter;
 
 use strum::IntoEnumIterator;
-// 0.17.1
-use strum_macros::EnumIter; // 0.17.1
+use strum_macros::EnumIter;
 
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, EnumIter)]

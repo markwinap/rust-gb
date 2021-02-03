@@ -1,26 +1,26 @@
 use std::sync::Arc;
 use num_traits::FromPrimitive;
-use crate::hardware::cartridge::{Cartridge, ReadOnlyMemoryCartridge, Mbc1Cartridge, BankableRam, MBC1};
+use crate::hardware::cartridge::{Cartridge, ReadOnlyMemoryCartridge, Mbc1Cartridge, BankableRam};
 
 #[derive(FromPrimitive, Clone, Copy)]
 pub enum RomType {
-    ROM_ONLY = 0x00,
-    MBC1 = 0x01
+    RomOnly = 0x00,
+    MBC1 = 0x01,
 }
 
 impl RomType {
     pub fn battery(&self) -> bool {
         match self {
-            RomType::ROM_ONLY => { false },
-            RomType::MBC1 => { false },
+            RomType::RomOnly => { false }
+            RomType::MBC1 => { false }
             _ => { false }
         }
     }
 
     pub fn to_cartridge(&self, rom: &Rom) -> Box<dyn Cartridge> {
         match self {
-            RomType::ROM_ONLY => Box::new(ReadOnlyMemoryCartridge::from_bytes(rom.data.clone())),
-            RomType::MBC1 => Box::new(MBC1::new(rom.data.clone()))
+            RomType::RomOnly => Box::new(ReadOnlyMemoryCartridge::from_bytes(rom.data.clone())),
+            RomType::MBC1 => Box::new(Mbc1Cartridge::new(rom.data.clone(), BankableRam::new(rom.ram_size.banks())))
         }
     }
 }
@@ -79,16 +79,16 @@ impl RamSize {
 }
 
 pub enum Model {
-    GAME_BOY,
-    GAME_BOY_COLOR,
+    GameBoy,
+    GameBoyColor,
 }
 
 
 impl Model {
     pub fn from_value(value: u8) -> Model {
         match value {
-            0x80 => Model::GAME_BOY_COLOR,
-            _ => Model::GAME_BOY,
+            0x80 => Model::GameBoyColor,
+            _ => Model::GameBoy,
         }
     }
 }

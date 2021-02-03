@@ -4,25 +4,20 @@ mod fb_screen;
 extern crate glium;
 extern crate gb_core;
 
-
 use crate::gl_screen::{GlScreen, render};
 use gb_core::hardware::Screen;
 use gb_core::gameboy::{GameBoy, SCREEN_PIXELS, SCREEN_WIDTH, GbEvents};
-use std::sync::{Arc, RwLock, mpsc};
+use std::sync::{Arc, mpsc};
 use std::fs::File;
 use std::io::Read;
 use gb_core::hardware::rom::Rom;
 use gb_core::hardware::boot_rom::{BootromData, Bootrom};
-use std::ops::{Deref, DerefMut};
+use std::ops::{DerefMut};
 use gb_core::hardware::color_palette::Color;
-use std::sync::mpsc::{sync_channel, SyncSender, Receiver, TryRecvError};
+use std::sync::mpsc::{ SyncSender, Receiver, TryRecvError};
 use std::cell::RefCell;
-use std::time::Duration;
-use crate::fb_screen::FbScreen;
-use gb_core::hardware::input::{Controller, Button};
-use std::collections::HashMap;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path};
 
 fn main() {
     construct_cpu()
@@ -39,13 +34,13 @@ pub fn load_rom(zip_file: &str, rom_name: &str) -> Rom {
         Err(_) => { panic!() }
     };
     let data: Result<Vec<_>, _> = bytes.collect();
-    Rom::from_bytes(Arc::new(data.unwrap()).clone())
+    Rom::from_bytes(Arc::new(data.unwrap()))
 }
 
-pub fn load_rom_from_path(path: &PathBuf) -> Rom {
+pub fn load_rom_from_path(path: &Path) -> Rom {
     let mut gb_rom: Vec<u8> = vec![];
     File::open(path).and_then(|mut f| f.read_to_end(&mut gb_rom)).map_err(|_| "Could not read ROM").unwrap();
-    Rom::from_bytes(Arc::new(gb_rom).clone())
+    Rom::from_bytes(Arc::new(gb_rom))
 }
 
 pub fn construct_cpu() {
@@ -55,7 +50,7 @@ pub fn construct_cpu() {
 
 
     let (sender2, receiver2) = mpsc::sync_channel::<Box<[u8; SCREEN_PIXELS]>>(1);
-    let (controlSender, controlReceiver) = mpsc::channel::<GbEvents>();
+    let (control_sender, control_receiver) = mpsc::channel::<GbEvents>();
     let gl_screen = GlScreen::init("foo".to_string(), receiver2);
 
     let sync_screen = SynScreen { sender: sender2, off_screen_buffer: RefCell::new(Box::new([0; SCREEN_PIXELS])) };
@@ -86,7 +81,7 @@ pub fn construct_cpu() {
             ticks -= waitticks;
 
             'recv: loop {
-                match controlReceiver.try_recv() {
+                match control_receiver.try_recv() {
                     Ok(event) => {
                         match event {
                             GbEvents::KeyUp(key) => gameboy.key_released(key),
@@ -101,8 +96,8 @@ pub fn construct_cpu() {
         }
     });
 
-    render(gl_screen, controlSender);
-    cputhread.join();
+    render(gl_screen, control_sender);
+    cputhread.join().unwrap();
 }
 
 
@@ -138,7 +133,7 @@ impl Screen for SynScreen {
 
     fn draw(&mut self) {
         let stuff = self.off_screen_buffer.replace(Box::new([0; SCREEN_PIXELS]));
-        self.sender.send(stuff);
+        self.sender.send(stuff).unwrap();
     }
 }
 

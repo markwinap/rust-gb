@@ -73,7 +73,6 @@ impl InterruptHandler {
     }
 
     pub fn acknowledge(&mut self, interrupt: InterruptLine) {
-      //  println!("Acknowledge: {}", interrupt);
         self.request(interrupt, false);
     }
 

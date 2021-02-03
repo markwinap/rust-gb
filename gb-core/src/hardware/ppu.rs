@@ -1,7 +1,7 @@
 use crate::hardware::{Screen};
 use bit_set::BitSet;
 use crate::hardware::color_palette::{ColorPalette, Color, ORIGINAL_GREEN};
-use crate::memory::nmmu::Memory;
+use crate::memory::Memory;
 use bitflags::bitflags;
 use crate::hardware::interrupt_handler::{InterruptLine, InterruptHandler};
 use crate::gameboy::{SCREEN_HEIGHT, SCREEN_WIDTH};
