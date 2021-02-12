@@ -8,8 +8,9 @@ use crate::hardware::cartridge::Cartridge;
 use crate::hardware::boot_rom::{BootromData, Bootrom};
 use crate::hardware::ppu::Ppu;
 use crate::memory::Memory;
-use std::time::Duration;
+use core::time::Duration;
 use crate::hardware::input::{InputController, Controller};
+use alloc::boxed::Box;
 
 pub mod ppu;
 pub mod color_palette;
@@ -164,7 +165,7 @@ impl<T: Screen> Interface for Hardware<T> {
                  //   println!("DEACTIVATE BOOT");
                     if self.bootrom.is_active() && value & 0b1 != 0 {
                //         println!("DEACTIVATE BOOT");
-                        std::thread::sleep(Duration::from_secs(5));
+
                         self.bootrom.deactivate();
                     }
                 }

@@ -1,6 +1,6 @@
 use bitflags::bitflags;
 use crate::util::int::IntExt;
-use std::fmt::Display;
+use core::fmt::Display;
 use bitflags::_core::fmt::Formatter;
 
 bitflags!(

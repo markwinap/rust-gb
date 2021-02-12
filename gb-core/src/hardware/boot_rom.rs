@@ -1,9 +1,6 @@
 
 
-use std::ops::Index;
-use std::sync::Arc;
-use std::path::Path;
-
+use core::ops::Index;
 pub struct BootromData(pub [u8; 0x100]);
 
 impl BootromData {
@@ -21,15 +18,15 @@ impl Clone for BootromData {
 
 #[derive(Clone)]
 pub struct Bootrom {
-    data: Arc<BootromData>,
+    data: BootromData,
     active: bool,
 }
 
 impl Bootrom {
-    pub fn new(config: Option<Arc<BootromData>>) -> Bootrom {
+    pub fn new(config: Option<BootromData>) -> Bootrom {
         let (active, data) = match config {
             Some(config_data) => (true, config_data),
-            None => (false, Arc::new(BootromData::new())),
+            None => (false, BootromData::new()),
         };
 
         Bootrom { data, active }

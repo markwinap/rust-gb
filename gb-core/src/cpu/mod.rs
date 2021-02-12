@@ -74,9 +74,9 @@ impl<T: Interface> Cpu<T> {
                 let interrupt = self.interface.requested_interrupts().highest_priority();
                 self.interface.acknowledge(interrupt);
                 self.push_u16(self.registers.pc);
-                if cfg!(feature = "debug") {
-                    println!("Interrupt returns to: {}", self.registers.pc);
-                }
+                // if cfg!(feature = "debug") {
+                //     println!("Interrupt returns to: {}", self.registers.pc);
+                // }
                 self.registers.pc = match interrupt {
                     InterruptLine::VBLANK => 0x0040,
                     InterruptLine::STAT => 0x0048,

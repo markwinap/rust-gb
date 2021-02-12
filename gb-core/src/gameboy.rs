@@ -4,6 +4,7 @@ use crate::hardware::cartridge::Cartridge;
 use crate::hardware::boot_rom::Bootrom;
 use crate::hardware::input::{Controller, Button};
 use crate::cpu::Step;
+use alloc::boxed::Box;
 
 pub const SCREEN_HEIGHT: usize = 144;
 pub const SCREEN_WIDTH: usize = 160;

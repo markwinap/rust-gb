@@ -1,12 +1,9 @@
 use crate::hardware::interrupt_handler::{InterruptHandler, InterruptLine};
-use std::fmt::Display;
+use core::fmt::Display;
 use bitflags::_core::fmt::Formatter;
 
-use strum::IntoEnumIterator;
-use strum_macros::EnumIter;
 
-
-#[derive(Copy, Clone, Eq, PartialEq, Hash, EnumIter)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub enum Button {
     A,
     B,
@@ -19,7 +16,7 @@ pub enum Button {
 }
 
 impl Display for Button {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), ::std::fmt::Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), ::core::fmt::Error> {
         match *self {
             Button::A => f.write_str("A"),
             Button::B => f.write_str("B"),
@@ -39,7 +36,33 @@ pub trait Controller {
     fn tick(&self);
 
     fn any_pressed(&self) -> bool {
-        Button::iter().any(|button| { self.is_pressed(button) })
+        let mut any = false;
+        if self.is_pressed(Button::A) {
+            if !any { any = true; }
+        }
+        if self.is_pressed(Button::B) {
+            if !any { any = true; }
+        }
+        if self.is_pressed(Button::DOWN) {
+            if !any { any = true; }
+        }
+        if self.is_pressed(Button::UP) {
+            if !any { any = true; }
+        }
+        if self.is_pressed(Button::LEFT) {
+            if !any { any = true; }
+        }
+        if self.is_pressed(Button::RIGHT) {
+            if !any { any = true; }
+        }
+        if self.is_pressed(Button::SELECT) {
+            if !any { any = true; }
+        }
+        if self.is_pressed(Button::START) {
+            if !any { any = true; }
+        }
+        //Button::iter().any(|button| { self.is_pressed(button) })
+        any
     }
 }
 

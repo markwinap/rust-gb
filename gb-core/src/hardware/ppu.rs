@@ -6,7 +6,7 @@ use bitflags::bitflags;
 use crate::hardware::interrupt_handler::{InterruptLine, InterruptHandler};
 use crate::gameboy::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use bitflags::_core::time::Duration;
-use std::cmp::Ordering;
+use core::cmp::Ordering;
 use arrayvec::ArrayVec;
 use num_traits::FromPrimitive;
 
@@ -149,9 +149,9 @@ impl<T: Screen> Ppu<T> {
         } else {
             self.stat.remove(Stat::COMPARE);
         }
-        if cfg!(feature = "debug") {
-            println!("cycle_counter: {} scanline: {} cycle: {} stat: {:#010b} control: {:#010b}", self.cycle_counter, self.scanline, cycles, self.get_stat(), self.get_control());
-        }
+        // if cfg!(feature = "debug") {
+        //     println!("cycle_counter: {} scanline: {} cycle: {} stat: {:#010b} control: {:#010b}", self.cycle_counter, self.scanline, cycles, self.get_stat(), self.get_control());
+        // }
         if !self.update_current_mode(interrupts) {
             return;
         }

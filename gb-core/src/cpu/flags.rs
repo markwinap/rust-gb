@@ -14,7 +14,7 @@ pub struct Flags {
 }
 
 impl Display for Flags {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         write!(f, "z: {}, n: {}, h: {}, c: {}", self.z, self.n, self.h, self.c)
     }
 }
@@ -39,13 +39,13 @@ impl Flags {
     }
 }
 
-impl std::convert::From<Flags> for u8 {
+impl core::convert::From<Flags> for u8 {
     fn from(flag: Flags) -> u8 {
         flag.read_value()
     }
 }
 
-impl std::convert::From<u8> for Flags {
+impl core::convert::From<u8> for Flags {
     fn from(byte: u8) -> Self {
         let zero = ((byte >> ZERO_FLAG_BYTE_POSITION) & 0b1) != 0;
         let subtract = ((byte >> SUBTRACT_FLAG_BYTE_POSITION) & 0b1) != 0;

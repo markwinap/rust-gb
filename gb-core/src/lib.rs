@@ -1,10 +1,13 @@
+#![no_std]
+
+extern crate alloc;
 mod cpu;
 pub mod hardware;
 mod memory;
 mod util;
 pub mod gameboy;
 
-extern crate phf;
+
 extern crate num_traits;
 
 #[macro_use]

@@ -1,6 +1,6 @@
 use crate::memory::Memory;
-use std::sync::Arc;
 use bitflags::_core::ops::{Index, IndexMut};
+use alloc::vec::Vec;
 
 pub trait Cartridge {
     fn step(&mut self) {}
@@ -13,7 +13,7 @@ pub trait Cartridge {
 }
 
 pub struct ReadOnlyMemoryCartridge {
-    bytes: Arc<Vec<u8>>,
+    bytes: Vec<u8>,
 }
 
 impl Cartridge for ReadOnlyMemoryCartridge {
@@ -31,7 +31,7 @@ impl Cartridge for ReadOnlyMemoryCartridge {
 }
 
 impl ReadOnlyMemoryCartridge {
-    pub fn from_bytes(bytes: Arc<Vec<u8>>) -> Self {
+    pub fn from_bytes(bytes: Vec<u8>) -> Self {
         Self {
             bytes
         }
@@ -55,7 +55,7 @@ enum MemoryMode {
 }
 
 pub struct Mbc1Cartridge {
-    bytes: Arc<Vec<u8>>,
+    bytes: Vec<u8>,
     bank_ram: BankableRam,
     current_rom_bank: u8,
     mode: MemoryMode,
@@ -132,7 +132,7 @@ impl Mbc1Cartridge {
         return 0;
     }
 
-    pub fn new(bytes: Arc<Vec<u8>>, bank_ram: BankableRam) -> Self {
+    pub fn new(bytes: Vec<u8>, bank_ram: BankableRam) -> Self {
         Self {
             bytes,
             bank_ram,

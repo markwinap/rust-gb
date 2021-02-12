@@ -1,6 +1,8 @@
-use std::sync::Arc;
+use alloc::boxed::Box;
 use num_traits::FromPrimitive;
 use crate::hardware::cartridge::{Cartridge, ReadOnlyMemoryCartridge, Mbc1Cartridge, BankableRam};
+use alloc::vec::Vec;
+use alloc::string::{String, ToString};
 
 #[derive(FromPrimitive, Clone, Copy)]
 pub enum RomType {
@@ -108,7 +110,7 @@ impl Region {
 }
 
 pub struct Rom {
-    pub data: Arc<Vec<u8>>,
+    pub data: Vec<u8>,
     pub rom_type: RomType,
     pub rom_size: RomSize,
     pub ram_size: RamSize,
@@ -119,7 +121,7 @@ pub struct Rom {
 }
 
 impl Rom {
-    pub fn from_bytes(bytes: Arc<Vec<u8>>) -> Self {
+    pub fn from_bytes(bytes: Vec<u8>) -> Self {
         Self {
             data: bytes.clone(),
             rom_type: RomType::from_u8(bytes[0x147]).unwrap(),
@@ -131,7 +133,7 @@ impl Rom {
         }
     }
 
-    fn resolve_name(data: &Arc<Vec<u8>>) -> String {
+    fn resolve_name(data: &Vec<u8>) -> String {
         let new_cartridge = data[0x14b] == 0x33;
         {
             let slice = if new_cartridge {
@@ -139,7 +141,7 @@ impl Rom {
             } else {
                 &data[0x134..0x143]
             };
-            let utf8 = std::str::from_utf8(slice).unwrap();
+            let utf8 = alloc::str::from_utf8(slice).unwrap();
 
             utf8.trim_end_matches('\0').to_string()
         }

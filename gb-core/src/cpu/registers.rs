@@ -12,8 +12,8 @@ pub enum Reg8 {
     L,
 }
 
-use std::fmt::Display;
-#[derive(Clone, Copy, Debug, Display)]
+use core::fmt::Display;
+#[derive(Clone, Copy, Debug)]
 pub enum Reg16 {
     AF,
     BC,
