@@ -34,13 +34,13 @@ pub fn load_rom(zip_file: &str, rom_name: &str) -> Rom {
         Err(_) => { panic!() }
     };
     let data: Result<Vec<_>, _> = bytes.collect();
-    Rom::from_bytes(Arc::new(data.unwrap()))
+    Rom::from_bytes(data.unwrap())
 }
 
 pub fn load_rom_from_path(path: &Path) -> Rom {
     let mut gb_rom: Vec<u8> = vec![];
     File::open(path).and_then(|mut f| f.read_to_end(&mut gb_rom)).map_err(|_| "Could not read ROM").unwrap();
-    Rom::from_bytes(Arc::new(gb_rom))
+    Rom::from_bytes(gb_rom)
 }
 
 pub fn construct_cpu() {
