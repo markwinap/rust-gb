@@ -17,18 +17,12 @@ strum = "0.20"
 strum_macros = "0.20"
 zip = "0.5"
 arrayvec = "0.5.2"
-[dependencies.failure]
-version = "~0.1"
+#[dependencies.failure]
+#version = "~0.1"
 
 [dependencies.failure_derive]
 version = "~0.1"
 
 [dependencies.enum-display-derive]
 version = "0.1.0"
-
-[dependencies.bit-set]
-version = "0.5.2"
-
-#[dev-dependencies]
-
 

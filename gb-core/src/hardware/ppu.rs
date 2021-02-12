@@ -1,5 +1,5 @@
 use crate::hardware::{Screen};
-use bit_set::BitSet;
+
 use crate::hardware::color_palette::{ColorPalette, Color, ORIGINAL_GREEN};
 use crate::memory::Memory;
 use bitflags::bitflags;
@@ -88,7 +88,6 @@ pub struct Ppu<T: Screen> {
     obj_palette0: Palette,
     obj_palette1: Palette,
     scanline: u8,
-    background_mask: BitSet,
     video_ram: VideoRam,
     control: Control,
     stat: Stat,
@@ -100,7 +99,7 @@ pub struct Ppu<T: Screen> {
     window_x: u8,
     window_y: u8,
     cycle_counter: isize,
-    screen: T,
+    pub screen: T,
     sprites: [Sprite; OAM_SPRITES],
 }
 
@@ -113,7 +112,6 @@ impl<T: Screen> Ppu<T> {
             obj_palette0: Palette(0),
             obj_palette1: Palette(0),
             scanline: 0,
-            background_mask: Default::default(),
             video_ram: VideoRam {
                 tile_map0: [0; TILE_MAP_SIZE],
                 tile_map1: [0; TILE_MAP_SIZE],

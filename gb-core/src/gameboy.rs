@@ -10,7 +10,7 @@ pub const SCREEN_WIDTH: usize = 160;
 pub const SCREEN_PIXELS: usize = SCREEN_WIDTH * SCREEN_HEIGHT * 3;
 
 pub struct GameBoy<S: Screen> {
-    cpu: Cpu<Hardware<S>>,
+    pub cpu: Cpu<Hardware<S>>,
     elapsed_cycles: usize,
 }
 
