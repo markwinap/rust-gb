@@ -1,6 +1,8 @@
 #![no_std]
 
 extern crate alloc;
+#[macro_use]
+extern crate unroll;
 mod cpu;
 pub mod hardware;
 mod memory;

@@ -116,6 +116,19 @@ fn create_window_builder(romname: &str) -> glium::glutin::window::WindowBuilder 
         .with_title("Rust-GB ".to_owned() + romname);
 }
 
+#[cfg(target_os = "linux")]
+fn create_window_builder(romname: &str) -> glium::glutin::window::WindowBuilder {
+   
+    return glium::glutin::window::WindowBuilder::new()
+        
+        .with_inner_size(glium::glutin::dpi::LogicalSize::<u32>::from((
+            SCREEN_WIDTH as u32,
+            SCREEN_HEIGHT as u32,
+        )))
+        .with_title("Rust-GB ".to_owned() + romname);
+}
+
+
 fn set_window_size(window: &glium::glutin::window::Window, scale: u32) {
     use glium::glutin::dpi::{LogicalSize, PhysicalSize};
 

@@ -1,7 +1,7 @@
 use crate::cpu::registers::{Registers, Reg8, Reg16};
 use crate::cpu::{Step, Interface};
 
-pub struct Cpu< T: Interface> {
+pub struct Cpu<T: Interface> {
     pub registers: Registers,
     pub op_code: u8,
     pub interface: T,
@@ -10,13 +10,14 @@ pub struct Cpu< T: Interface> {
     pub prev_opcode: PrevExec,
     pub tick_count: usize,
 }
+
 #[derive(Default)]
 pub struct PrevExec {
     pub prev_opcode: u8,
     pub prev_pc: u16,
 }
-impl<T: Interface> Cpu< T> {
 
+impl<T: Interface> Cpu<T> {
     pub fn get_interface(&mut self) -> &mut T {
         &mut self.interface
     }
@@ -31,7 +32,7 @@ impl<T: Interface> Cpu< T> {
         let lo = self.read_next_byte();
         let hi = self.read_next_byte();
         let word = u16::from_le_bytes([lo, hi]);
-      //  println!("Word read: {:X?}", word);
+        //  println!("Word read: {:X?}", word);
         word
     }
 
@@ -94,7 +95,7 @@ impl<T: Interface> Read16<Reg16> for Cpu<T> {
 
 impl<T: Interface> Write16<Reg16> for Cpu<T> {
     fn write_16(&mut self, dst: Reg16, val: u16) {
-      //  println!("Inside write reg: {} with value: {}", dst, val);
+        //  println!("Inside write reg: {} with value: {}", dst, val);
         match dst {
             Reg16::AF => self.registers.set_af(val),
             Reg16::BC => self.registers.set_bc(val),

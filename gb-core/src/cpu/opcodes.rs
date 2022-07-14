@@ -307,7 +307,8 @@ impl<T: Interface> Cpu<T> {
             0x3b => (self.dec16(Reg16::SP), 8),
 
             0xcb => self.cb_prefix(),
-            _ => panic!("Undefined opcode {}", self.op_code)
+            // _ => panic!("Undefined opcode {}", self.op_code)
+            _ => ((Step::Run, 0), 0)
         }
     }
 

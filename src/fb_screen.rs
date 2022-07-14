@@ -22,7 +22,7 @@ impl FbScreen {
             let mut stop = false;
 
             let mut window = Window::new(
-                "foo",
+                "Mario Land",
                 SCREEN_WIDTH,
                 SCREEN_HEIGHT,
                 WindowOptions::default(),

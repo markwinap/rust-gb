@@ -14,7 +14,7 @@ use gb_core::hardware::rom::Rom;
 use gb_core::hardware::boot_rom::{BootromData, Bootrom};
 use std::ops::{DerefMut};
 use gb_core::hardware::color_palette::Color;
-use std::sync::mpsc::{ SyncSender, Receiver, TryRecvError};
+use std::sync::mpsc::{SyncSender, Receiver, TryRecvError};
 use std::cell::RefCell;
 use std::fs;
 use std::path::{Path};
@@ -24,6 +24,9 @@ fn main() {
 }
 
 pub fn load_rom(zip_file: &str, rom_name: &str) -> Rom {
+    println!("sd {}", 3);
+
+    let foo = format!("sd {}", 3);
     let file = fs::File::open(&zip_file).unwrap();
     let mut archive = zip::ZipArchive::new(file).unwrap();
 
@@ -44,9 +47,9 @@ pub fn load_rom_from_path(path: &Path) -> Rom {
 }
 
 pub fn construct_cpu() {
-    let gb_rom = load_rom_from_path(&std::path::PathBuf::from("C:\\gbrom\\sml.gb"));
-   // let gb_rom = load_rom("test-roms/cpu_instrs.zip", "cpu_instrs/cpu_instrs.gb");
-    let boot_rom = std::path::PathBuf::from("C:\\gbrom\\dmg_boot.bin");
+    let gb_rom = load_rom_from_path(&std::path::PathBuf::from("/home/plozano/gbrom/sml.gb"));
+    // let gb_rom = load_rom("test-roms/cpu_instrs.zip", "cpu_instrs/cpu_instrs.gb");
+    let boot_rom = std::path::PathBuf::from("/home/plozano/gbrom/dmg_boot.bin");
 
 
     let (sender2, receiver2) = mpsc::sync_channel::<Box<[u8; SCREEN_PIXELS]>>(1);
@@ -55,10 +58,7 @@ pub fn construct_cpu() {
 
     let sync_screen = SynScreen { sender: sender2, off_screen_buffer: RefCell::new(Box::new([0; SCREEN_PIXELS])) };
 
-    let mut file = File::open(boot_rom).unwrap();
-    let mut data2 = Box::new(BootromData::new());
-    file.read_exact(&mut (data2.deref_mut()).0).unwrap();
-    let boot_room_stuff = Bootrom::new(None);
+    let boot_room_stuff = Bootrom::new(Some(BootromData::from_bytes(include_bytes!("/home/plozano/gbrom/dmg_boot.bin"))));
 
     let cputhread = std::thread::spawn(move || {
         let periodic = timer_periodic(16);
@@ -67,9 +67,7 @@ pub fn construct_cpu() {
         let waitticks = (4194304f64 / 1000.0 * 16.0).round() as u32;
         let mut ticks = 0;
 
-        let rom = gb_rom;
-        let rom_type = rom.rom_type;
-        let cart = rom_type.to_cartridge(&rom);
+        let cart = gb_rom.into_cartridge();
         let mut gameboy = GameBoy::create(sync_screen, cart, boot_room_stuff);
 
 

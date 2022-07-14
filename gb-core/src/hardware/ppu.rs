@@ -2,6 +2,7 @@ use crate::hardware::{Screen};
 
 use crate::hardware::color_palette::{ColorPalette, Color, ORIGINAL_GREEN};
 use crate::memory::Memory;
+use alloc::vec::{Vec, self};
 use bitflags::bitflags;
 use crate::hardware::interrupt_handler::{InterruptLine, InterruptHandler};
 use crate::gameboy::{SCREEN_HEIGHT, SCREEN_WIDTH};
@@ -40,7 +41,10 @@ const TILE_MAP_SIZE: usize = 0x400;
 const OAM_SPRITES: usize = 40;
 
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+
+
+
+#[derive(Copy, Clone, PartialEq, Eq, FromPrimitive)]
 enum Mode {
     AccessOam,
     AccessVram,
@@ -73,14 +77,18 @@ impl Mode {
 
     fn minimum_cycles(&self) -> isize {
         match *self {
-            Mode::AccessOam => 80,
-            Mode::AccessVram => 172,
-            Mode::HBlank => 204,
-            Mode::VBlank => 456,
+            Mode::AccessOam => ACCESS_OAM_MIN_CYCLES,
+            Mode::AccessVram => ACCESS_VRAM_MIN_CYCLES,
+            Mode::HBlank => HBLANK_MIN_CYCLES,
+            Mode::VBlank => VBLANK_MIN_CYCLES,
         }
     }
 }
 
+const ACCESS_OAM_MIN_CYCLES: isize = 80;
+const ACCESS_VRAM_MIN_CYCLES: isize = 172;
+const HBLANK_MIN_CYCLES: isize = 204;
+const VBLANK_MIN_CYCLES: isize = 456;
 
 pub struct Ppu<T: Screen> {
     color_palette: ColorPalette,
@@ -94,13 +102,15 @@ pub struct Ppu<T: Screen> {
     compare_line: u8,
     scroll_x: u8,
     scroll_y: u8,
-    tile_offset: u8,
+
     mode: Mode,
     window_x: u8,
     window_y: u8,
     cycle_counter: isize,
     pub screen: T,
-    sprites: [Sprite; OAM_SPRITES],
+    tick: bool,
+
+    sprites: Vec<Sprite>,
 }
 
 
@@ -115,19 +125,20 @@ impl<T: Screen> Ppu<T> {
             video_ram: VideoRam {
                 tile_map0: [0; TILE_MAP_SIZE],
                 tile_map1: [0; TILE_MAP_SIZE],
-                tiles: [Tile::new(); TILE_COUNT],
+                tiles: alloc::vec![Tile::new(); TILE_COUNT],
             },
             control: Control::empty(),
             stat: Stat::empty(),
             compare_line: 0,
             scroll_x: 0,
             scroll_y: 0,
-            tile_offset: 0,
+
             mode: Mode::HBlank,
             window_x: 0,
             window_y: 0,
+            tick: false,
             cycle_counter: 0,
-            sprites: [Sprite::new(Palette(0)); SPRITE_COUNT],
+            sprites: alloc::vec![Sprite::new(Palette(0)); SPRITE_COUNT],
             screen,
         }
     }
@@ -149,10 +160,8 @@ impl<T: Screen> Ppu<T> {
         } else {
             self.stat.remove(Stat::COMPARE);
         }
-        // if cfg!(feature = "debug") {
-        //     println!("cycle_counter: {} scanline: {} cycle: {} stat: {:#010b} control: {:#010b}", self.cycle_counter, self.scanline, cycles, self.get_stat(), self.get_control());
-        // }
-        if !self.update_current_mode(interrupts) {
+
+        if !self.update_lcd_stat_interrupts(interrupts) {
             return;
         }
         if cycles == 0 {
@@ -169,36 +178,57 @@ impl<T: Screen> Ppu<T> {
                 self.stat.remove(Stat::COMPARE);
             }
 
-            self.cycle_counter = Mode::VBlank.minimum_cycles();
+             self.cycle_counter = VBLANK_MIN_CYCLES;
             if self.scanline == SCREEN_HEIGHT as u8 {
+                self.draw_scan_line();
                 interrupts.request(InterruptLine::VBLANK, true);
             } else if self.scanline >= SCREEN_HEIGHT as u8 + 10 {
-                self.scanline = 0;
                 self.draw_to_screen();
+                if self.scanline  != 0 && self.scanline as usize != SCREEN_HEIGHT +  10 {
+                    self.scanline = 0;
+                }
+                self.scanline = 0;
+                
             } else if self.scanline < SCREEN_HEIGHT as u8 {
+                self.tick = !self.tick;
                 self.draw_scan_line();
             }
         }
     }
 
 
+    #[inline]
     fn draw_to_screen(&mut self) {
+        // if self.skip_counter == 10 {
+        //     self.screen.draw();
+        //     self.skip_counter = 0;
+        // } else {
+        //     self.skip_counter = self.skip_counter + 1;
+        // }
+
         self.screen.draw();
+
     }
 
-    fn update_current_mode(&mut self, interrupts: &mut InterruptHandler) -> bool {
+    fn update_lcd_stat_interrupts(&mut self, interrupts: &mut InterruptHandler) -> bool {
         if !self.control.contains(Control::LCD_ON) {
-            self.cycle_counter = Mode::VBlank.minimum_cycles();
+            self.cycle_counter = VBLANK_MIN_CYCLES;
             self.mode = Mode::VBlank;
+            if  self.scanline  != 0 && self.scanline as usize != SCREEN_HEIGHT {
+                self.scanline = 0;
+            }
             self.scanline = 0;
             return false;
         }
         if self.scanline >= SCREEN_HEIGHT as u8 {
             self.update_current_mode_sec(interrupts, Mode::VBlank, self.stat.contains(Stat::VBLANK_INT));
-        } else if self.cycle_counter >= Mode::VBlank.minimum_cycles() - Mode::AccessOam.minimum_cycles() {
+        
+        } else if self.cycle_counter >= VBLANK_MIN_CYCLES - ACCESS_OAM_MIN_CYCLES {
             self.update_current_mode_sec(interrupts, Mode::AccessOam, self.stat.contains(Stat::ACCESS_OAM_INT));
-        } else if self.cycle_counter >= Mode::VBlank.minimum_cycles() - Mode::AccessOam.minimum_cycles() - Mode::AccessVram.minimum_cycles() {
+        
+        } else if self.cycle_counter >= VBLANK_MIN_CYCLES - ACCESS_OAM_MIN_CYCLES - ACCESS_VRAM_MIN_CYCLES {
             self.update_current_mode_sec(interrupts, Mode::AccessVram, false);
+        
         } else {
             self.update_current_mode_sec(interrupts, Mode::HBlank, self.stat.contains(Stat::HBLANK_INT));
         }
@@ -229,7 +259,9 @@ impl<T: Screen> Ppu<T> {
         self.control.bits
     }
 
+    //#[unroll_for_loops]
     pub fn draw_scan_line(&mut self) {
+
         let mut background_priority = [false; SCREEN_WIDTH];
         if self.control.contains(Control::BG_ON) {
             for x in 0..SCREEN_WIDTH {
@@ -243,6 +275,7 @@ impl<T: Screen> Ppu<T> {
         if self.control.contains(Control::OBJ_ON) {
             self.draw_sprites(&mut background_priority);
         }
+        self.screen.scanline_complete(self.scanline - 1);
     }
 
     pub fn set_control(&mut self, value: u8) {
@@ -321,7 +354,7 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn draw_sprites(&mut self, &mut background_priority: &mut [bool; SCREEN_WIDTH]) {
-        use arrayvec::ArrayVec;
+       
         let current_line = self.scanline;
         let size = if self.control.contains(Control::OBJ_SIZE) { SPRITE_HEIGHT } else { SPRITE_HEIGHT / 2 };
         let mut sprites_to_draw: ArrayVec<[(usize, &Sprite); 10]> = self
@@ -497,7 +530,7 @@ bitflags!(
 struct VideoRam {
     tile_map0: [u8; TILE_MAP_SIZE],
     tile_map1: [u8; TILE_MAP_SIZE],
-    tiles: [Tile; TILE_COUNT],
+    tiles: Vec<Tile>,
 
 }
 

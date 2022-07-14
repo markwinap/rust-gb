@@ -45,6 +45,9 @@ impl<S: Screen> GameBoy<S> {
         cycles
     }
 
+    pub fn get_screen(&self) -> &S {
+        &self.cpu.interface.gpu.screen
+    }
 
     #[cfg(feature = "debug")]
     pub fn tick(&mut self) -> u8 {

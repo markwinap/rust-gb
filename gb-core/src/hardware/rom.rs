@@ -19,10 +19,10 @@ impl RomType {
         }
     }
 
-    pub fn to_cartridge(&self, rom: &Rom) -> Box<dyn Cartridge> {
+    pub fn to_cartridge(&self, rom:Rom) -> Box<dyn Cartridge> {
         match self {
-            RomType::RomOnly => Box::new(ReadOnlyMemoryCartridge::from_bytes(rom.data.clone())),
-            RomType::MBC1 => Box::new(Mbc1Cartridge::new(rom.data.clone(), BankableRam::new(rom.ram_size.banks())))
+            RomType::RomOnly => Box::new(ReadOnlyMemoryCartridge::from_bytes(rom.data)),
+            RomType::MBC1 => Box::new(Mbc1Cartridge::new(rom.data, BankableRam::new(rom.ram_size.banks())))
         }
     }
 }
@@ -121,15 +121,35 @@ pub struct Rom {
 }
 
 impl Rom {
+
+    pub fn into_cartridge(self) -> Box<dyn Cartridge> {
+        let rom_type = self.rom_type.clone();
+        rom_type.to_cartridge(self)
+    }
+
     pub fn from_bytes(bytes: Vec<u8>) -> Self {
+        let rom_type = RomType::from_u8(bytes[0x147]).unwrap();
+        let rom_size = RomSize::from_u8(bytes[0x148]).unwrap();
+        let ram_size = RamSize::from_u8(bytes[0x149]).unwrap();
+        let model = Model::from_value(bytes[0x143]);
+        let region = Region::from_value(bytes[0x14A]);
+        let title = Rom::resolve_name(&bytes);
+
+        // let rom_type = RomType::RomOnly;
+        // let rom_size = RomSize::_64KB;
+        // let ram_size = RamSize::_2KB;
+        // let model = Model::GameBoy;
+        // let region = Region::INTERNATIONAL;
+    //    let title = "sad";
+
         Self {
-            data: bytes.clone(),
-            rom_type: RomType::from_u8(bytes[0x147]).unwrap(),
-            rom_size: RomSize::from_u8(bytes[0x148]).unwrap(),
-            ram_size: RamSize::from_u8(bytes[0x149]).unwrap(),
-            model: Model::from_value(bytes[0x143]),
-            region: Region::from_value(bytes[0x14A]),
-            title: Rom::resolve_name(&bytes),
+            data: bytes,
+            rom_type: rom_type,
+            rom_size: rom_size,
+            ram_size: ram_size,
+            model: model,
+            region: region,
+            title: "sds".to_string(),
         }
     }
 

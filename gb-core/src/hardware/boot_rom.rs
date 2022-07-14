@@ -1,22 +1,22 @@
-
-
 use core::ops::Index;
-pub struct BootromData(pub [u8; 0x100]);
+use alloc::boxed::Box;
+use alloc::vec::Vec;
+
+pub struct BootromData(pub Vec<u8>);
 
 impl BootromData {
     pub fn new() -> BootromData {
-        BootromData([0; 0x100])
+        BootromData(Vec::with_capacity(256))
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> BootromData {
+        let mut x:Vec<u8> =  core::iter::repeat(0).take(bytes.len()).collect();
+        x.clone_from_slice(bytes);
+        BootromData(x)
     }
 }
 
-impl Clone for BootromData {
-    fn clone(&self) -> BootromData {
-        BootromData((*self).0)
-    }
-}
-
-
-#[derive(Clone)]
+// #[derive(Clone)]
 pub struct Bootrom {
     data: BootromData,
     active: bool,

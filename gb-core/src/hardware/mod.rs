@@ -32,6 +32,7 @@ pub trait Screen {
     fn turn_on(&mut self);
     fn turn_off(&mut self);
     fn set_pixel(&mut self, x: u8, y: u8, color: Color);
+    fn scanline_complete(&mut self, _y: u8) {}
     fn draw(&mut self);
 }
 
@@ -204,7 +205,8 @@ impl<T: Screen> Interface for Hardware<T> {
             0xfe => {
                 match address & 0xff {
                     0x00..=0x9f => self.gpu.read_oam(address as u8),
-                    _ => panic!("Unsupported read at ${:04x}", address),
+                    // _ => panic!("Unsupported read at ${:04x}", address),
+                    _ => 0,
                 }
             }
             0xff => {
