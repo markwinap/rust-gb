@@ -19,10 +19,12 @@ impl RomType {
         }
     }
 
-    pub fn to_cartridge(&self, rom:Rom) -> Box<dyn Cartridge> {
+    pub fn to_cartridge<'a>(self, rom: &Rom<'a>) -> Box<dyn Cartridge + 'a > {
         match self {
             RomType::RomOnly => Box::new(ReadOnlyMemoryCartridge::from_bytes(rom.data)),
-            RomType::MBC1 => Box::new(Mbc1Cartridge::new(rom.data, BankableRam::new(rom.ram_size.banks())))
+            RomType::MBC1 => Box::new(Mbc1Cartridge::new(rom.data, BankableRam::new(rom.ram_size.banks()))),
+            _ => panic!()
+          //  RomType::MBC1 => Box::new(Mbc1Cartridge::new(rom.data, BankableRam::new(rom.ram_size.banks())))
         }
     }
 }
@@ -109,8 +111,8 @@ impl Region {
     }
 }
 
-pub struct Rom {
-    pub data: Vec<u8>,
+pub struct Rom<'a> {
+    pub data: &'a [u8],
     pub rom_type: RomType,
     pub rom_size: RomSize,
     pub ram_size: RamSize,
@@ -120,27 +122,25 @@ pub struct Rom {
 
 }
 
-impl Rom {
+impl <'a> Rom<'a> {
 
-    pub fn into_cartridge(self) -> Box<dyn Cartridge> {
+    pub fn into_cartridge(&self) -> Box<dyn Cartridge + 'a> {
         let rom_type = self.rom_type.clone();
         rom_type.to_cartridge(self)
     }
 
-    pub fn from_bytes(bytes: Vec<u8>) -> Self {
-        let rom_type = RomType::from_u8(bytes[0x147]).unwrap();
+    pub fn from_bytes(bytes: &'static [u8]) -> Self {
+        let rom_t = bytes[0x147];
+       
         let rom_size = RomSize::from_u8(bytes[0x148]).unwrap();
         let ram_size = RamSize::from_u8(bytes[0x149]).unwrap();
+        //let ram_size = RamSize::_32KB;
         let model = Model::from_value(bytes[0x143]);
         let region = Region::from_value(bytes[0x14A]);
-        let title = Rom::resolve_name(&bytes);
+        let title = Rom::resolve_name(bytes);
+        let rom_type = RomType::from_u8(bytes[0x147]).unwrap();
 
-        // let rom_type = RomType::RomOnly;
-        // let rom_size = RomSize::_64KB;
-        // let ram_size = RamSize::_2KB;
-        // let model = Model::GameBoy;
-        // let region = Region::INTERNATIONAL;
-    //    let title = "sad";
+
 
         Self {
             data: bytes,
@@ -148,12 +148,13 @@ impl Rom {
             rom_size: rom_size,
             ram_size: ram_size,
             model: model,
+            
             region: region,
             title: "sds".to_string(),
         }
     }
 
-    fn resolve_name(data: &Vec<u8>) -> String {
+    fn resolve_name(data: &'a [u8]) -> String {
         let new_cartridge = data[0x14b] == 0x33;
         {
             let slice = if new_cartridge {

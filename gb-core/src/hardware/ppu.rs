@@ -1,14 +1,14 @@
-use crate::hardware::{Screen};
+use crate::hardware::Screen;
 
-use crate::hardware::color_palette::{ColorPalette, Color, ORIGINAL_GREEN};
-use crate::memory::Memory;
-use alloc::vec::{Vec, self};
-use bitflags::bitflags;
-use crate::hardware::interrupt_handler::{InterruptLine, InterruptHandler};
 use crate::gameboy::{SCREEN_HEIGHT, SCREEN_WIDTH};
-use bitflags::_core::time::Duration;
-use core::cmp::Ordering;
+use crate::hardware::color_palette::{Color, ColorPalette, ORIGINAL_GREEN};
+use crate::hardware::interrupt_handler::{InterruptHandler, InterruptLine};
+use crate::memory::Memory;
+use alloc::vec::{self, Vec};
 use arrayvec::ArrayVec;
+use bitflags::_core::time::Duration;
+use bitflags::bitflags;
+use core::cmp::Ordering;
 use num_traits::FromPrimitive;
 
 const TILE_MAP_ADDRESS_0: usize = 0x9800;
@@ -26,7 +26,6 @@ const SPRITE_BYTE_SIZE: usize = 4;
 const SPRITE_HEIGHT: u8 = 16;
 const SPRITE_WIDTH: usize = 8;
 
-
 const SCREEN_FREQUENCY: usize = 60;
 const STAT_UNUSED_MASK: u8 = (0 << 7);
 
@@ -39,10 +38,6 @@ const UNDEFINED_READ: u8 = 0xff;
 
 const TILE_MAP_SIZE: usize = 0x400;
 const OAM_SPRITES: usize = 40;
-
-
-
-
 
 #[derive(Copy, Clone, PartialEq, Eq, FromPrimitive)]
 enum Mode {
@@ -109,10 +104,9 @@ pub struct Ppu<T: Screen> {
     cycle_counter: isize,
     pub screen: T,
     tick: bool,
-
+    counter: usize,
     sprites: Vec<Sprite>,
 }
-
 
 impl<T: Screen> Ppu<T> {
     pub fn new(screen: T) -> Ppu<T> {
@@ -137,9 +131,11 @@ impl<T: Screen> Ppu<T> {
             window_x: 0,
             window_y: 0,
             tick: false,
+            counter: 0,
             cycle_counter: 0,
             sprites: alloc::vec![Sprite::new(Palette(0)); SPRITE_COUNT],
             screen,
+
         }
     }
 
@@ -178,59 +174,69 @@ impl<T: Screen> Ppu<T> {
                 self.stat.remove(Stat::COMPARE);
             }
 
-             self.cycle_counter = VBLANK_MIN_CYCLES;
+            self.cycle_counter = VBLANK_MIN_CYCLES;
             if self.scanline == SCREEN_HEIGHT as u8 {
                 self.draw_scan_line();
                 interrupts.request(InterruptLine::VBLANK, true);
             } else if self.scanline >= SCREEN_HEIGHT as u8 + 10 {
                 self.draw_to_screen();
-                if self.scanline  != 0 && self.scanline as usize != SCREEN_HEIGHT +  10 {
+                if self.scanline != 0 && self.scanline as usize != SCREEN_HEIGHT + 10 {
                     self.scanline = 0;
                 }
                 self.scanline = 0;
-                
             } else if self.scanline < SCREEN_HEIGHT as u8 {
-                self.tick = !self.tick;
+               
                 self.draw_scan_line();
             }
+           
         }
     }
 
-
     #[inline]
     fn draw_to_screen(&mut self) {
-        // if self.skip_counter == 10 {
-        //     self.screen.draw();
-        //     self.skip_counter = 0;
-        // } else {
-        //     self.skip_counter = self.skip_counter + 1;
-        // }
-
-        self.screen.draw();
-
+        if self.counter % 2 == 0 {
+            self.tick = true;
+           
+        } else {
+            self.tick = false;
+        }
+        self.counter = self.counter.wrapping_add(1);
+        self.screen.draw(self.tick);
+       
     }
 
     fn update_lcd_stat_interrupts(&mut self, interrupts: &mut InterruptHandler) -> bool {
         if !self.control.contains(Control::LCD_ON) {
             self.cycle_counter = VBLANK_MIN_CYCLES;
             self.mode = Mode::VBlank;
-            if  self.scanline  != 0 && self.scanline as usize != SCREEN_HEIGHT {
+            if self.scanline != 0 && self.scanline as usize != SCREEN_HEIGHT {
                 self.scanline = 0;
             }
             self.scanline = 0;
             return false;
         }
         if self.scanline >= SCREEN_HEIGHT as u8 {
-            self.update_current_mode_sec(interrupts, Mode::VBlank, self.stat.contains(Stat::VBLANK_INT));
-        
+            self.update_current_mode_sec(
+                interrupts,
+                Mode::VBlank,
+                self.stat.contains(Stat::VBLANK_INT),
+            );
         } else if self.cycle_counter >= VBLANK_MIN_CYCLES - ACCESS_OAM_MIN_CYCLES {
-            self.update_current_mode_sec(interrupts, Mode::AccessOam, self.stat.contains(Stat::ACCESS_OAM_INT));
-        
-        } else if self.cycle_counter >= VBLANK_MIN_CYCLES - ACCESS_OAM_MIN_CYCLES - ACCESS_VRAM_MIN_CYCLES {
+            self.update_current_mode_sec(
+                interrupts,
+                Mode::AccessOam,
+                self.stat.contains(Stat::ACCESS_OAM_INT),
+            );
+        } else if self.cycle_counter
+            >= VBLANK_MIN_CYCLES - ACCESS_OAM_MIN_CYCLES - ACCESS_VRAM_MIN_CYCLES
+        {
             self.update_current_mode_sec(interrupts, Mode::AccessVram, false);
-        
         } else {
-            self.update_current_mode_sec(interrupts, Mode::HBlank, self.stat.contains(Stat::HBLANK_INT));
+            self.update_current_mode_sec(
+                interrupts,
+                Mode::HBlank,
+                self.stat.contains(Stat::HBLANK_INT),
+            );
         }
 
         if self.stat.contains(Stat::COMPARE) && self.scanline == self.compare_line {
@@ -239,7 +245,12 @@ impl<T: Screen> Ppu<T> {
         true
     }
 
-    fn update_current_mode_sec(&mut self, interrupts: &mut InterruptHandler, new_mode: Mode, request_interrupt: bool) {
+    fn update_current_mode_sec(
+        &mut self,
+        interrupts: &mut InterruptHandler,
+        new_mode: Mode,
+        request_interrupt: bool,
+    ) {
         if request_interrupt && new_mode != self.mode {
             interrupts.request(InterruptLine::STAT, true);
         }
@@ -247,20 +258,23 @@ impl<T: Screen> Ppu<T> {
     }
 
     fn draw_pixel(&mut self, x: u8, color: Color) {
-        self.screen.set_pixel(x, self.scanline - 1, color);
+        self.screen.set_pixel(x, self.scanline -1 , color);
     }
 
     pub fn get_memory_as_mut(&mut self) -> &mut impl Memory {
         &mut self.video_ram
     }
 
-
     pub fn get_control(&self) -> u8 {
         self.control.bits
     }
 
-    //#[unroll_for_loops]
+    #[unroll_for_loops]
     pub fn draw_scan_line(&mut self) {
+
+        if !self.tick {
+            return ;
+        }
 
         let mut background_priority = [false; SCREEN_WIDTH];
         if self.control.contains(Control::BG_ON) {
@@ -275,7 +289,7 @@ impl<T: Screen> Ppu<T> {
         if self.control.contains(Control::OBJ_ON) {
             self.draw_sprites(&mut background_priority);
         }
-        self.screen.scanline_complete(self.scanline - 1);
+        self.screen.scanline_complete(self.scanline -1 , false);
     }
 
     pub fn set_control(&mut self, value: u8) {
@@ -300,10 +314,14 @@ impl<T: Screen> Ppu<T> {
         self.mode.bits() | self.stat.bits | STAT_UNUSED_MASK
     }
 
-
-    pub fn draw_background_window_pixel(&mut self, x: u8, background_priority: &mut [bool; SCREEN_WIDTH]) {
-        let y = self.scanline - self.window_y;
-        let adjusted_x = (((x as u16 + self.window_x as u16 - 7) + SCREEN_WIDTH as u16) % SCREEN_WIDTH as u16) as u8;
+    pub fn draw_background_window_pixel(
+        &mut self,
+        x: u8,
+        background_priority: &mut [bool; SCREEN_WIDTH],
+    ) {
+        let y = (self.scanline -1) - self.window_y;
+        let adjusted_x = (((x as u16 + self.window_x as u16 - 7) + SCREEN_WIDTH as u16)
+            % SCREEN_WIDTH as u16) as u8;
         let tile_map = if self.control.contains(Control::WINDOW_MAP) {
             &self.video_ram.tile_map1
         } else {
@@ -316,9 +334,8 @@ impl<T: Screen> Ppu<T> {
         self.draw_pixel(x, self.color_palette.background(shade));
     }
 
-
     pub fn draw_background_pixel(&mut self, x: u8, background_priority: &mut [bool; SCREEN_WIDTH]) {
-        let y = self.scanline.wrapping_add(self.scroll_y);
+        let y = (self.scanline -1).wrapping_add(self.scroll_y);
         let adjusted_x = x.wrapping_add(self.scroll_x);
         let tile_map = if self.control.contains(Control::BG_MAP) {
             &self.video_ram.tile_map1
@@ -335,7 +352,11 @@ impl<T: Screen> Ppu<T> {
     pub fn draw_blank_screen(&mut self) {
         for y in 0..SCREEN_HEIGHT {
             for x in 0..SCREEN_WIDTH {
-                self.screen.set_pixel(x as u8, y as u8, self.color_palette.background(Shade::LIGHTEST))
+                self.screen.set_pixel(
+                    x as u8,
+                    y as u8,
+                    self.color_palette.background(Shade::LIGHTEST),
+                )
             }
         }
     }
@@ -353,10 +374,14 @@ impl<T: Screen> Ppu<T> {
         &self.video_ram.tiles[tile_num]
     }
 
+    #[unroll_for_loops]
     pub fn draw_sprites(&mut self, &mut background_priority: &mut [bool; SCREEN_WIDTH]) {
-       
-        let current_line = self.scanline;
-        let size = if self.control.contains(Control::OBJ_SIZE) { SPRITE_HEIGHT } else { SPRITE_HEIGHT / 2 };
+        let current_line = self.scanline -1;
+        let size = if self.control.contains(Control::OBJ_SIZE) {
+            SPRITE_HEIGHT
+        } else {
+            SPRITE_HEIGHT / 2
+        };
         let mut sprites_to_draw: ArrayVec<[(usize, &Sprite); 10]> = self
             .sprites
             .iter()
@@ -365,11 +390,9 @@ impl<T: Screen> Ppu<T> {
             .enumerate()
             .collect();
 
-        sprites_to_draw.sort_by(|&(a_index, a), &(b_index, b)| {
-            match a.x.cmp(&b.x) {
-                Ordering::Equal => a_index.cmp(&b_index).reverse(),
-                other => other.reverse(),
-            }
+        sprites_to_draw.sort_by(|&(a_index, a), &(b_index, b)| match a.x.cmp(&b.x) {
+            Ordering::Equal => a_index.cmp(&b_index).reverse(),
+            other => other.reverse(),
         });
 
         for (_, sprite) in sprites_to_draw {
@@ -392,13 +415,19 @@ impl<T: Screen> Ppu<T> {
             let tile = self.video_ram.tiles[tile_num];
 
             for x in (0..TILE_WIDTH).rev() {
-                let bit = if sprite.flags.contains(SpriteFlags::FLIPX) { 7 - x } else { x } as usize;
+                let bit = if sprite.flags.contains(SpriteFlags::FLIPX) {
+                    7 - x
+                } else {
+                    x
+                } as usize;
                 let target_x = sprite.x.wrapping_add(7 - x as u8);
                 let shade = tile.shade_at(line, bit, &palette);
                 let color = self.color_palette.sprite(shade, 0);
 
                 if target_x < SCREEN_WIDTH as u8 && shade != Shade::LIGHTEST {
-                    if !sprite.flags.contains(SpriteFlags::PRIORITY) || !background_priority[target_x as usize] {
+                    if !sprite.flags.contains(SpriteFlags::PRIORITY)
+                        || !background_priority[target_x as usize]
+                    {
                         self.screen.set_pixel(target_x, self.scanline - 1, color);
                     }
                 }
@@ -412,7 +441,9 @@ impl<T: Screen> Ppu<T> {
         }
         let sprite = &mut self.sprites[reladdr as usize / 4];
         match reladdr as usize % 4 {
-            3 => { sprite.flags = SpriteFlags::from_bits_truncate(value); }
+            3 => {
+                sprite.flags = SpriteFlags::from_bits_truncate(value);
+            }
             2 => sprite.tile_number = value,
             1 => sprite.x = value.wrapping_sub(8),
             _ => sprite.y = value.wrapping_sub(16),
@@ -503,8 +534,6 @@ impl<T: Screen> Ppu<T> {
     }
 }
 
-
-
 bitflags!(
   struct Control: u8 {
     const BG_ON = 1 << 0;
@@ -531,7 +560,6 @@ struct VideoRam {
     tile_map0: [u8; TILE_MAP_SIZE],
     tile_map1: [u8; TILE_MAP_SIZE],
     tiles: Vec<Tile>,
-
 }
 
 impl VideoRam {
@@ -557,7 +585,6 @@ impl VideoRam {
             &mut self.tile_map1
         };
 
-
         tile_map[offset_address as usize] = value;
     }
 
@@ -573,7 +600,6 @@ impl VideoRam {
         tile.data[virtual_address as usize % 16]
     }
 }
-
 
 impl Memory for VideoRam {
     fn set_byte(&mut self, address: u16, value: u8) {
@@ -628,7 +654,7 @@ impl From<u8> for Shade {
             1 => Shade::LIGHT,
             2 => Shade::DARK,
             3 => Shade::LIGHTEST,
-            _ => Shade::DARKEST
+            _ => Shade::DARKEST,
         }
     }
 }
@@ -671,7 +697,6 @@ struct Sprite {
     tile_number: u8,
     flags: SpriteFlags,
     palette: Palette,
-
 }
 
 impl Sprite {
@@ -682,7 +707,6 @@ impl Sprite {
             tile_number: 0,
             flags: SpriteFlags::empty(),
             palette,
-
         }
     }
 }
@@ -700,8 +724,7 @@ impl Palette {
             1 => Shade::LIGHT,
             2 => Shade::DARK,
             3 => Shade::DARKEST,
-            _ => Shade::LIGHTEST
+            _ => Shade::LIGHTEST,
         }
     }
 }
-

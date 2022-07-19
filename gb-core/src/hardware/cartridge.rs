@@ -12,11 +12,11 @@ pub trait Cartridge {
     fn write_ram(&mut self, address: u16, value: u8);
 }
 
-pub struct ReadOnlyMemoryCartridge {
-    bytes: Vec<u8>,
+pub struct ReadOnlyMemoryCartridge<'a> {
+    bytes: &'a [u8],
 }
 
-impl Cartridge for ReadOnlyMemoryCartridge {
+impl<'a> Cartridge for ReadOnlyMemoryCartridge<'a> {
     fn read_rom(&self, address: u16) -> u8 {
         self.get_byte(address)
     }
@@ -30,15 +30,15 @@ impl Cartridge for ReadOnlyMemoryCartridge {
     fn write_ram(&mut self, _: u16, _: u8) {}
 }
 
-impl ReadOnlyMemoryCartridge {
-    pub fn from_bytes(bytes: Vec<u8>) -> Self {
+impl<'a> ReadOnlyMemoryCartridge<'a> {
+    pub fn from_bytes(bytes: &'a [u8]) -> Self {
         Self {
             bytes
         }
     }
 }
 
-impl Memory for ReadOnlyMemoryCartridge {
+impl<'a> Memory for ReadOnlyMemoryCartridge<'a> {
     fn set_byte(&mut self, _: u16, _: u8) {}
 
     fn get_byte(&self, address: u16) -> u8 {
@@ -54,8 +54,8 @@ enum MemoryMode {
     MBit4Rom32KByteRam,
 }
 
-pub struct Mbc1Cartridge {
-    bytes: Vec<u8>,
+pub struct Mbc1Cartridge<'a> {
+    bytes: &'a [u8],
     bank_ram: BankableRam,
     current_rom_bank: u8,
     mode: MemoryMode,
@@ -63,7 +63,7 @@ pub struct Mbc1Cartridge {
 
 }
 
-impl Cartridge for Mbc1Cartridge {
+impl<'a> Cartridge for Mbc1Cartridge<'a> {
     fn read_rom(&self, address: u16) -> u8 {
         self.get_byte(address)
     }
@@ -84,7 +84,7 @@ impl Cartridge for Mbc1Cartridge {
     }
 }
 
-impl Memory for Mbc1Cartridge {
+impl<'a> Memory for Mbc1Cartridge<'a> {
     fn set_byte(&mut self, address: u16, mut data: u8) {
         if address < 0x2000 {
             self.bank_ram.enable((data & 0b0000_1010) != 0);
@@ -122,7 +122,7 @@ impl Memory for Mbc1Cartridge {
     }
 }
 
-impl Mbc1Cartridge {
+impl<'a> Mbc1Cartridge<'a> {
     pub fn compare(value: u16, from: u16, to: u16) -> isize {
         if value < from {
             return value as isize - from as isize;
@@ -132,7 +132,7 @@ impl Mbc1Cartridge {
         return 0;
     }
 
-    pub fn new(bytes: Vec<u8>, bank_ram: BankableRam) -> Self {
+    pub fn new(bytes: &'a [u8], bank_ram: BankableRam) -> Self {
         Self {
             bytes,
             bank_ram,

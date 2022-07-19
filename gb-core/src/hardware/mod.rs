@@ -32,8 +32,8 @@ pub trait Screen {
     fn turn_on(&mut self);
     fn turn_off(&mut self);
     fn set_pixel(&mut self, x: u8, y: u8, color: Color);
-    fn scanline_complete(&mut self, _y: u8) {}
-    fn draw(&mut self);
+    fn scanline_complete(&mut self, _y: u8, skip: bool) {}
+    fn draw(&mut self, skip_next: bool);
 }
 
 struct Dma {
