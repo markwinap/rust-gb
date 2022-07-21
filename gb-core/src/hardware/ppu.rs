@@ -104,7 +104,7 @@ pub struct Ppu<T: Screen> {
     cycle_counter: isize,
     pub screen: T,
     tick: bool,
-    counter: usize,
+    counter: u8,
     sprites: Vec<Sprite>,
 }
 
@@ -194,7 +194,7 @@ impl<T: Screen> Ppu<T> {
 
     #[inline]
     fn draw_to_screen(&mut self) {
-        if self.counter % 2 == 0 {
+        if self.counter % 1 == 0 {
             self.tick = true;
            
         } else {
@@ -390,10 +390,10 @@ impl<T: Screen> Ppu<T> {
             .enumerate()
             .collect();
 
-        sprites_to_draw.sort_by(|&(a_index, a), &(b_index, b)| match a.x.cmp(&b.x) {
-            Ordering::Equal => a_index.cmp(&b_index).reverse(),
-            other => other.reverse(),
-        });
+        // sprites_to_draw.sort_by(|&(a_index, a), &(b_index, b)| match a.x.cmp(&b.x) {
+        //     Ordering::Equal => a_index.cmp(&b_index).reverse(),
+        //     other => other.reverse(),
+        // });
 
         for (_, sprite) in sprites_to_draw {
             let palette = if sprite.flags.contains(SpriteFlags::PALETTE) {

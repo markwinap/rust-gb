@@ -23,7 +23,7 @@ fn main() {
     construct_cpu()
 }
 
-pub fn load_rom(zip_file: &str, rom_name: &str) -> Rom {
+pub fn load_rom(zip_file: &str, rom_name: &str) -> Rom<'static> {
     println!("sd {}", 3);
 
     let foo = format!("sd {}", 3);
@@ -37,13 +37,13 @@ pub fn load_rom(zip_file: &str, rom_name: &str) -> Rom {
         Err(_) => { panic!() }
     };
     let data: Result<Vec<_>, _> = bytes.collect();
-    Rom::from_bytes(data.unwrap())
+    Rom::from_bytes(Box::leak(Box::new(data.unwrap())))
 }
 
-pub fn load_rom_from_path(path: &Path) -> Rom {
+pub fn load_rom_from_path(path: &Path) -> Rom<'static> {
     let mut gb_rom: Vec<u8> = vec![];
     File::open(path).and_then(|mut f| f.read_to_end(&mut gb_rom)).map_err(|_| "Could not read ROM").unwrap();
-    Rom::from_bytes(gb_rom)
+    Rom::from_bytes(Box::leak(Box::new(gb_rom)))
 }
 
 pub fn construct_cpu() {
@@ -129,7 +129,7 @@ impl Screen for SynScreen {
         self.off_screen_buffer.get_mut()[y as usize * SCREEN_WIDTH * 3 + x as usize * 3 + 2] = color.blue;
     }
 
-    fn draw(&mut self) {
+    fn draw(&mut self, skip: bool) {
         let stuff = self.off_screen_buffer.replace(Box::new([0; SCREEN_PIXELS]));
         self.sender.send(stuff).unwrap();
     }
