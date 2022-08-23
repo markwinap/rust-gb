@@ -17,12 +17,12 @@ impl<T: Interface> Cpu<T> {
     pub fn decode(&mut self) -> ((Step, u16), u8) {
         let op_code = self.op_code;
 
-        if cfg!(feature = "debug") {
-            self.tick_count = self.tick_count.wrapping_add(1);
-        //    println!("::{}::current opcode: {:#04X?}, current pc: {} a: {} b: {} c: {} d: {} e: {} h: {} l: {} f: {}", self.tick_count, self.op_code, self.registers.pc, self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.registers.flags.read_value());
-            self.prev_opcode.prev_opcode = op_code;
-            self.prev_opcode.prev_pc = self.registers.pc;
-        }
+        // if cfg!(feature = "debug") {
+        //     self.tick_count = self.tick_count.wrapping_add(1);
+        // //    println!("::{}::current opcode: {:#04X?}, current pc: {} a: {} b: {} c: {} d: {} e: {} h: {} l: {} f: {}", self.tick_count, self.op_code, self.registers.pc, self.registers.a, self.registers.b, self.registers.c, self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.registers.flags.read_value());
+        //     self.prev_opcode.prev_opcode = op_code;
+        //     self.prev_opcode.prev_pc = self.registers.pc;
+        // }
 
         match op_code {
             0x7f => (self.load_8(A, A), 4),
@@ -925,6 +925,7 @@ impl<T: Interface> Cpu<T> {
         self.handle_return(self.registers.pc)
     }
 
+   // #[inline(always)]
     pub fn load_8<I: Copy, O: Copy>(&mut self, out8: O, in8: I) -> (Step, u16)
         where Self: Write8<O> + Read8<I> {
         let read = self.read_8(in8);
@@ -933,6 +934,7 @@ impl<T: Interface> Cpu<T> {
         self.handle_return(self.registers.pc)
     }
 
+    //#[inline(always)]
     pub fn load_16<I: Copy, O: Copy>(&mut self, out16: O, in16: I) -> (Step, u16)
         where Self: Write16<O> + Read16<I> {
         let read = self.read_16(in16);

@@ -164,6 +164,7 @@ pub enum ReadOffType {
 }
 
 impl<T: Interface> Read16<Addr16> for Cpu<T> {
+ //   #[inline]
     fn read_16(&mut self, src: Addr16) -> u16 {
         match src {
             Addr16::Direct => {
@@ -177,6 +178,7 @@ impl<T: Interface> Read16<Addr16> for Cpu<T> {
 }
 
 impl<T: Interface> Write16<Addr16> for Cpu<T> {
+   // #[inline]
     fn write_16(&mut self, dst: Addr16, val: u16) {
         match dst {
             Addr16::Direct => {
@@ -189,6 +191,7 @@ impl<T: Interface> Write16<Addr16> for Cpu<T> {
 }
 
 impl<T: Interface> Write8<Addr> for Cpu<T> {
+ //   #[inline]
     fn write_8(&mut self, dst: Addr, val: u8) {
         match dst {
             Addr::BC => {
@@ -229,6 +232,7 @@ impl<T: Interface> Write8<Addr> for Cpu<T> {
 }
 
 impl<T: Interface> Read8<Addr> for Cpu<T> {
+   // #[inline]
     fn read_8(&mut self, src: Addr) -> u8 {
         match src {
             Addr::BC => {

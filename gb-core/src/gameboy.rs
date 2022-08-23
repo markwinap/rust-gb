@@ -1,9 +1,9 @@
 use crate::cpu::address::Cpu;
-use crate::hardware::{Screen, Hardware};
-use crate::hardware::cartridge::Cartridge;
-use crate::hardware::boot_rom::Bootrom;
-use crate::hardware::input::{Controller, Button};
 use crate::cpu::Step;
+use crate::hardware::boot_rom::Bootrom;
+use crate::hardware::cartridge::Cartridge;
+use crate::hardware::input::{Button, Controller};
+use crate::hardware::{Hardware, Screen};
 use alloc::boxed::Box;
 
 pub const SCREEN_HEIGHT: usize = 144;
@@ -33,7 +33,6 @@ impl<S: Screen> GameBoy<S> {
     }
 }
 
-
 impl<S: Screen> GameBoy<S> {
     pub fn tick(&mut self) -> u8 {
         let cycles = self.cpu.step();
@@ -45,8 +44,8 @@ impl<S: Screen> GameBoy<S> {
         cycles
     }
 
-    pub fn get_screen(&self) -> &S {
-        &self.cpu.interface.gpu.screen
+    pub fn get_screen(&mut self) -> &mut S {
+        &mut self.cpu.interface.gpu.screen
     }
 
     #[cfg(feature = "debug")]
