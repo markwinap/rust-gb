@@ -3,7 +3,9 @@ use crate::cpu::address::{Cpu, Write8, Read8, Addr, Immediate8, ReadOffType, Rea
 use crate::cpu::registers::Reg8::{A, B, C, D, E, H, L};
 use crate::cpu::registers::Reg16;
 use crate::util::int::IntExt;
+use crate::cpu::registers::CpuFlag;
 
+use super::registers;
 #[derive(Clone, Copy, Debug)]
 pub enum Cond {
     NZ,
@@ -150,15 +152,15 @@ impl<T: Interface> Cpu<T> {
             0x96 => (self.sub(Addr::HL, false), 8),
             0xd6 => (self.sub(Immediate8, false), 8),
 
-            0x9f => (self.sub(A, self.registers.flags.c), 4),
-            0x98 => (self.sub(B, self.registers.flags.c), 4),
-            0x99 => (self.sub(C, self.registers.flags.c), 4),
-            0x9a => (self.sub(D, self.registers.flags.c), 4),
-            0x9b => (self.sub(E, self.registers.flags.c), 4),
-            0x9c => (self.sub(H, self.registers.flags.c), 4),
-            0x9d => (self.sub(L, self.registers.flags.c), 4),
-            0x9e => (self.sub(Addr::HL, self.registers.flags.c), 8),
-            0xde => (self.sub(Immediate8, self.registers.flags.c), 8),
+            0x9f => (self.sub(A, self.registers.getflag(CpuFlag::C)), 4),
+            0x98 => (self.sub(B, self.registers.getflag(CpuFlag::C)), 4),
+            0x99 => (self.sub(C, self.registers.getflag(CpuFlag::C)), 4),
+            0x9a => (self.sub(D, self.registers.getflag(CpuFlag::C)), 4),
+            0x9b => (self.sub(E, self.registers.getflag(CpuFlag::C)), 4),
+            0x9c => (self.sub(H, self.registers.getflag(CpuFlag::C)), 4),
+            0x9d => (self.sub(L, self.registers.getflag(CpuFlag::C)), 4),
+            0x9e => (self.sub(Addr::HL, self.registers.getflag(CpuFlag::C)), 8),
+            0xde => (self.sub(Immediate8, self.registers.getflag(CpuFlag::C)), 8),
 
             0xbf => (self.cp(A), 4),
             0xb8 => (self.cp(B), 4),
@@ -609,10 +611,11 @@ impl<T: Interface> Cpu<T> {
         where Self: Read8<I> {
         let value = self.read_8(in8) & (1 << bit);
 
-        self.registers.flags.z = value == 0;
-        // println!("z value: {}", self.registers.flags.z);
-        self.registers.flags.n = false;
-        self.registers.flags.h = true;
+        self.registers.flag(CpuFlag::Z, value == 0);
+        self.registers.flag(CpuFlag::N, false);
+        self.registers.flag(CpuFlag::H, true);
+      
+
         self.handle_return(self.registers.pc)
     }
 
@@ -621,10 +624,11 @@ impl<T: Interface> Cpu<T> {
         let value = self.read_8(io);
         let new_value = (value >> 4) | (value << 4);
 
-        self.registers.flags.z = new_value == 0;
-        self.registers.flags.n = false;
-        self.registers.flags.h = false;
-        self.registers.flags.c = false;
+     
+        self.registers.flag(CpuFlag::Z, new_value == 0);
+        self.registers.flag(CpuFlag::N, false);
+        self.registers.flag(CpuFlag::H, false);
+        self.registers.flag(CpuFlag::C, false);
 
         self.write_8(io, new_value);
         self.handle_return(self.registers.pc)
@@ -636,10 +640,11 @@ impl<T: Interface> Cpu<T> {
         let co = value & 0x01;
         let new_value = value >> 1;
 
-        self.registers.flags.z = new_value == 0;
-        self.registers.flags.n = false;
-        self.registers.flags.h = false;
-        self.registers.flags.c = co != 0;
+        self.registers.flag(CpuFlag::Z, new_value == 0);
+        self.registers.flag(CpuFlag::N, false);
+        self.registers.flag(CpuFlag::H, false);
+        self.registers.flag(CpuFlag::C, co != 0);
+
 
         self.write_8(io, new_value);
         self.handle_return(self.registers.pc)
@@ -652,10 +657,10 @@ impl<T: Interface> Cpu<T> {
         let hi = value & 0x80;
         let new_value = (value >> 1) | hi;
 
-        self.registers.flags.z = new_value == 0;
-        self.registers.flags.n = false;
-        self.registers.flags.h = false;
-        self.registers.flags.c = co != 0;
+        self.registers.flag(CpuFlag::Z, new_value == 0);
+        self.registers.flag(CpuFlag::N, false);
+        self.registers.flag(CpuFlag::H, false);
+        self.registers.flag(CpuFlag::C, co != 0);
 
         self.write_8(io, new_value);
         self.handle_return(self.registers.pc)
@@ -667,10 +672,10 @@ impl<T: Interface> Cpu<T> {
         let co = value & 0x80;
         let new_value = value << 1;
 
-        self.registers.flags.z = new_value == 0;
-        self.registers.flags.n = false;
-        self.registers.flags.h = false;
-        self.registers.flags.c = co != 0;
+        self.registers.flag(CpuFlag::Z, new_value == 0);
+        self.registers.flag(CpuFlag::N, false);
+        self.registers.flag(CpuFlag::H, false);
+        self.registers.flag(CpuFlag::C, co != 0);
 
         self.write_8(io, new_value);
         self.handle_return(self.registers.pc)
@@ -700,9 +705,9 @@ impl<T: Interface> Cpu<T> {
         let value = self.read_16(in16);
         let result = hl.wrapping_add(value);
 
-        self.registers.flags.n = false;
-        self.registers.flags.h = u16::test_add_carry_bit(11, hl, value);
-        self.registers.flags.c = hl > 0xffff - value;
+        self.registers.flag(CpuFlag::N, false);
+        self.registers.flag(CpuFlag::H, u16::test_add_carry_bit(11, hl, value));
+        self.registers.flag(CpuFlag::C, hl > 0xffff - value);
         self.registers.set_hl(result);
         self.handle_return(self.registers.pc)
     }
@@ -712,10 +717,14 @@ impl<T: Interface> Cpu<T> {
         let sp = self.registers.sp;
         self.registers.set_sp(sp.wrapping_add(offset));
 
-        self.registers.flags.z = false;
-        self.registers.flags.n = false;
-        self.registers.flags.h = u16::test_add_carry_bit(3, sp, offset);
-        self.registers.flags.c = u16::test_add_carry_bit(7, sp, offset);
+        self.registers.flag(CpuFlag::Z, false);
+        self.registers.flag(CpuFlag::N, false);
+        self.registers.flag(CpuFlag::H, u16::test_add_carry_bit(3, sp, offset));
+        self.registers.flag(CpuFlag::C, u16::test_add_carry_bit(7, sp, offset));
+        // self.registers.flags.z = false;
+        // self.registers.flags.n = false;
+        // self.registers.flags.h = u16::test_add_carry_bit(3, sp, offset);
+        // self.registers.flags.c = u16::test_add_carry_bit(7, sp, offset);
 
         self.handle_return(self.registers.pc)
     }
@@ -735,6 +744,7 @@ impl<T: Interface> Cpu<T> {
         self.handle_return(self.registers.pc)
     }
 
+    #[inline(always)]
     pub fn handle_return(&mut self, address: u16) -> (Step, u16) {
         self.op_code = self.interface.get_byte(address);
         self.interface.step();
@@ -778,16 +788,17 @@ impl<T: Interface> Cpu<T> {
     }
 
     pub fn ccf(&mut self) -> (Step, u16) {
-        self.registers.flags.n = false;
-        self.registers.flags.h = false;
-        self.registers.flags.c = !self.registers.flags.c;
+    
+        self.registers.flag(CpuFlag::N, false);
+        self.registers.flag(CpuFlag::H, false);
+        self.registers.flag(CpuFlag::C, !self.registers.getflag(CpuFlag::C));
         self.handle_return(self.registers.pc)
     }
 
     pub fn scf(&mut self) -> (Step, u16) {
-        self.registers.flags.n = false;
-        self.registers.flags.h = false;
-        self.registers.flags.c = true;
+        self.registers.flag(CpuFlag::N, false);
+        self.registers.flag(CpuFlag::H, false);
+        self.registers.flag(CpuFlag::C, true);
         self.handle_return(self.registers.pc)
     }
 
@@ -797,31 +808,32 @@ impl<T: Interface> Cpu<T> {
 
     pub fn daa(&mut self) -> (Step, u16) {
         let mut carry = false;
-        if !self.registers.flags.n {
-            if self.registers.flags.c || self.registers.a > 0x99 {
+        if !self.registers.getflag(CpuFlag::N) {
+            if self.registers.getflag(CpuFlag::C) || self.registers.a > 0x99 {
                 self.registers.a = self.registers.a.wrapping_add(0x60);
                 carry = true;
             }
-            if self.registers.flags.h || self.registers.a & 0x0f > 0x09 {
+            if self.registers.getflag(CpuFlag::H) || self.registers.a & 0x0f > 0x09 {
                 self.registers.a = self.registers.a.wrapping_add(0x06);
             }
-        } else if self.registers.flags.c {
+        } else if self.registers.getflag(CpuFlag::C) {
             carry = true;
-            self.registers.a = self.registers.a.wrapping_add(if self.registers.flags.h { 0x9a } else { 0xa0 })
-        } else if self.registers.flags.h {
+            self.registers.a = self.registers.a.wrapping_add(if self.registers.getflag(CpuFlag::H) { 0x9a } else { 0xa0 })
+        } else if self.registers.getflag(CpuFlag::H) {
             self.registers.a = self.registers.a.wrapping_add(0xfa);
         }
 
-        self.registers.flags.z = self.registers.a == 0;
-        self.registers.flags.h = false;
-        self.registers.flags.c = carry;
+        self.registers.flag(CpuFlag::Z, self.registers.a == 0);
+        self.registers.flag(CpuFlag::H, false);
+        self.registers.flag(CpuFlag::C, carry);
         self.handle_return(self.registers.pc)
     }
 
     pub fn cpl(&mut self) -> (Step, u16) {
         self.registers.a = !self.registers.a;
-        self.registers.flags.n = true;
-        self.registers.flags.h = true;
+        self.registers.flag(CpuFlag::N, true);
+        self.registers.flag(CpuFlag::H, true);
+
         self.handle_return(self.registers.pc)
     }
 
@@ -851,10 +863,10 @@ impl<T: Interface> Cpu<T> {
 
     fn check_cond(&self, cond: Cond) -> bool {
         match cond {
-            Cond::NZ => !self.registers.flags.z,
-            Cond::Z => self.registers.flags.z,
-            Cond::NC => !self.registers.flags.c,
-            Cond::C => self.registers.flags.c,
+            Cond::NZ => !self.registers.getflag(CpuFlag::Z),
+            Cond::Z => self.registers.getflag(CpuFlag::Z),
+            Cond::NC => !self.registers.getflag(CpuFlag::C),
+            Cond::C => self.registers.getflag(CpuFlag::C),
         }
     }
 
@@ -949,10 +961,11 @@ impl<T: Interface> Cpu<T> {
         let read = self.read_16(in16);
         let value = read.wrapping_add(offset);
         self.write_16(out16, value);
-        self.registers.flags.z = false;
-        self.registers.flags.n = false;
-        self.registers.flags.h = u16::test_add_carry_bit(3, read, offset);
-        self.registers.flags.c = u16::test_add_carry_bit(7, read, offset);
+        self.registers.flag(CpuFlag::Z, false);
+        self.registers.flag(CpuFlag::N, false);
+        self.registers.flag(CpuFlag::H, u16::test_add_carry_bit(3, read, offset));
+        self.registers.flag(CpuFlag::C, u16::test_add_carry_bit(7, read, offset));
+  
 
         self.handle_return(self.registers.pc)
     }
@@ -963,10 +976,10 @@ impl<T: Interface> Cpu<T> {
         let (result, carry) = (self.registers.a).overflowing_add(value);
 
         let half_carry = (self.registers.a & 0x0f).checked_add(value | 0xf0).is_none();
-        self.registers.flags.z = result == 0;
-        self.registers.flags.n = false;
-        self.registers.flags.h = half_carry;
-        self.registers.flags.c = carry;
+        self.registers.flag(CpuFlag::Z, result == 0);
+        self.registers.flag(CpuFlag::N, false);
+        self.registers.flag(CpuFlag::H, half_carry);
+        self.registers.flag(CpuFlag::C, carry);
         self.registers.a = result;
         self.handle_return(self.registers.pc)
     }
@@ -974,12 +987,12 @@ impl<T: Interface> Cpu<T> {
     pub fn addc<I: Copy>(&mut self, in8: I) -> (Step, u16)
         where Self: Read8<I> {
         let value = self.read_8(in8);
-        let cy = self.registers.flags.c as u8;
+        let cy = self.registers.getflag(CpuFlag::C) as u8;
         let result = self.registers.a.wrapping_add(value).wrapping_add(cy);
-        self.registers.flags.z = result == 0;
-        self.registers.flags.n = false;
-        self.registers.flags.h = (self.registers.a & 0xf) + (value & 0xf) + cy > 0xf;
-        self.registers.flags.c = self.registers.a as u16 + value as u16 + cy as u16 > 0xff;
+        self.registers.flag(CpuFlag::Z, result == 0);
+        self.registers.flag(CpuFlag::N, false);
+        self.registers.flag(CpuFlag::H,  (self.registers.a & 0xf) + (value & 0xf) + cy > 0xf);
+        self.registers.flag(CpuFlag::C,  self.registers.a as u16 + value as u16 + cy as u16 > 0xff);
         self.registers.a = result;
         self.handle_return(self.registers.pc)
     }
@@ -1002,10 +1015,11 @@ impl<T: Interface> Cpu<T> {
         where Self: Read8<I> {
         let value = self.read_8(in8);
         self.registers.a &= value;
-        self.registers.flags.z = self.registers.a == 0;
-        self.registers.flags.n = false;
-        self.registers.flags.h = true;
-        self.registers.flags.c = false;
+        self.registers.flag(CpuFlag::Z, self.registers.a == 0);
+        self.registers.flag(CpuFlag::N, false);
+        self.registers.flag(CpuFlag::H, true);
+        self.registers.flag(CpuFlag::C, false);
+
         self.handle_return(self.registers.pc)
     }
 
@@ -1014,10 +1028,14 @@ impl<T: Interface> Cpu<T> {
     {
         let value = self.read_8(in8);
         self.registers.a |= value;
-        self.registers.flags.z = self.registers.a == 0;
-        self.registers.flags.n = false;
-        self.registers.flags.h = false;
-        self.registers.flags.c = false;
+        self.registers.flag(CpuFlag::Z, self.registers.a == 0);
+        self.registers.flag(CpuFlag::N, false);
+        self.registers.flag(CpuFlag::H, false);
+        self.registers.flag(CpuFlag::C, false);
+        // self.registers.flags.z = self.registers.a == 0;
+        // self.registers.flags.n = false;
+        // self.registers.flags.h = false;
+        // self.registers.flags.c = false;
         self.handle_return(self.registers.pc)
     }
 
@@ -1026,10 +1044,10 @@ impl<T: Interface> Cpu<T> {
     {
         let value = self.read_8(in8);
         self.registers.a ^= value;
-        self.registers.flags.z = self.registers.a == 0;
-        self.registers.flags.n = false;
-        self.registers.flags.h = false;
-        self.registers.flags.c = false;
+        self.registers.flag(CpuFlag::Z, self.registers.a == 0);
+        self.registers.flag(CpuFlag::N, false);
+        self.registers.flag(CpuFlag::H, false);
+        self.registers.flag(CpuFlag::C, false);
         self.handle_return(self.registers.pc)
     }
 
@@ -1039,9 +1057,10 @@ impl<T: Interface> Cpu<T> {
         let value = self.read_8(io8);
         let result = value.wrapping_add(1);
         self.write_8(io8, result);
-        self.registers.flags.z = result == 0;
-        self.registers.flags.n = false;
-        self.registers.flags.h = (value & 0x0F) == 0x0F;
+        self.registers.flag(CpuFlag::Z, result == 0);
+        self.registers.flag(CpuFlag::N, false);
+        self.registers.flag(CpuFlag::H, (value & 0x0F) == 0x0F);
+  
         self.handle_return(self.registers.pc)
     }
 
@@ -1050,9 +1069,10 @@ impl<T: Interface> Cpu<T> {
     {
         let value = self.read_8(io8);
         let result = value.wrapping_sub(1);
-        self.registers.flags.z = result == 0;
-        self.registers.flags.n = true;
-        self.registers.flags.h = (value & 0x0F) == 0;
+        self.registers.flag(CpuFlag::Z, result == 0);
+        self.registers.flag(CpuFlag::N, true);
+        self.registers.flag(CpuFlag::H, (value & 0x0F) == 0x0F);
+
         self.write_8(io8, result);
         self.handle_return(self.registers.pc)
     }
@@ -1061,7 +1081,7 @@ impl<T: Interface> Cpu<T> {
         where Self: Read8<IO> + Write8<IO>,
     {
         let value = self.read_8(io8);
-        let result = self.alu_rl(value, false, |flags, _| if flags.c { 1 } else { 0 });
+        let result = self.alu_rl(value, false, |flags, _| if registers::calc_flag(*flags, CpuFlag::C) { 1 } else { 0 });
 
         self.write_8(io8, result);
         self.handle_return(self.registers.pc)
@@ -1085,7 +1105,7 @@ impl<T: Interface> Cpu<T> {
 
     pub fn rla(&mut self) -> (Step, u16) {
         let value = self.registers.a;
-        self.registers.a = self.alu_rl(value, true, |flags, _| if flags.c { 1 } else { 0 });
+        self.registers.a = self.alu_rl(value, true, |flags, _| if registers::calc_flag(*flags, CpuFlag::C) { 1 } else { 0 });
         self.handle_return(self.registers.pc)
     }
 
@@ -1097,7 +1117,7 @@ impl<T: Interface> Cpu<T> {
 
     pub fn rra(&mut self) -> (Step, u16) {
         let value = self.registers.a;
-        self.registers.a = self.alu_rr(value, true, |flags, _| if flags.c { 0b1000_0000 } else { 0 });
+        self.registers.a = self.alu_rr(value, true, |flags, _| if registers::calc_flag(*flags, CpuFlag::C) { 0b1000_0000 } else { 0 });
         self.handle_return(self.registers.pc)
     }
 
@@ -1116,7 +1136,7 @@ impl<T: Interface> Cpu<T> {
         where Self: Read8<IO> + Write8<IO>,
     {
         let value = self.read_8(io8);
-        let result = self.alu_rr(value, false, |flags, _|  if flags.c { 0b1000_0000 } else { 0 });
+        let result = self.alu_rr(value, false, |flags, _|  if registers::calc_flag(*flags, CpuFlag::C) { 0b1000_0000 } else { 0 });
 
         self.write_8(io8, result);
         self.handle_return(self.registers.pc)

@@ -31,19 +31,50 @@ pub struct Registers {
     pub e: u8,
     pub h: u8,
     pub l: u8,
-    pub flags: Flags,
+    pub flags: u8,
     pub sp: u16,
     pub pc: u16,
 }
 
+pub enum CpuFlag
+{
+    C = 0b00010000,
+    H = 0b00100000,
+    N = 0b01000000,
+    Z = 0b10000000,
+}
+
+#[inline(always)]
+pub fn calc_flag(flag: u8, flags: CpuFlag) -> bool {
+    let mask = flags as u8;
+    flag & mask > 0
+}
+
 impl Registers {
+
+    #[inline(always)]
+    pub fn flag(&mut self, flags: CpuFlag, set: bool) {
+        let mask = flags as u8;
+        match set {
+            true  => self.flags |=  mask,
+            false => self.flags &= !mask,
+        }
+        self.flags &= 0xF0;
+    }
+
+    #[inline(always)]
+    pub fn getflag(&self, flags: CpuFlag) -> bool {
+        let mask = flags as u8;
+        self.flags & mask > 0
+    }
+
     pub fn get_af(&self) -> u16 {
-        ((self.a as u16) << 8) | self.flags.read_value() as u16
+        ((self.a as u16) << 8) | self.flags as u16
     }
 
     pub fn set_af(&mut self, v: u16) {
         self.a = get_msb(v);
-        self.flags.set_value(get_lsb(v));
+        self.flags = (get_lsb(v));
     }
 
     pub fn get_bc(&self) -> u16 {

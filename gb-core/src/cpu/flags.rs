@@ -6,17 +6,19 @@ const HALF_CARRY_FLAG_BYTE_POSITION: u8 = 5;
 const CARRY_FLAG_BYTE_POSITION: u8 = 4;
 
 #[derive(Default, Eq, PartialEq, Debug)]
-pub struct Flags {
-    pub z: bool,
-    pub n: bool,
-    pub h: bool,
-    pub c: bool,
-}
+pub struct Flags(u8);
 
-impl Display for Flags {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        write!(f, "z: {}, n: {}, h: {}, c: {}", self.z, self.n, self.h, self.c)
-    }
+// impl Display for Flags {
+//     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+//         write!(f, "z: {}, n: {}, h: {}, c: {}", self.z, self.n, self.h, self.c)
+//     }
+// }
+pub enum CpuFlag
+{
+    C = 0b00010000,
+    H = 0b00100000,
+    N = 0b01000000,
+    Z = 0b10000000,
 }
 
 impl Flags {
@@ -24,19 +26,14 @@ impl Flags {
         Flags::default()
     }
     pub fn set_value(&mut self, v: u8) {
-        self.z = (v & (1 << ZERO_FLAG_BYTE_POSITION)) != 0;
-        self.n = (v & (1 << SUBTRACT_FLAG_BYTE_POSITION)) != 0;
-        self.h = (v & (1 << HALF_CARRY_FLAG_BYTE_POSITION)) != 0;
-        self.c = (v & (1 << CARRY_FLAG_BYTE_POSITION)) != 0;
+        self.0 = v;
     }
 
     pub fn read_value(&self) -> u8 {
-        let z = self.z as u8;
-        let n = self.n as u8;
-        let h = self.h as u8;
-        let c = self.c as u8;
-        (z << ZERO_FLAG_BYTE_POSITION) | (n << SUBTRACT_FLAG_BYTE_POSITION) | (h << HALF_CARRY_FLAG_BYTE_POSITION) | (c << CARRY_FLAG_BYTE_POSITION)
+        self.0
     }
+
+    
 }
 
 impl core::convert::From<Flags> for u8 {
@@ -47,16 +44,6 @@ impl core::convert::From<Flags> for u8 {
 
 impl core::convert::From<u8> for Flags {
     fn from(byte: u8) -> Self {
-        let zero = ((byte >> ZERO_FLAG_BYTE_POSITION) & 0b1) != 0;
-        let subtract = ((byte >> SUBTRACT_FLAG_BYTE_POSITION) & 0b1) != 0;
-        let half_carry = ((byte >> HALF_CARRY_FLAG_BYTE_POSITION) & 0b1) != 0;
-        let carry = ((byte >> CARRY_FLAG_BYTE_POSITION) & 0b1) != 0;
-
-        Flags {
-            z: zero,
-            n: subtract,
-            h: half_carry,
-            c: carry,
-        }
+        Flags(byte)
     }
 }
