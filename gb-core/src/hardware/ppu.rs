@@ -1,3 +1,4 @@
+///HOLA MUNDO
 use crate::hardware::Screen;
 
 use crate::gameboy::{SCREEN_HEIGHT, SCREEN_WIDTH};
@@ -97,7 +98,7 @@ pub struct Ppu<T: Screen> {
     compare_line: u8,
     scroll_x: u8,
     scroll_y: u8,
-
+    background_priority: [bool; SCREEN_WIDTH],
     mode: Mode,
     window_x: u8,
     window_y: u8,
@@ -115,6 +116,7 @@ impl<T: Screen> Ppu<T> {
             background_palette: Palette(0),
             obj_palette0: Palette(0),
             obj_palette1: Palette(0),
+            background_priority: [false; SCREEN_WIDTH],
             scanline: 0,
             video_ram: VideoRam {
                 tile_map0: [0; TILE_MAP_SIZE],
@@ -135,7 +137,6 @@ impl<T: Screen> Ppu<T> {
             cycle_counter: 0,
             sprites: alloc::vec![Sprite::new(Palette(0)); SPRITE_COUNT],
             screen,
-
         }
     }
 
@@ -185,24 +186,21 @@ impl<T: Screen> Ppu<T> {
                 }
                 self.scanline = 0;
             } else if self.scanline < SCREEN_HEIGHT as u8 {
-               
                 self.draw_scan_line();
             }
-           
         }
     }
 
     #[inline]
     fn draw_to_screen(&mut self) {
-        if self.counter % 3 == 0 {
+        if self.counter % 2 == 0 {
             self.tick = true;
-           
         } else {
             self.tick = false;
         }
+        //self.tick = true;
         self.counter = self.counter.wrapping_add(1);
         self.screen.draw(self.tick);
-       
     }
 
     fn update_lcd_stat_interrupts(&mut self, interrupts: &mut InterruptHandler) -> bool {
@@ -259,7 +257,7 @@ impl<T: Screen> Ppu<T> {
 
     #[inline]
     fn draw_pixel(&mut self, x: u8, color: Color) {
-        self.screen.set_pixel(x, self.scanline -1 , color);
+        self.screen.set_pixel(x, self.scanline - 1, color);
     }
 
     pub fn get_memory_as_mut(&mut self) -> &mut impl Memory {
@@ -270,27 +268,61 @@ impl<T: Screen> Ppu<T> {
         self.control.bits
     }
 
-    #[unroll_for_loops]
-    pub fn draw_scan_line(&mut self) {
+    // #[unroll_for_loops]
+    // pub fn draw_scan_line(&mut self) {
+    //     if !self.tick {
+    //         return;
+    //     }
 
+    //     //let mut background_priority = [false; SCREEN_WIDTH];
+    //     if self.control.contains(Control::BG_ON) {
+    //         let do_background_pixels =
+    //             self.control.contains(Control::WINDOW_ON) && self.window_y <= self.scanline;
+
+    //         let tile_map = if self.control.contains(Control::WINDOW_MAP) {
+    //             &self.video_ram.tile_map1
+    //         } else {
+    //             &self.video_ram.tile_map0
+    //         };
+    //         for x in 0..SCREEN_WIDTH {
+    //             if do_background_pixels {
+    //                 self.draw_background_window_pixel(x as u8);
+    //             } else {
+    //                 self.draw_background_pixel(x as u8);
+    //             }
+    //         }
+    //     }
+    //     if self.control.contains(Control::OBJ_ON) {
+    //         self.draw_sprites();
+    //     }
+    //     self.screen.scanline_complete(self.scanline - 1, false);
+    // }
+
+    //#[unroll_for_loops]
+    pub fn draw_scan_line(&mut self) {
         if !self.tick {
-            return ;
+            return;
         }
 
-        let mut background_priority = [false; SCREEN_WIDTH];
         if self.control.contains(Control::BG_ON) {
-            for x in 0..SCREEN_WIDTH {
-                if self.control.contains(Control::WINDOW_ON) && self.window_y <= self.scanline {
-                    self.draw_background_window_pixel(x as u8, &mut background_priority);
-                } else {
-                    self.draw_background_pixel(x as u8, &mut background_priority);
+            if self.control.contains(Control::WINDOW_ON) && self.window_y <= self.scanline {
+                let y = (self.scanline - 1) - self.window_y;
+                let window_map = self.control.contains(Control::WINDOW_MAP);
+                for x in 0..SCREEN_WIDTH {
+                    self.draw_background_window_pixel(x as u8, y, window_map);
+                }
+            } else {
+                let y = (self.scanline - 1).wrapping_add(self.scroll_y);
+                let bg_map = self.control.contains(Control::BG_MAP);
+                for x in 0..SCREEN_WIDTH {
+                    self.draw_background_pixel(x as u8, y, bg_map);
                 }
             }
         }
         if self.control.contains(Control::OBJ_ON) {
-            self.draw_sprites(&mut background_priority);
+            self.draw_sprites();
         }
-        self.screen.scanline_complete(self.scanline -1 , false);
+        self.screen.scanline_complete(self.scanline - 1, false);
     }
 
     pub fn set_control(&mut self, value: u8) {
@@ -315,15 +347,10 @@ impl<T: Screen> Ppu<T> {
         self.mode.bits() | self.stat.bits | STAT_UNUSED_MASK
     }
 
-    pub fn draw_background_window_pixel(
-        &mut self,
-        x: u8,
-        background_priority: &mut [bool; SCREEN_WIDTH],
-    ) {
-        let y = (self.scanline -1) - self.window_y;
+    pub fn draw_background_window_pixel(&mut self, x: u8, y: u8, window_map: bool) {
         let adjusted_x = (((x as u16 + self.window_x as u16 - 7) + SCREEN_WIDTH as u16)
             % SCREEN_WIDTH as u16) as u8;
-        let tile_map = if self.control.contains(Control::WINDOW_MAP) {
+        let tile_map = if window_map {
             &self.video_ram.tile_map1
         } else {
             &self.video_ram.tile_map0
@@ -331,14 +358,13 @@ impl<T: Screen> Ppu<T> {
         let tile = self.tile_at(adjusted_x, y, tile_map);
         let bit = (adjusted_x % 8).wrapping_sub(7).wrapping_mul(0xff) as usize;
         let shade = tile.shade_at((y % 8) * 2, bit, &self.background_palette);
-        background_priority[x as usize] = shade != Shade::LIGHTEST;
+        self.background_priority[x as usize] = shade != Shade::LIGHTEST;
         self.draw_pixel(x, self.color_palette.background(shade));
     }
 
-    pub fn draw_background_pixel(&mut self, x: u8, background_priority: &mut [bool; SCREEN_WIDTH]) {
-        let y = (self.scanline -1).wrapping_add(self.scroll_y);
+    pub fn draw_background_pixel(&mut self, x: u8, y: u8, bg_map: bool) {
         let adjusted_x = x.wrapping_add(self.scroll_x);
-        let tile_map = if self.control.contains(Control::BG_MAP) {
+        let tile_map = if bg_map {
             &self.video_ram.tile_map1
         } else {
             &self.video_ram.tile_map0
@@ -346,9 +372,40 @@ impl<T: Screen> Ppu<T> {
         let tile = self.tile_at(adjusted_x, y, tile_map);
         let bit = (adjusted_x % 8).wrapping_sub(7).wrapping_mul(0xff) as usize;
         let shade = tile.shade_at((y % 8) * 2, bit, &self.background_palette);
-        background_priority[x as usize] = shade != Shade::LIGHTEST;
+        self.background_priority[x as usize] = shade != Shade::LIGHTEST;
         self.draw_pixel(x, self.color_palette.background(shade));
     }
+
+    // pub fn draw_background_window_pixel(&mut self, x: u8) {
+    //     let y = (self.scanline - 1) - self.window_y;
+    //     let adjusted_x = (((x as u16 + self.window_x as u16 - 7) + SCREEN_WIDTH as u16)
+    //         % SCREEN_WIDTH as u16) as u8;
+    //     let tile_map = if self.control.contains(Control::WINDOW_MAP) {
+    //         &self.video_ram.tile_map1
+    //     } else {
+    //         &self.video_ram.tile_map0
+    //     };
+    //     let tile = self.tile_at(adjusted_x, y, tile_map);
+    //     let bit = (adjusted_x % 8).wrapping_sub(7).wrapping_mul(0xff) as usize;
+    //     let shade = tile.shade_at((y % 8) * 2, bit, &self.background_palette);
+    //     self.background_priority[x as usize] = shade != Shade::LIGHTEST;
+    //     self.draw_pixel(x, self.color_palette.background(shade));
+    // }
+
+    // pub fn draw_background_pixel(&mut self, x: u8) {
+    //     let y = (self.scanline - 1).wrapping_add(self.scroll_y);
+    //     let adjusted_x = x.wrapping_add(self.scroll_x);
+    //     let tile_map = if self.control.contains(Control::BG_MAP) {
+    //         &self.video_ram.tile_map1
+    //     } else {
+    //         &self.video_ram.tile_map0
+    //     };
+    //     let tile = self.tile_at(adjusted_x, y, tile_map);
+    //     let bit = (adjusted_x % 8).wrapping_sub(7).wrapping_mul(0xff) as usize;
+    //     let shade = tile.shade_at((y % 8) * 2, bit, &self.background_palette);
+    //     self.background_priority[x as usize] = shade != Shade::LIGHTEST;
+    //     self.draw_pixel(x, self.color_palette.background(shade));
+    // }
 
     pub fn draw_blank_screen(&mut self) {
         for y in 0..SCREEN_HEIGHT {
@@ -376,8 +433,8 @@ impl<T: Screen> Ppu<T> {
     }
 
     #[unroll_for_loops]
-    pub fn draw_sprites(&mut self, &mut background_priority: &mut [bool; SCREEN_WIDTH]) {
-        let current_line = self.scanline -1;
+    pub fn draw_sprites(&mut self) {
+        let current_line = self.scanline - 1;
         let size = if self.control.contains(Control::OBJ_SIZE) {
             SPRITE_HEIGHT
         } else {
@@ -427,7 +484,7 @@ impl<T: Screen> Ppu<T> {
 
                 if target_x < SCREEN_WIDTH as u8 && shade != Shade::LIGHTEST {
                     if !sprite.flags.contains(SpriteFlags::PRIORITY)
-                        || !background_priority[target_x as usize]
+                        || !self.background_priority[target_x as usize]
                     {
                         self.screen.set_pixel(target_x, self.scanline - 1, color);
                     }
@@ -437,9 +494,9 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn write_oam(&mut self, reladdr: u8, value: u8) {
-        if self.mode == Mode::AccessVram || self.mode == Mode::AccessOam {
-            return;
-        }
+        // if self.mode == Mode::AccessVram || self.mode == Mode::AccessOam {
+        //     return;
+        // }
         let sprite = &mut self.sprites[reladdr as usize / 4];
         match reladdr as usize % 4 {
             3 => {
@@ -451,9 +508,9 @@ impl<T: Screen> Ppu<T> {
         }
     }
     pub fn read_oam(&self, reladdr: u8) -> u8 {
-        if self.mode == Mode::AccessVram || self.mode == Mode::AccessOam {
-            return 0xff;
-        }
+        // if self.mode == Mode::AccessVram || self.mode == Mode::AccessOam {
+        //     return 0xff;
+        // }
         let sprite = &self.sprites[reladdr as usize / 4];
         match reladdr as usize % 4 {
             3 => sprite.flags.bits(),
