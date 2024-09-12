@@ -1,6 +1,6 @@
 use alloc::boxed::Box;
 
-#[derive(Clone)]
+
 pub struct WorkRam {
     ram: Box<[u8; 0x2000]>,
 }

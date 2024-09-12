@@ -1,6 +1,5 @@
 use crate::hardware::interrupt_handler::{InterruptHandler, InterruptLine};
-use core::fmt::Display;
-use bitflags::_core::fmt::Formatter;
+
 
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash)]

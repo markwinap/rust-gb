@@ -12,7 +12,6 @@ pub enum Reg8 {
     L,
 }
 
-use core::fmt::Display;
 #[derive(Clone, Copy, Debug)]
 pub enum Reg16 {
     AF,
@@ -45,7 +44,7 @@ pub enum CpuFlag
 }
 
 #[inline(always)]
-pub fn calc_flag(flag: u8, flags: CpuFlag) -> bool {
+pub const fn calc_flag(flag: u8, flags: CpuFlag) -> bool {
     let mask = flags as u8;
     flag & mask > 0
 }

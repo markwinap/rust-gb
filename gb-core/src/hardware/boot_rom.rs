@@ -1,5 +1,4 @@
 use core::ops::Index;
-use alloc::boxed::Box;
 use alloc::vec::Vec;
 
 pub struct BootromData(pub Vec<u8>);

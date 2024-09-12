@@ -1,6 +1,6 @@
 use crate::memory::Memory;
 use bitflags::_core::ops::{Index, IndexMut};
-use alloc::vec::Vec;
+use alloc::boxed::Box;
 
 pub trait Cartridge {
     fn step(&mut self) {}
@@ -144,9 +144,9 @@ impl<'a> Mbc1Cartridge<'a> {
 }
 
 pub struct BankableRam {
-    banks: Vec<[u8; 0xBFFF - 0xA000 + 1]>,
     current_bank: u8,
     enabled: bool,
+    banks: Box<[[u8; 0xBFFF - 0xA000 + 1]]>
 }
 
 impl BankableRam {

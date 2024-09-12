@@ -8,7 +8,6 @@ use crate::hardware::cartridge::Cartridge;
 use crate::hardware::boot_rom::{BootromData, Bootrom};
 use crate::hardware::ppu::Ppu;
 use crate::memory::Memory;
-use core::time::Duration;
 use crate::hardware::input::{InputController, Controller};
 use alloc::boxed::Box;
 
@@ -26,7 +25,7 @@ pub const HIRAM_SIZE: usize = 0x80;
 
 pub type HiramData = [u8; HIRAM_SIZE];
 
-pub const HIRAM_EMPTY: HiramData = [0; HIRAM_SIZE];
+//pub const HIRAM_EMPTY: HiramData = [0; HIRAM_SIZE];
 
 pub trait Screen {
     fn turn_on(&mut self);
@@ -38,7 +37,6 @@ pub trait Screen {
 
 struct Dma {
     source: u8,
-
 }
 
 pub struct Hardware<T: Screen> {
@@ -69,7 +67,7 @@ impl<T: Screen> Hardware<T> {
         Hardware {
             interrupt_handler: InterruptHandler::new(),
             work_ram: WorkRam::new(),
-            hiram: HIRAM_EMPTY,
+            hiram: [0; HIRAM_SIZE],
             timer: Timer::new(),
             cartridge,
             gpu: ppu,

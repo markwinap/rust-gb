@@ -5,7 +5,7 @@ use crate::gameboy::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use crate::hardware::color_palette::{Color, ColorPalette, ORIGINAL_GREEN};
 use crate::hardware::interrupt_handler::{InterruptHandler, InterruptLine};
 use crate::memory::Memory;
-use alloc::vec::{self, Vec};
+use alloc::boxed::Box;
 use arrayvec::ArrayVec;
 use bitflags::_core::time::Duration;
 use bitflags::bitflags;
@@ -98,7 +98,7 @@ pub struct Ppu<T: Screen> {
     compare_line: u8,
     scroll_x: u8,
     scroll_y: u8,
-    background_priority: [bool; SCREEN_WIDTH],
+    background_priority: Box<[bool; SCREEN_WIDTH]>,
     mode: Mode,
     window_x: u8,
     window_y: u8,
@@ -106,7 +106,9 @@ pub struct Ppu<T: Screen> {
     pub screen: T,
     tick: bool,
     counter: u8,
-    sprites: Vec<Sprite>,
+    //sprites: Vec<Sprite>,
+    sprites: Box<[Sprite; SPRITE_COUNT]>,
+    //sprites: [Sprite; SPRITE_COUNT]
 }
 
 impl<T: Screen> Ppu<T> {
@@ -116,12 +118,13 @@ impl<T: Screen> Ppu<T> {
             background_palette: Palette(0),
             obj_palette0: Palette(0),
             obj_palette1: Palette(0),
-            background_priority: [false; SCREEN_WIDTH],
+            background_priority: Box::new([false; SCREEN_WIDTH]),
             scanline: 0,
             video_ram: VideoRam {
                 tile_map0: [0; TILE_MAP_SIZE],
                 tile_map1: [0; TILE_MAP_SIZE],
-                tiles: alloc::vec![Tile::new(); TILE_COUNT],
+                //tiles: alloc::vec![Tile::new(); TILE_COUNT],
+                tiles: Box::new([Tile::new(); TILE_COUNT]),
             },
             control: Control::empty(),
             stat: Stat::empty(),
@@ -135,7 +138,9 @@ impl<T: Screen> Ppu<T> {
             tick: false,
             counter: 0,
             cycle_counter: 0,
-            sprites: alloc::vec![Sprite::new(Palette(0)); SPRITE_COUNT],
+            //sprites: alloc::vec![Sprite::new(Palette(0)); SPRITE_COUNT],
+            sprites: Box::new([Sprite::new(Palette(0)); SPRITE_COUNT]),
+            //sprites: [Sprite::new(Palette(0)); SPRITE_COUNT],
             screen,
         }
     }
@@ -157,7 +162,7 @@ impl<T: Screen> Ppu<T> {
         } else {
             self.stat.remove(Stat::COMPARE);
         }
-
+        
         if !self.update_lcd_stat_interrupts(interrupts) {
             return;
         }
@@ -432,7 +437,7 @@ impl<T: Screen> Ppu<T> {
         &self.video_ram.tiles[tile_num]
     }
 
-    #[unroll_for_loops]
+    //#[unroll_for_loops]
     pub fn draw_sprites(&mut self) {
         let current_line = self.scanline - 1;
         let size = if self.control.contains(Control::OBJ_SIZE) {
@@ -617,7 +622,8 @@ bitflags!(
 struct VideoRam {
     tile_map0: [u8; TILE_MAP_SIZE],
     tile_map1: [u8; TILE_MAP_SIZE],
-    tiles: Vec<Tile>,
+    tiles:Box<[Tile;TILE_COUNT]>
+    // tiles: Vec<Tile>,
 }
 
 impl VideoRam {
@@ -634,7 +640,7 @@ impl VideoRam {
     }
 
     pub fn write_tile_map_byte(&mut self, address: u16, value: u8) {
-        let mut offset_address;
+        let offset_address;
         let tile_map = if address < TILE_MAP_ADDRESS_1 as u16 {
             offset_address = address - TILE_MAP_ADDRESS_0 as u16;
             &mut self.tile_map0

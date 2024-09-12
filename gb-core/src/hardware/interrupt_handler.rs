@@ -1,7 +1,6 @@
 use bitflags::bitflags;
 use crate::util::int::IntExt;
-use core::fmt::Display;
-use bitflags::_core::fmt::Formatter;
+
 
 bitflags!(
   pub struct InterruptLine: u8 {
