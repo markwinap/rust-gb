@@ -98,7 +98,7 @@ pub struct Ppu<T: Screen> {
     compare_line: u8,
     scroll_x: u8,
     scroll_y: u8,
-    background_priority: Box<[bool; SCREEN_WIDTH]>,
+    background_priority: [bool; SCREEN_WIDTH],
     mode: Mode,
     window_x: u8,
     window_y: u8,
@@ -118,7 +118,7 @@ impl<T: Screen> Ppu<T> {
             background_palette: Palette(0),
             obj_palette0: Palette(0),
             obj_palette1: Palette(0),
-            background_priority: Box::new([false; SCREEN_WIDTH]),
+            background_priority: [false; SCREEN_WIDTH],
             scanline: 0,
             video_ram: VideoRam {
                 tile_map0: [0; TILE_MAP_SIZE],

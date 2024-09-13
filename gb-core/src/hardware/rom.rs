@@ -1,7 +1,6 @@
 use alloc::boxed::Box;
 use num_traits::FromPrimitive;
 use crate::hardware::cartridge::{Cartridge, ReadOnlyMemoryCartridge, Mbc1Cartridge, BankableRam};
-use alloc::vec::Vec;
 use alloc::string::{String, ToString};
 
 #[derive(FromPrimitive, Clone, Copy)]
