@@ -45,7 +45,7 @@ impl<T: Interface> Cpu<T> {
             interface,
             state: Step::Run,
             found: false,
-            prev_opcode: PrevExec::default(),
+          //  prev_opcode: PrevExec::default(),
             tick_count: 0,
         }
     }

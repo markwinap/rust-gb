@@ -124,7 +124,7 @@ impl<T: Screen> Ppu<T> {
                 tile_map0: [0; TILE_MAP_SIZE],
                 tile_map1: [0; TILE_MAP_SIZE],
                 //tiles: alloc::vec![Tile::new(); TILE_COUNT],
-                tiles: Box::new([Tile::new(); TILE_COUNT]),
+                tiles: [Tile::new(); TILE_COUNT],
             },
             control: Control::empty(),
             stat: Stat::empty(),
@@ -260,7 +260,7 @@ impl<T: Screen> Ppu<T> {
         self.mode = new_mode;
     }
 
-    #[inline]
+    #[inline(always)]
     fn draw_pixel(&mut self, x: u8, color: Color) {
         self.screen.set_pixel(x, self.scanline - 1, color);
     }
@@ -622,7 +622,7 @@ bitflags!(
 struct VideoRam {
     tile_map0: [u8; TILE_MAP_SIZE],
     tile_map1: [u8; TILE_MAP_SIZE],
-    tiles:Box<[Tile;TILE_COUNT]>
+    tiles:[Tile;TILE_COUNT]
     // tiles: Vec<Tile>,
 }
 

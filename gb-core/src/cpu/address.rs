@@ -7,7 +7,7 @@ pub struct Cpu<T: Interface> {
     pub interface: T,
     pub state: Step,
     pub found: bool,
-    pub prev_opcode: PrevExec,
+   // pub prev_opcode: PrevExec,
     pub tick_count: usize,
 }
 
