@@ -10,13 +10,13 @@ pub const SCREEN_HEIGHT: usize = 144;
 pub const SCREEN_WIDTH: usize = 160;
 pub const SCREEN_PIXELS: usize = SCREEN_WIDTH * SCREEN_HEIGHT * 3;
 
-pub struct GameBoy<S: Screen> {
-    pub cpu: Cpu<Hardware<S>>,
+pub struct GameBoy<'a, S: Screen> {
+    pub cpu: Cpu<Hardware<'a, S>>,
     elapsed_cycles: usize,
 }
 
-impl<S: Screen> GameBoy<S> {
-    pub fn create(screen: S, cartridge: Box<dyn Cartridge>, boot_rom: Bootrom) -> GameBoy<S> {
+impl<'a, S: Screen> GameBoy<'a, S> {
+    pub fn create(screen: S, cartridge: Box<dyn Cartridge + 'a>, boot_rom: Bootrom) -> GameBoy<S> {
         let run_reset = !boot_rom.is_active();
         let hardware = Hardware::create(screen, cartridge, boot_rom);
         let mut cpu = Cpu::new(hardware);
@@ -33,7 +33,7 @@ impl<S: Screen> GameBoy<S> {
     }
 }
 
-impl<S: Screen> GameBoy<S> {
+impl<'a, S: Screen> GameBoy<'a, S> {
     pub fn tick(&mut self) -> u8 {
         let cycles = self.cpu.step();
         let interrupts = &mut self.cpu.interface.interrupt_handler;

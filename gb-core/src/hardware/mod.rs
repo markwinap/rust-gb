@@ -39,12 +39,12 @@ struct Dma {
     source: u8,
 }
 
-pub struct Hardware<T: Screen> {
+pub struct Hardware<'a, T: Screen> {
     pub interrupt_handler: InterruptHandler,
     work_ram: WorkRam,
     hiram: HiramData,
     pub timer: Timer,
-    pub cartridge: Box<dyn Cartridge>,
+    pub cartridge: Box<dyn Cartridge + 'a>,
     pub gpu: Ppu<T>,
     pub bootrom: Bootrom,
     dma: Dma,
@@ -52,7 +52,7 @@ pub struct Hardware<T: Screen> {
 }
 
 
-impl<T: Screen> Hardware<T> {
+impl<'a, T: Screen> Hardware<'a, T> {
     fn transfer_dma(&mut self, offset: u8) {
         for i in 0..0xFE9F - 0xFE00 + 1 {
             let source = ((offset as u16) << 8) + i;
@@ -62,7 +62,7 @@ impl<T: Screen> Hardware<T> {
     }
 
     fn do_step(&mut self) {}
-    pub fn create(screen: T, cartridge: Box<dyn Cartridge>, boot_rom: Bootrom) -> Hardware<T> {
+    pub fn create(screen: T, cartridge: Box<dyn Cartridge + 'a>, boot_rom: Bootrom) -> Hardware<'a, T> {
         let ppu: Ppu<T> = Ppu::new(screen);
         Hardware {
             interrupt_handler: InterruptHandler::new(),
@@ -79,7 +79,7 @@ impl<T: Screen> Hardware<T> {
 }
 
 
-impl<T: Screen> Interface for Hardware<T> {
+impl<'a, T: Screen> Interface for Hardware<'a, T> {
     fn set_interrupt_disabled(&mut self, disabled: bool) {
         self.interrupt_handler.set_interrupt_disabled(disabled);
     }

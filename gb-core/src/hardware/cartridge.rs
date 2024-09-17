@@ -2,6 +2,8 @@ use crate::memory::Memory;
 use bitflags::_core::ops::{Index, IndexMut};
 use alloc::boxed::Box;
 
+use super::rom::RomManager;
+
 pub trait Cartridge {
     fn step(&mut self) {}
 
@@ -12,11 +14,11 @@ pub trait Cartridge {
     fn write_ram(&mut self, address: u16, value: u8);
 }
 
-pub struct ReadOnlyMemoryCartridge<'a> {
-    bytes: &'a [u8],
+pub struct ReadOnlyMemoryCartridge<RM: RomManager> {
+    bytes: RM,
 }
 
-impl<'a> Cartridge for ReadOnlyMemoryCartridge<'a> {
+impl<RM: RomManager> Cartridge for ReadOnlyMemoryCartridge<RM> {
     fn read_rom(&self, address: u16) -> u8 {
         self.get_byte(address)
     }
@@ -30,15 +32,15 @@ impl<'a> Cartridge for ReadOnlyMemoryCartridge<'a> {
     fn write_ram(&mut self, _: u16, _: u8) {}
 }
 
-impl<'a> ReadOnlyMemoryCartridge<'a> {
-    pub fn from_bytes(bytes: &'a [u8]) -> Self {
+impl<RM: RomManager> ReadOnlyMemoryCartridge<RM> {
+    pub fn from_bytes(bytes: RM) -> Self {
         Self {
             bytes
         }
     }
 }
 
-impl<'a> Memory for ReadOnlyMemoryCartridge<'a> {
+impl<RM: RomManager> Memory for ReadOnlyMemoryCartridge<RM> {
     fn set_byte(&mut self, _: u16, _: u8) {}
 
     fn get_byte(&self, address: u16) -> u8 {
