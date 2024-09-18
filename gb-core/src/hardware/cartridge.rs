@@ -127,8 +127,9 @@ impl<RM: RomManager> Memory for Mbc1Cartridge<RM> {
 
     fn get_byte(&self, address: u16) -> u8 {
         if Self::compare(address, 0x4000, 0x7FFF) == 0 {
-            return self.bytes.read_from_offset(((self.current_rom_bank as u16 - 1) * (0x7FFF - 0x4000 + 1)) as usize, (address - 0x4000) as usize);
-            //return self.bytes[(address + ((self.current_rom_bank as u16 - 1) * (0x7FFF - 0x4000 + 1))) as usize];
+            let bank_offset = ((self.current_rom_bank as u16 - 1) * (0x7FFF - 0x4000 + 1)) as usize + 0x4000;
+            let result = self.bytes.read_from_offset(bank_offset, (address - 0x4000) as usize);
+            return result;
         } else if Self::compare(address, 0xA000, 0xBFFF) == 0 {
             return self.bank_ram.get_byte(address - 0xA000);
         }
