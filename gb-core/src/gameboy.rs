@@ -16,9 +16,9 @@ pub struct GameBoy<'a, S: Screen> {
 }
 
 impl<'a, S: Screen> GameBoy<'a, S> {
-    pub fn create(screen: S, cartridge: Box<dyn Cartridge + 'a>, boot_rom: Bootrom) -> GameBoy<S> {
+    pub fn create(screen: S, cartridge: Box<dyn Cartridge + 'a>, boot_rom: Bootrom, player: Box<dyn crate::hardware::sound::AudioPlayer>) -> GameBoy<S> {
         let run_reset = !boot_rom.is_active();
-        let hardware = Hardware::create(screen, cartridge, boot_rom);
+        let hardware = Hardware::create(screen, cartridge, boot_rom, player);
         let mut cpu = Cpu::new(hardware);
 
         if run_reset {
@@ -40,6 +40,7 @@ impl<'a, S: Screen> GameBoy<'a, S> {
         self.cpu.interface.input_controller.update_state(interrupts);
         self.cpu.interface.timer.do_cycle(cycles as u32, interrupts);
         self.cpu.interface.gpu.step(cycles as isize, interrupts);
+        self.cpu.interface.sound.do_cycle(cycles as u32);
         self.cpu.interface.cartridge.step();
         cycles
     }

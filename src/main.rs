@@ -72,7 +72,7 @@ pub fn construct_cpu() {
         let mut ticks = 0;
 
         let cart = gb_rom.into_cartridge();
-        let mut gameboy = GameBoy::create(sync_screen, cart, boot_room_stuff);
+        let mut gameboy = GameBoy::create(sync_screen, cart, boot_room_stuff, Box::new(NullAudioPlayer));
 
 
         'outer: loop {
@@ -175,5 +175,22 @@ impl core::ops::Index<core::ops::Range<usize>>
 
     fn index(&self, index: core::ops::Range<usize>) -> &Self::Output {
         return &self.data[index];
+    }
+}
+
+
+pub struct NullAudioPlayer;
+
+impl gb_core::hardware::sound::AudioPlayer for NullAudioPlayer {
+    fn play(&mut self, _buf_left: &[f32], _buf_right: &[f32]) {
+        // Do nothing
+    }
+
+    fn samples_rate(&self) -> u32 {
+        44100
+    }
+
+    fn underflowed(&self) -> bool {
+        false
     }
 }

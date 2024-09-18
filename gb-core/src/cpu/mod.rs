@@ -32,7 +32,7 @@ pub trait Interface {
     fn reset(&mut self);
     fn any_enabled(&self) -> bool;
     fn set_byte(&mut self, address: u16, value: u8);
-    fn get_byte(&self, address: u16) -> u8;
+    fn get_byte(&mut self, address: u16) -> u8;
     fn step(&mut self) {}
 }
 

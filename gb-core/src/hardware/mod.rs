@@ -10,6 +10,7 @@ use crate::hardware::ppu::Ppu;
 use crate::memory::Memory;
 use crate::hardware::input::{InputController, Controller};
 use alloc::boxed::Box;
+use sound::Sound;
 
 pub mod ppu;
 pub mod color_palette;
@@ -20,6 +21,7 @@ pub mod timer;
 pub mod cartridge;
 pub mod rom;
 pub mod input;
+pub mod sound;
 
 pub const HIRAM_SIZE: usize = 0x80;
 
@@ -48,6 +50,7 @@ pub struct Hardware<'a, T: Screen> {
     pub gpu: Ppu<T>,
     pub bootrom: Bootrom,
     dma: Dma,
+    pub sound: Sound,
     pub input_controller: InputController
 }
 
@@ -57,12 +60,13 @@ impl<'a, T: Screen> Hardware<'a, T> {
         for i in 0..0xFE9F - 0xFE00 + 1 {
             let source = ((offset as u16) << 8) + i;
             let target = 0xFE00 + i;
-            self.gpu.write_oam(target as u8, self.get_byte(source));
+            let byte = self.get_byte(source);
+            self.gpu.write_oam(target as u8, byte);
         }
     }
 
     fn do_step(&mut self) {}
-    pub fn create(screen: T, cartridge: Box<dyn Cartridge + 'a>, boot_rom: Bootrom) -> Hardware<'a, T> {
+    pub fn create(screen: T, cartridge: Box<dyn Cartridge + 'a>, boot_rom: Bootrom,  player: Box<dyn sound::AudioPlayer>) -> Hardware<'a, T> {
         let ppu: Ppu<T> = Ppu::new(screen);
         Hardware {
             interrupt_handler: InterruptHandler::new(),
@@ -73,6 +77,7 @@ impl<'a, T: Screen> Hardware<'a, T> {
             gpu: ppu,
             bootrom: boot_rom,
             dma: Dma { source: 0 },
+            sound: Sound::new_dmg(player),
             input_controller: InputController::new(),
         }
     }
@@ -147,7 +152,7 @@ impl<'a, T: Screen> Interface for Hardware<'a, T> {
                 0x06 => self.timer.set_byte(address, value),
                 0x07 => self.timer.set_byte(address, value),
                 0x0f => self.interrupt_handler.set_interrupt_flag(value),
-                0x10..=0x3f => (), //APU
+                0x10..=0x3f => self.sound.wb(address, value), //APU
                 0x40 => self.gpu.set_control(value),
                 0x41 => self.gpu.set_stat(value),
                 0x42 => self.gpu.set_scroll_y(value),
@@ -184,7 +189,7 @@ impl<'a, T: Screen> Interface for Hardware<'a, T> {
     }
 
 
-    fn get_byte(&self, address: u16) -> u8 {
+    fn get_byte(&mut self, address: u16) -> u8 {
         match (address >> 8) as u8 {
             0x00 if self.bootrom.is_active() => {
                 self.bootrom[address]
@@ -217,8 +222,8 @@ impl<'a, T: Screen> Interface for Hardware<'a, T> {
                     0x06 => self.timer.get_byte(address),
                     0x07 => self.timer.get_byte(address),
                     0x0f => self.interrupt_handler.get_interrupt_flag(),
-                    0x10..=0x3f => 0b0, //Audio
-
+                    // 0x10..=0x3f => 0b0, //Audio
+                    0x10..=0x3f => self.sound.rb(address), //Audio
                     0x40 => self.gpu.get_control(),
                     0x41 => self.gpu.get_stat(),
                     0x42 => self.gpu.get_scroll_y(),
