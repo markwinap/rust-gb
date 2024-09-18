@@ -21,10 +21,10 @@ impl RomType {
     }
 
     pub  fn to_cartridge<'a, RM: RomManager + 'a>(self, rom: Rom< RM >) -> Box<dyn Cartridge + 'a> {
-        let dt = rom.data;
+       
         match self {
-            RomType::RomOnly => Box::new(ReadOnlyMemoryCartridge::from_bytes(dt)),
-         //   RomType::MBC1 => Box::new(Mbc1Cartridge::new(rom.data, BankableRam::new(rom.ram_size.banks()))),
+            RomType::RomOnly => Box::new(ReadOnlyMemoryCartridge::from_bytes( rom.data)),
+            RomType::MBC1 => Box::new(Mbc1Cartridge::new(rom.data, BankableRam::new(rom.ram_size.banks()))),
             _ => panic!()
           //  RomType::MBC1 => Box::new(Mbc1Cartridge::new(rom.data, BankableRam::new(rom.ram_size.banks())))
         }
@@ -32,8 +32,13 @@ impl RomType {
 }
 
 
-pub trait RomManager: Index<usize, Output = u8> +  Index<core::ops::Range<usize>, Output = [u8]>  {
-    fn set_active_bank(&mut self, bank: u8);
+// pub trait RomManager: Index<usize, Output = u8> +  Index<core::ops::Range<usize>, Output = [u8]>  {
+//     fn set_active_bank(&mut self, bank: u8);
+// }
+
+pub trait  RomManager: Index<usize, Output = u8> +  Index<core::ops::Range<usize>, Output = [u8]> {
+    
+    fn read_from_offset(&self, seek_offset: usize, index: usize) -> u8;                                                                                                                                                                                                                    
 }
 
 #[derive(FromPrimitive)]
@@ -137,27 +142,21 @@ impl <'a, RM: RomManager + 'a> Rom<RM> {
     }
 
     pub fn from_bytes(bytes: RM) -> Self {
-        let rom_t = bytes[0x147];
-       
+  
         let rom_size = RomSize::from_u8(bytes[0x148]).unwrap();
         let ram_size = RamSize::from_u8(bytes[0x149]).unwrap();
-        //let ram_size = RamSize::_32KB;
         let model = Model::from_value(bytes[0x143]);
         let region = Region::from_value(bytes[0x14A]);
         let title = Rom::resolve_name(&bytes);
         let rom_type = RomType::from_u8(bytes[0x147]).unwrap();
-
-
-
         Self {
             data: bytes,
             rom_type: rom_type,
             rom_size: rom_size,
             ram_size: ram_size,
             model: model,
-            
             region: region,
-            title: "sds".to_string(),
+            title: title,
         }
     }
 

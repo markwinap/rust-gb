@@ -23,33 +23,37 @@ fn main() {
     construct_cpu()
 }
 
-pub fn load_rom(zip_file: &str, rom_name: &str) -> Rom<'static> {
-    println!("sd {}", 3);
+// pub fn load_rom(zip_file: &str, rom_name: &str) -> Rom<'static> {
+//     println!("sd {}", 3);
 
-    let foo = format!("sd {}", 3);
-    let file = fs::File::open(&zip_file).unwrap();
-    let mut archive = zip::ZipArchive::new(file).unwrap();
+//     let foo = format!("sd {}", 3);
+//     let file = fs::File::open(&zip_file).unwrap();
+//     let mut archive = zip::ZipArchive::new(file).unwrap();
 
-    let bytes = match archive.by_name(rom_name) {
-        Ok(rom_file) => {
-            rom_file.bytes()
-        }
-        Err(_) => { panic!() }
-    };
-    let data: Result<Vec<_>, _> = bytes.collect();
-    Rom::from_bytes(Box::leak(Box::new(data.unwrap())))
-}
+//     let bytes = match archive.by_name(rom_name) {
+//         Ok(rom_file) => {
+//             rom_file.bytes()
+//         }
+//         Err(_) => { panic!() }
+//     };
+//     let data: Result<Vec<_>, _> = bytes.collect();
+//     Rom::from_bytes(Box::leak(Box::new(data.unwrap())))
+// }
 
-pub fn load_rom_from_path(path: &Path) -> Rom<'static> {
-    let mut gb_rom: Vec<u8> = vec![];
-    File::open(path).and_then(|mut f| f.read_to_end(&mut gb_rom)).map_err(|_| "Could not read ROM").unwrap();
-    Rom::from_bytes(Box::leak(Box::new(gb_rom)))
-}
+// pub fn load_rom_from_path(path: &Path) -> Rom<> {
+//     let mut gb_rom: Vec<u8> = vec![];
+//     File::open(path).and_then(|mut f| f.read_to_end(&mut gb_rom)).map_err(|_| "Could not read ROM").unwrap();
+//    // Rom::from_bytes(Box::leak(Box::new(gb_rom)))
+// }
 
 pub fn construct_cpu() {
-    let gb_rom = load_rom_from_path(&std::path::PathBuf::from("/home/plozano/gbrom/sml.gb"));
+    let mut gb_rom: Vec<u8> = vec![];
+    File::open("C:\\roms\\sml.gb").and_then(|mut f| f.read_to_end(&mut gb_rom)).map_err(|_| "Could not read ROM").unwrap();
+
+    let gb_rom = ByteRomManager::new(gb_rom.into_boxed_slice());
+    let gb_rom = gb_core::hardware::rom::Rom::from_bytes(gb_rom);
     // let gb_rom = load_rom("test-roms/cpu_instrs.zip", "cpu_instrs/cpu_instrs.gb");
-    let boot_rom = std::path::PathBuf::from("/home/plozano/gbrom/dmg_boot.bin");
+   // let boot_rom = std::path::PathBuf::from("/home/plozano/gbrom/dmg_boot.bin");
 
 
     let (sender2, receiver2) = mpsc::sync_channel::<Box<[u8; SCREEN_PIXELS]>>(1);
@@ -58,7 +62,7 @@ pub fn construct_cpu() {
 
     let sync_screen = SynScreen { sender: sender2, off_screen_buffer: RefCell::new(Box::new([0; SCREEN_PIXELS])) };
 
-    let boot_room_stuff = Bootrom::new(Some(BootromData::from_bytes(include_bytes!("/home/plozano/gbrom/dmg_boot.bin"))));
+    let boot_room_stuff = Bootrom::new(Some(BootromData::from_bytes(include_bytes!( "C:\\roms\\dmg_boot.bin"))));
 
     let cputhread = std::thread::spawn(move || {
         let periodic = timer_periodic(16);
@@ -135,3 +139,41 @@ impl Screen for SynScreen {
     }
 }
 
+struct ByteRomManager {
+    data: Box<[u8]>,
+}
+
+impl ByteRomManager {
+    
+    fn new(data: Box<[u8]>) -> Self {
+        return Self{
+            data
+        };
+    }
+}
+
+impl gb_core::hardware::rom::RomManager for ByteRomManager {
+    fn read_from_offset(&self, seek_offset: usize, index: usize) -> u8 {
+
+        let address = seek_offset + index;
+        self.data[address]
+    }
+}
+
+impl core::ops::Index<usize> for ByteRomManager
+{
+    type Output = u8;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.data[index as usize]
+    }
+}
+impl core::ops::Index<core::ops::Range<usize>>
+    for ByteRomManager
+{
+    type Output = [u8];
+
+    fn index(&self, index: core::ops::Range<usize>) -> &Self::Output {
+        return &self.data[index];
+    }
+}
