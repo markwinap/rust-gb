@@ -12,7 +12,7 @@ const SWEEP_DELAY_ZERO_PERIOD : u8 = 8;
 const WAVE_INITIAL_DELAY : u32 = 4;
 
 pub trait AudioPlayer : Send {
-    fn play(&mut self, left_channel: &[f32], right_channel: &[f32]);
+    fn play(&mut self, left_channel: &[i16], right_channel: &[i16]);
     fn samples_rate(&self) -> u32;
     fn underflowed(&self) -> bool;
 }
@@ -888,23 +888,27 @@ impl Sound {
         debug_assert!(sample_count == self.channel4.blip.samples_avail() as usize);
 
         let mut outputted = 0;
-
+        
         let left_vol = (self.volume_left as f32 / 7.0) * (1.0 / 15.0) * 0.25;
         let right_vol = (self.volume_right as f32 / 7.0) * (1.0 / 15.0) * 0.25;
 
         while outputted < sample_count {
-            let buf_left = &mut [0f32; OUTPUT_SAMPLE_COUNT + 10];
-            let buf_right = &mut [0f32; OUTPUT_SAMPLE_COUNT + 10];
+            let buf_left = &mut [0i16; OUTPUT_SAMPLE_COUNT + 10];
+            let buf_right = &mut [0i16; OUTPUT_SAMPLE_COUNT + 10];
             let buf = &mut [0i16; OUTPUT_SAMPLE_COUNT + 10];
 
             let buff_len = buf.len();
             let count1 = self.channel1.blip.read_samples(buf, buff_len as u32, false);
             for (i, v) in buf[..count1  as usize].iter().enumerate() {
                 if self.reg_ff25 & 0x10 == 0x10 {
-                    buf_left[i] += *v as f32 * left_vol;
+                    let clamped  = (*v as f32 * left_vol).max(-1.0).min(1.0);
+                    let clamp = (clamped * i16::MAX as f32) as i16;
+                    buf_left[i] += clamp;
                 }
                 if self.reg_ff25 & 0x01 == 0x01 {
-                    buf_right[i] += *v as f32 * right_vol;
+                    let clamped  = (*v as f32 * right_vol).max(-1.0).min(1.0);
+                    let clamp = (clamped * i16::MAX as f32) as i16;
+                    buf_right[i] += clamp;
                 }
             }
 
@@ -912,10 +916,14 @@ impl Sound {
             let count2 = self.channel2.blip.read_samples(buf, buff_len as u32, false);
             for (i, v) in buf[..count2 as usize].iter().enumerate() {
                 if self.reg_ff25 & 0x20 == 0x20 {
-                    buf_left[i] += *v as f32 * left_vol;
+                    let clamped  = (*v as f32 * left_vol).max(-1.0).min(1.0);
+                    let clamp = (clamped * i16::MAX as f32) as i16;
+                    buf_left[i] += clamp;
                 }
                 if self.reg_ff25 & 0x02 == 0x02 {
-                    buf_right[i] += *v as f32 * right_vol;
+                    let clamped  = (*v as f32 * right_vol).max(-1.0).min(1.0);
+                    let clamp = (clamped * i16::MAX as f32) as i16;
+                    buf_left[i] += clamp;
                 }
             }
 
@@ -925,20 +933,29 @@ impl Sound {
             let count3 = self.channel3.blip.read_samples(buf, buff_len as u32, false);
             for (i, v) in buf[..count3  as usize].iter().enumerate() {
                 if self.reg_ff25 & 0x40 == 0x40 {
-                    buf_left[i] += ((*v as f32) / 4.0) * left_vol;
+                    let clamped  = (((*v as f32) / 4.0) * left_vol).max(-1.0).min(1.0);
+                    let clamp = (clamped * i16::MAX as f32) as i16;
+                    buf_left[i] += clamp;
+
                 }
                 if self.reg_ff25 & 0x04 == 0x04 {
-                    buf_right[i] += ((*v as f32) / 4.0) * right_vol;
+                    let clamped  = (((*v as f32) / 4.0) * right_vol).max(-1.0).min(1.0);
+                    let clamp = (clamped * i16::MAX as f32) as i16;
+                    buf_left[i] += clamp;
                 }
             }
             let buff_len = buf.len();
             let count4 = self.channel4.blip.read_samples(buf,buff_len as u32, false);
             for (i, v) in buf[..count4  as usize].iter().enumerate() {
                 if self.reg_ff25 & 0x80 == 0x80 {
-                    buf_left[i] += *v as f32 * left_vol;
+                    let clamped  = (*v as f32 * left_vol).max(-1.0).min(1.0);
+                    let clamp = (clamped * i16::MAX as f32) as i16;
+                    buf_left[i] += clamp;
                 }
                 if self.reg_ff25 & 0x08 == 0x08 {
-                    buf_right[i] += *v as f32 * right_vol;
+                    let clamped  = (*v as f32 * right_vol).max(-1.0).min(1.0);
+                    let clamp = (clamped * i16::MAX as f32) as i16;
+                    buf_left[i] += clamp;
                 }
             }
 
