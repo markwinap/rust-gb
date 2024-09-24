@@ -1,30 +1,35 @@
 use core::iter;
 
-use alloc::boxed::Box;
 use crate::util::blip_buf::Blip;
+use alloc::boxed::Box;
 
-const WAVE_PATTERN : [[i32; 8]; 4] = [[-1,-1,-1,-1,1,-1,-1,-1],[-1,-1,-1,-1,1,1,-1,-1],[-1,-1,1,1,1,1,-1,-1],[1,1,1,1,-1,-1,1,1]];
-const CLOCKS_PER_SECOND : u32 = 1 << 22;
-const CLOCKS_PER_FRAME : u32 = CLOCKS_PER_SECOND / 512;
-const OUTPUT_SAMPLE_COUNT : usize = 2000; // this should be less than blip_buf::MAX_FRAME
-const SWEEP_DELAY_ZERO_PERIOD : u8 = 8;
+const WAVE_PATTERN: [[i32; 8]; 4] = [
+    [-1, -1, -1, -1, 1, -1, -1, -1],
+    [-1, -1, -1, -1, 1, 1, -1, -1],
+    [-1, -1, 1, 1, 1, 1, -1, -1],
+    [1, 1, 1, 1, -1, -1, 1, 1],
+];
+const CLOCKS_PER_SECOND: u32 = 1 << 22;
+const CLOCKS_PER_FRAME: u32 = CLOCKS_PER_SECOND / 512;
+const OUTPUT_SAMPLE_COUNT: usize = 2000; // this should be less than blip_buf::MAX_FRAME
+const SWEEP_DELAY_ZERO_PERIOD: u8 = 8;
 
 // Additional delay on trigger of the wave channel (channel 3). In other emulators it is 6, but we
 // need 4 since we run the wave after delay == 0, instead of at delay == 0
-const WAVE_INITIAL_DELAY : u32 = 4;
+const WAVE_INITIAL_DELAY: u32 = 4;
 
-pub trait AudioPlayer  {
+pub trait AudioPlayer {
     fn play(&mut self, output_buffer: &[f32]);
     fn samples_rate(&self) -> u32;
     fn underflowed(&self) -> bool;
 }
 
 struct VolumeEnvelope {
-    period : u8,
-    goes_up : bool,
-    delay : u8,
-    initial_volume : u8,
-    volume : u8,
+    period: u8,
+    goes_up: bool,
+    delay: u8,
+    initial_volume: u8,
+    volume: u8,
 }
 
 impl VolumeEnvelope {
@@ -41,10 +46,10 @@ impl VolumeEnvelope {
     fn rb(&self, a: u16) -> u8 {
         match a {
             0xFF12 | 0xFF17 | 0xFF21 => {
-                ((self.initial_volume & 0xF) << 4) |
-                if self.goes_up { 0x08 } else { 0 } |
-                (self.period & 0x7)
-            },
+                ((self.initial_volume & 0xF) << 4)
+                    | if self.goes_up { 0x08 } else { 0 }
+                    | (self.period & 0x7)
+            }
             _ => unimplemented!(),
         }
     }
@@ -56,11 +61,11 @@ impl VolumeEnvelope {
                 self.goes_up = v & 0x8 == 0x8;
                 self.initial_volume = v >> 4;
                 self.volume = self.initial_volume;
-            },
+            }
             0xFF14 | 0xFF19 | 0xFF23 if v & 0x80 == 0x80 => {
                 self.delay = self.period;
                 self.volume = self.initial_volume;
-            },
+            }
             _ => (),
         }
     }
@@ -68,13 +73,11 @@ impl VolumeEnvelope {
     fn step(&mut self) {
         if self.delay > 1 {
             self.delay -= 1;
-        }
-        else if self.delay == 1 {
+        } else if self.delay == 1 {
             self.delay = self.period;
             if self.goes_up && self.volume < 15 {
                 self.volume += 1;
-            }
-            else if !self.goes_up && self.volume > 0 {
+            } else if !self.goes_up && self.volume > 0 {
                 self.volume -= 1;
             }
         }
@@ -92,7 +95,7 @@ impl LengthCounter {
         LengthCounter {
             enabled: false,
             value: 0,
-            max: max
+            max: max,
         }
     }
 
@@ -138,8 +141,8 @@ impl LengthCounter {
 struct SquareChannel {
     active: bool,
     dac_enabled: bool,
-    duty : u8,
-    phase : u8,
+    duty: u8,
+    phase: u8,
     length: LengthCounter,
     frequency: u16,
     period: u32,
@@ -189,26 +192,14 @@ impl SquareChannel {
     fn rb(&self, a: u16) -> u8 {
         match a {
             0xFF10 => {
-                0x80 |
-                ((self.sweep_period & 0x7) << 4) |
-                if self.sweep_negate { 0x8 } else { 0 } |
-                (self.sweep_shift & 0x7)
-            },
-            0xFF11 | 0xFF16 => {
-                ((self.duty & 3) << 6) |
-                0x3F
-            },
-            0xFF12 | 0xFF17 => {
-                self.volume_envelope.rb(a)
-            },
-            0xFF13 | 0xFF18 => {
-                0xFF
+                0x80 | ((self.sweep_period & 0x7) << 4)
+                    | if self.sweep_negate { 0x8 } else { 0 }
+                    | (self.sweep_shift & 0x7)
             }
-            0xFF14 | 0xFF19 => {
-                0x80 |
-                if self.length.enabled { 0x40 } else { 0 } |
-                0x3F
-            },
+            0xFF11 | 0xFF16 => ((self.duty & 3) << 6) | 0x3F,
+            0xFF12 | 0xFF17 => self.volume_envelope.rb(a),
+            0xFF13 | 0xFF18 => 0xFF,
+            0xFF14 | 0xFF19 => 0x80 | if self.length.enabled { 0x40 } else { 0 } | 0x3F,
             _ => unimplemented!(),
         }
     }
@@ -224,11 +215,11 @@ impl SquareChannel {
                     self.active = false;
                 }
                 self.sweep_did_negate = false;
-            },
+            }
             0xFF11 | 0xFF16 => {
                 self.duty = v >> 6;
                 self.length.set(v & 0x3F);
-            },
+            }
             0xFF12 | 0xFF17 => {
                 self.dac_enabled = v & 0xF8 != 0;
                 self.active = self.active && self.dac_enabled;
@@ -236,7 +227,7 @@ impl SquareChannel {
             0xFF13 | 0xFF18 => {
                 self.frequency = (self.frequency & 0x0700) | (v as u16);
                 self.calculate_period();
-            },
+            }
             0xFF14 | 0xFF19 => {
                 self.frequency = (self.frequency & 0x00FF) | (((v & 0b0000_0111) as u16) << 8);
                 self.calculate_period();
@@ -253,7 +244,11 @@ impl SquareChannel {
 
                     if self.has_sweep {
                         self.sweep_frequency = self.frequency;
-                        self.sweep_delay = if self.sweep_period != 0 { self.sweep_period } else { SWEEP_DELAY_ZERO_PERIOD };
+                        self.sweep_delay = if self.sweep_period != 0 {
+                            self.sweep_period
+                        } else {
+                            SWEEP_DELAY_ZERO_PERIOD
+                        };
 
                         self.sweep_enabled = self.sweep_period > 0 || self.sweep_shift > 0;
                         if self.sweep_shift > 0 {
@@ -261,15 +256,18 @@ impl SquareChannel {
                         }
                     }
                 }
-            },
+            }
             _ => (),
         }
         self.volume_envelope.wb(a, v);
     }
 
     fn calculate_period(&mut self) {
-        if self.frequency > 2047 { self.period = 0; }
-        else { self.period = (2048 - self.frequency as u32) * 4; }
+        if self.frequency > 2047 {
+            self.period = 0;
+        } else {
+            self.period = (2048 - self.frequency as u32) * 4;
+        }
     }
 
     // This assumes no volume or sweep adjustments need to be done in the meantime
@@ -280,8 +278,7 @@ impl SquareChannel {
                 self.last_amp = 0;
                 self.delay = 0;
             }
-        }
-        else {
+        } else {
             let mut time = start_time + self.delay;
             let pattern = WAVE_PATTERN[self.duty as usize];
             let vol = self.volume_envelope.volume as i32;
@@ -312,8 +309,7 @@ impl SquareChannel {
         let newfreq = if self.sweep_negate {
             self.sweep_did_negate = true;
             self.sweep_frequency.wrapping_sub(offset)
-        }
-        else {
+        } else {
             self.sweep_frequency.wrapping_add(offset)
         };
 
@@ -328,12 +324,10 @@ impl SquareChannel {
 
         if self.sweep_delay > 1 {
             self.sweep_delay -= 1;
-        }
-        else {
+        } else {
             if self.sweep_period == 0 {
                 self.sweep_delay = SWEEP_DELAY_ZERO_PERIOD;
-            }
-            else {
+            } else {
                 self.sweep_delay = self.sweep_period;
                 if self.sweep_enabled {
                     let newfreq = self.sweep_calculate_frequency();
@@ -353,7 +347,7 @@ impl SquareChannel {
 
 struct WaveChannel {
     active: bool,
-    dac_enabled : bool,
+    dac_enabled: bool,
     length: LengthCounter,
     frequency: u16,
     period: u32,
@@ -388,35 +382,22 @@ impl WaveChannel {
 
     fn rb(&self, a: u16) -> u8 {
         match a {
-            0xFF1A => {
-                (if self.dac_enabled { 0x80 } else { 0 }) |
-                0x7F
-            },
+            0xFF1A => (if self.dac_enabled { 0x80 } else { 0 }) | 0x7F,
             0xFF1B => 0xFF,
-            0xFF1C => {
-                0x80 |
-                ((self.volume_shift & 0b11) << 5) |
-                0x1F
-            },
+            0xFF1C => 0x80 | ((self.volume_shift & 0b11) << 5) | 0x1F,
             0xFF1D => 0xFF,
-            0xFF1E => {
-                0x80 |
-                if self.length.enabled { 0x40 } else { 0 } |
-                0x3F
-            },
-            0xFF30 ..= 0xFF3F => {
+            0xFF1E => 0x80 | if self.length.enabled { 0x40 } else { 0 } | 0x3F,
+            0xFF30..=0xFF3F => {
                 if !self.active {
                     self.waveram[a as usize - 0xFF30]
-                }
-                else {
+                } else {
                     if !self.dmg_mode || self.sample_recently_accessed {
                         self.waveram[self.current_wave as usize >> 1]
-                    }
-                    else {
+                    } else {
                         0xFF
                     }
                 }
-            },
+            }
             _ => unimplemented!(),
         }
     }
@@ -452,24 +433,26 @@ impl WaveChannel {
                         self.active = true;
                     }
                 }
-            },
-            0xFF30 ..= 0xFF3F => {
+            }
+            0xFF30..=0xFF3F => {
                 if !self.active {
                     self.waveram[a as usize - 0xFF30] = v;
-                }
-                else {
+                } else {
                     if !self.dmg_mode || self.sample_recently_accessed {
                         self.waveram[self.current_wave as usize >> 1] = v;
                     }
                 }
-            },
+            }
             _ => (),
         }
     }
 
     fn calculate_period(&mut self) {
-        if self.frequency > 2048 { self.period = 0; }
-        else { self.period = (2048 - self.frequency as u32) * 2; }
+        if self.frequency > 2048 {
+            self.period = 0;
+        } else {
+            self.period = (2048 - self.frequency as u32) * 2;
+        }
     }
 
     fn on(&self) -> bool {
@@ -484,8 +467,7 @@ impl WaveChannel {
                 self.last_amp = 0;
                 self.delay = 0;
             }
-        }
-        else {
+        } else {
             let mut time = start_time + self.delay;
 
             // A sample may be muted, 100%, 50% or 25%.
@@ -493,7 +475,7 @@ impl WaveChannel {
             // i32 samples at 4x the usual amplitude. This will be taken
             // into account when mixing all the samples.
             let volshift = match self.volume_shift {
-                0 => 4 + 2,  // to mute a 4 bit sample mutiplied by 2^2
+                0 => 4 + 2, // to mute a 4 bit sample mutiplied by 2^2
                 1 => 0,
                 2 => 1,
                 3 => 2,
@@ -502,7 +484,11 @@ impl WaveChannel {
 
             while time < end_time {
                 let wavebyte = self.waveram[self.current_wave as usize >> 1];
-                let sample = if self.current_wave % 2 == 0 { wavebyte >> 4 } else { wavebyte & 0xF };
+                let sample = if self.current_wave % 2 == 0 {
+                    wavebyte >> 4
+                } else {
+                    wavebyte & 0xF
+                };
 
                 // shifted by 2 so that 25% does not lose precision
                 let amp = ((sample << 2) >> volshift) as i32;
@@ -545,8 +531,7 @@ impl WaveChannel {
 
         if byteindex < 4 {
             self.waveram[0] = self.waveram[byteindex];
-        }
-        else {
+        } else {
             let blockstart = byteindex & 0b1100;
             self.waveram[0] = self.waveram[blockstart];
             self.waveram[1] = self.waveram[blockstart + 1];
@@ -589,16 +574,10 @@ impl NoiseChannel {
 
     fn rb(&self, a: u16) -> u8 {
         match a {
-            0xFF20 => { 0xFF },
-            0xFF21 => { self.volume_envelope.rb(a) },
-            0xFF22 => {
-                self.reg_ff22
-            },
-            0xFF23 => {
-                0x80 |
-                if self.length.enabled { 0x40 } else { 0 } |
-                0x3F
-            },
+            0xFF20 => 0xFF,
+            0xFF21 => self.volume_envelope.rb(a),
+            0xFF22 => self.reg_ff22,
+            0xFF23 => 0x80 | if self.length.enabled { 0x40 } else { 0 } | 0x3F,
             _ => unimplemented!(),
         }
     }
@@ -609,7 +588,7 @@ impl NoiseChannel {
             0xFF21 => {
                 self.dac_enabled = v & 0xF8 != 0;
                 self.active = self.active && self.dac_enabled;
-            },
+            }
             0xFF22 => {
                 self.reg_ff22 = v;
                 self.shift_width = if v & 8 == 8 { 6 } else { 14 };
@@ -618,7 +597,7 @@ impl NoiseChannel {
                     n => n as u32 * 16,
                 };
                 self.period = freq_div << (v >> 4);
-            },
+            }
             0xFF23 => {
                 self.length.enable(v & 0x40 == 0x40, frame_step);
                 self.active &= self.length.is_active();
@@ -633,7 +612,7 @@ impl NoiseChannel {
                         self.active = true;
                     }
                 }
-            },
+            }
             _ => (),
         }
         self.volume_envelope.wb(a, v);
@@ -650,8 +629,7 @@ impl NoiseChannel {
                 self.last_amp = 0;
                 self.delay = 0;
             }
-        }
-        else {
+        } else {
             let mut time = start_time + self.delay;
             while time < end_time {
                 let oldstate = self.state;
@@ -716,7 +694,8 @@ impl Sound {
         let blipbuf3 = create_blipbuf(player.samples_rate());
         let blipbuf4 = create_blipbuf(player.samples_rate());
 
-        let output_period = (OUTPUT_SAMPLE_COUNT as u64 * CLOCKS_PER_SECOND as u64) / player.samples_rate() as u64;
+        let output_period =
+            (OUTPUT_SAMPLE_COUNT as u64 * CLOCKS_PER_SECOND as u64) / player.samples_rate() as u64;
 
         Sound {
             on: false,
@@ -739,23 +718,24 @@ impl Sound {
         }
     }
 
-   pub fn rb(&mut self, a: u16) -> u8 {
+    pub fn rb(&mut self, a: u16) -> u8 {
         self.run();
         let v = match a {
-            0xFF10 ..= 0xFF14 => self.channel1.rb(a),
-            0xFF16 ..= 0xFF19 => self.channel2.rb(a),
-            0xFF1A ..= 0xFF1E => self.channel3.rb(a),
-            0xFF20 ..= 0xFF23 => self.channel4.rb(a),
+            0xFF10..=0xFF14 => self.channel1.rb(a),
+            0xFF16..=0xFF19 => self.channel2.rb(a),
+            0xFF1A..=0xFF1E => self.channel3.rb(a),
+            0xFF20..=0xFF23 => self.channel4.rb(a),
             0xFF24 => ((self.volume_right & 7) << 4) | (self.volume_left & 7) | self.reg_vin_to_so,
             0xFF25 => self.reg_ff25,
-            0xFF26 => (
-                if self.on { 0x80 } else { 0x00 } |
-                0x70 |
-                if self.channel4.on() { 0x8 } else { 0x0 } |
-                if self.channel3.on() { 0x4 } else { 0x0 } |
-                if self.channel2.on() { 0x2 } else { 0x0 } |
-                if self.channel1.on() { 0x1 } else { 0x0 }),
-            0xFF30 ..= 0xFF3F => self.channel3.rb(a),
+            0xFF26 => {
+                (if self.on { 0x80 } else { 0x00 }
+                    | 0x70
+                    | if self.channel4.on() { 0x8 } else { 0x0 }
+                    | if self.channel3.on() { 0x4 } else { 0x0 }
+                    | if self.channel2.on() { 0x2 } else { 0x0 }
+                    | if self.channel1.on() { 0x1 } else { 0x0 })
+            }
+            0xFF30..=0xFF3F => self.channel3.rb(a),
             _ => 0xFF,
         };
         return v;
@@ -780,10 +760,10 @@ impl Sound {
         }
         self.run();
         match a {
-            0xFF10 ..= 0xFF14 => self.channel1.wb(a, v, self.frame_step),
-            0xFF16 ..= 0xFF19 => self.channel2.wb(a, v, self.frame_step),
-            0xFF1A ..= 0xFF1E => self.channel3.wb(a, v, self.frame_step),
-            0xFF20 ..= 0xFF23 => self.channel4.wb(a, v, self.frame_step),
+            0xFF10..=0xFF14 => self.channel1.wb(a, v, self.frame_step),
+            0xFF16..=0xFF19 => self.channel2.wb(a, v, self.frame_step),
+            0xFF1A..=0xFF1E => self.channel3.wb(a, v, self.frame_step),
+            0xFF20..=0xFF23 => self.channel4.wb(a, v, self.frame_step),
             0xFF24 => {
                 self.volume_left = v & 0x7;
                 self.volume_right = (v >> 4) & 0x7;
@@ -804,15 +784,20 @@ impl Sound {
                 }
                 self.on = turn_on;
             }
-            0xFF30 ..= 0xFF3F => self.channel3.wb(a, v, self.frame_step),
+            0xFF30..=0xFF3F => self.channel3.wb(a, v, self.frame_step),
             _ => (),
         }
     }
 
-    pub fn do_cycle(&mut self, cycles: u32)
-    {
-        if !self.on { return; }
+    pub fn do_cycle(&mut self, cycles: u32) {
+        if !self.on {
+            return;
+        }
 
+        if cycles == 4 {
+            let foo = cycles;
+            self.need_sync = true;
+        }
         self.time += cycles;
 
         if self.time >= self.output_period {
@@ -835,11 +820,10 @@ impl Sound {
         self.time = 0;
         self.prev_time = 0;
 
-        if !self.need_sync || self.player.underflowed() {
+        if self.player.underflowed() {
             self.need_sync = false;
             self.mix_buffers();
-        }
-        else {
+        } else {
             // Prevent the BlipBuf's from filling up and triggering an assertion
             self.clear_buffers();
         }
@@ -883,7 +867,6 @@ impl Sound {
         }
     }
 
-
     fn mix_buffers(&mut self) {
         let sample_count = self.channel1.blip.samples_avail() as usize;
         debug_assert!(sample_count == self.channel2.blip.samples_avail() as usize);
@@ -891,7 +874,7 @@ impl Sound {
         debug_assert!(sample_count == self.channel4.blip.samples_avail() as usize);
 
         let mut outputted = 0;
-        
+
         let left_vol = (self.volume_left as f32 / 7.0) * (1.0 / 15.0) * 0.25;
         let right_vol = (self.volume_right as f32 / 7.0) * (1.0 / 15.0) * 0.25;
 
@@ -901,7 +884,7 @@ impl Sound {
 
             let buff_len = buf.len();
             let count1 = self.channel1.blip.read_samples(buf, buff_len as u32, false);
-            for (i, v) in buf[..count1  as usize].iter().enumerate() {
+            for (i, v) in buf[..count1 as usize].iter().enumerate() {
                 if self.reg_ff25 & 0x10 == 0x10 {
                     output_buffer[i * 2] += *v as f32 * left_vol;
                 }
@@ -925,18 +908,17 @@ impl Sound {
             // increase in amplitude in order to avoid a loss of precision.
             let buff_len = buf.len();
             let count3 = self.channel3.blip.read_samples(buf, buff_len as u32, false);
-            for (i, v) in buf[..count3  as usize].iter().enumerate() {
+            for (i, v) in buf[..count3 as usize].iter().enumerate() {
                 if self.reg_ff25 & 0x40 == 0x40 {
                     output_buffer[i * 2] += ((*v as f32) / 4.0) * left_vol;
-
                 }
                 if self.reg_ff25 & 0x04 == 0x04 {
                     output_buffer[(i * 2) + 1] += ((*v as f32) / 4.0) * right_vol;
                 }
             }
             let buff_len = buf.len();
-            let count4 = self.channel4.blip.read_samples(buf,buff_len as u32, false);
-            for (i, v) in buf[..count4  as usize].iter().enumerate() {
+            let count4 = self.channel4.blip.read_samples(buf, buff_len as u32, false);
+            for (i, v) in buf[..count4 as usize].iter().enumerate() {
                 if self.reg_ff25 & 0x80 == 0x80 {
                     output_buffer[i * 2] += *v as f32 * left_vol;
                 }
@@ -949,7 +931,7 @@ impl Sound {
             debug_assert!(count1 == count3);
             debug_assert!(count1 == count4);
 
-            self.player.play(&output_buffer[..count1 as usize]);
+            self.player.play(&output_buffer[..(count1 * 2) as usize]);
 
             outputted += count1 as usize;
         }
