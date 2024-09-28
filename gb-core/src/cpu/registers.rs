@@ -1,6 +1,5 @@
 use crate::cpu::flags::Flags;
 
-
 #[derive(Clone, Copy, Debug)]
 pub enum Reg8 {
     A,
@@ -18,7 +17,7 @@ pub enum Reg16 {
     BC,
     DE,
     HL,
-    SP
+    SP,
 }
 
 #[derive(Default, Debug)]
@@ -35,8 +34,7 @@ pub struct Registers {
     pub pc: u16,
 }
 
-pub enum CpuFlag
-{
+pub enum CpuFlag {
     C = 0b00010000,
     H = 0b00100000,
     N = 0b01000000,
@@ -50,12 +48,11 @@ pub const fn calc_flag(flag: u8, flags: CpuFlag) -> bool {
 }
 
 impl Registers {
-
     #[inline(always)]
     pub fn flag(&mut self, flags: CpuFlag, set: bool) {
         let mask = flags as u8;
         match set {
-            true  => self.flags |=  mask,
+            true => self.flags |= mask,
             false => self.flags &= !mask,
         }
         self.flags &= 0xF0;
@@ -114,7 +111,6 @@ impl Registers {
     pub fn increment_pc(&mut self) {
         self.pc = self.pc.wrapping_add(1);
     }
-
 
     pub fn get_a(&mut self) -> &mut u8 {
         &mut self.a
@@ -180,21 +176,31 @@ impl Registers {
 
     pub fn write16(&mut self, register: Reg16, value: u16) {
         match register {
-            Reg16::AF => { self.set_af(value);}
-            Reg16::BC => { self.set_bc(value);}
-            Reg16::DE => { self.set_de(value);}
-            Reg16::HL => { self.set_hl(value);}
-            Reg16::SP => { self.set_sp(value);}
+            Reg16::AF => {
+                self.set_af(value);
+            }
+            Reg16::BC => {
+                self.set_bc(value);
+            }
+            Reg16::DE => {
+                self.set_de(value);
+            }
+            Reg16::HL => {
+                self.set_hl(value);
+            }
+            Reg16::SP => {
+                self.set_sp(value);
+            }
         }
     }
 
     pub fn read16(&self, register: Reg16) -> u16 {
         match register {
-            Reg16::AF => { self.get_af() }
-            Reg16::BC => { self.get_bc() }
-            Reg16::DE => { self.get_de() }
-            Reg16::HL => { self.get_hl() }
-            Reg16::SP => { self.get_sp() }
+            Reg16::AF => self.get_af(),
+            Reg16::BC => self.get_bc(),
+            Reg16::DE => self.get_de(),
+            Reg16::HL => self.get_hl(),
+            Reg16::SP => self.get_sp(),
         }
     }
 }
@@ -207,4 +213,3 @@ pub fn get_msb(v: u16) -> u8 {
 pub fn get_lsb(v: u16) -> u8 {
     v as u8
 }
-

@@ -1,10 +1,9 @@
-use crate::cpu::test::run_test;
 use crate::cpu::flags::Flags;
+use crate::cpu::test::run_test;
 use crate::cpu::Step;
 
-use quickcheck::quickcheck;
 use crate::cpu::registers::Reg16;
-
+use quickcheck::quickcheck;
 
 fn test_add16<F: Fn(Flags) -> bool>(
     opcode: u8,
@@ -30,22 +29,24 @@ fn test_09() {
 
 #[test]
 fn test_09_carry() {
-    assert!(test_add16(0x09, 0x5002, Reg16::BC, 0xb7fd, |f| f == Flags {
-        z: false,
-        n: false,
-        h: false,
-        c: true,
-    }));
+    assert!(test_add16(0x09, 0x5002, Reg16::BC, 0xb7fd, |f| f
+        == Flags {
+            z: false,
+            n: false,
+            h: false,
+            c: true,
+        }));
 }
 
 #[test]
 fn test_09_gb_manual() {
-    assert!(test_add16(0x09, 0x8a23, Reg16::BC, 0x0605, |f| f == Flags {
-        z: false,
-        n: false,
-        h: true,
-        c: false,
-    }));
+    assert!(test_add16(0x09, 0x8a23, Reg16::BC, 0x0605, |f| f
+        == Flags {
+            z: false,
+            n: false,
+            h: true,
+            c: false,
+        }));
 }
 
 #[test]
@@ -55,22 +56,24 @@ fn test_19() {
 
 #[test]
 fn test_19_half_carry() {
-    assert!(test_add16(0x19, 0x8a23, Reg16::DE, 0x0605, |f| f == Flags {
-        z: false,
-        n: false,
-        h: true,
-        c: false,
-    }));
+    assert!(test_add16(0x19, 0x8a23, Reg16::DE, 0x0605, |f| f
+        == Flags {
+            z: false,
+            n: false,
+            h: true,
+            c: false,
+        }));
 }
 
 #[test]
 fn test_19_carry() {
-    assert!(test_add16(0x19, 0x5002, Reg16::DE, 0xb7fd, |f| f == Flags {
-        z: false,
-        n: false,
-        h: false,
-        c: true,
-    }));
+    assert!(test_add16(0x19, 0x5002, Reg16::DE, 0xb7fd, |f| f
+        == Flags {
+            z: false,
+            n: false,
+            h: false,
+            c: true,
+        }));
 }
 
 #[test]
@@ -80,33 +83,35 @@ fn test_29() {
 
 #[test]
 fn test_29_half_carry() {
-    assert!(test_add16(0x29, 0x0fff, Reg16::HL, 0x0fff, |f| f == Flags {
-        z: false,
-        n: false,
-        h: true,
-        c: false,
-    }));
+    assert!(test_add16(0x29, 0x0fff, Reg16::HL, 0x0fff, |f| f
+        == Flags {
+            z: false,
+            n: false,
+            h: true,
+            c: false,
+        }));
 }
 
 #[test]
 fn test_29_carry() {
-    assert!(test_add16(0x29, 0x8001, Reg16::HL, 0x8001, |f| f == Flags {
-        z: false,
-        n: false,
-        h: false,
-        c: true,
-    }));
+    assert!(test_add16(0x29, 0x8001, Reg16::HL, 0x8001, |f| f
+        == Flags {
+            z: false,
+            n: false,
+            h: false,
+            c: true,
+        }));
 }
 
 #[test]
 fn test_29_gb_manual() {
     assert!(test_add16(0x29, 0x8a23, Reg16::HL, 0x8a23, |f| f
         == Flags {
-        z: false,
-        n: false,
-        h: true,
-        c: true,
-    }));
+            z: false,
+            n: false,
+            h: true,
+            c: true,
+        }));
 }
 
 #[test]
@@ -116,20 +121,22 @@ fn test_39() {
 
 #[test]
 fn test_39_half_carry() {
-    assert!(test_add16(0x39, 0x8a23, Reg16::SP, 0x0605, |f| f == Flags {
-        z: false,
-        n: false,
-        h: true,
-        c: false,
-    }));
+    assert!(test_add16(0x39, 0x8a23, Reg16::SP, 0x0605, |f| f
+        == Flags {
+            z: false,
+            n: false,
+            h: true,
+            c: false,
+        }));
 }
 
 #[test]
 fn test_39_carry() {
-    assert!(test_add16(0x39, 0x5002, Reg16::SP, 0xb7fd, |f| f == Flags {
-        z: false,
-        n: false,
-        h: false,
-        c: true,
-    }));
+    assert!(test_add16(0x39, 0x5002, Reg16::SP, 0xb7fd, |f| f
+        == Flags {
+            z: false,
+            n: false,
+            h: false,
+            c: true,
+        }));
 }

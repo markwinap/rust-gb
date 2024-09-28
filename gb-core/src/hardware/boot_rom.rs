@@ -1,5 +1,5 @@
-use core::ops::Index;
 use alloc::vec::Vec;
+use core::ops::Index;
 
 pub struct BootromData(pub Vec<u8>);
 
@@ -9,7 +9,7 @@ impl BootromData {
     }
 
     pub fn from_bytes(bytes: &[u8]) -> BootromData {
-        let mut x:Vec<u8> =  core::iter::repeat(0).take(bytes.len()).collect();
+        let mut x: Vec<u8> = core::iter::repeat(0).take(bytes.len()).collect();
         x.clone_from_slice(bytes);
         BootromData(x)
     }

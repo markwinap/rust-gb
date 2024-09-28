@@ -1,7 +1,7 @@
-use crate::memory::Memory;
 use crate::hardware::interrupt_handler::{InterruptHandler, InterruptLine};
-use core::ops::Index;
+use crate::memory::Memory;
 use bitflags::_core::ops::IndexMut;
+use core::ops::Index;
 bitflags!(
   struct TacReg: u8 {
     const ENABLE = 0b100;
@@ -75,14 +75,19 @@ impl Timer {
     }
 }
 
-
 impl Memory for Timer {
     fn set_byte(&mut self, address: u16, value: u8) {
         let current_tac = self.tac;
         match address {
-            0xFF04 => { self.divider_counter = 0; }
-            0xFF05 => { self.timer_counter = value; }
-            0xFF06 => { self.timer_modulo = value; }
+            0xFF04 => {
+                self.divider_counter = 0;
+            }
+            0xFF05 => {
+                self.timer_counter = value;
+            }
+            0xFF06 => {
+                self.timer_modulo = value;
+            }
             0xFF07 => {
                 self.tac = TacReg::from_bits_truncate(value);
                 self.enabled = self.tac.contains(TacReg::ENABLE);

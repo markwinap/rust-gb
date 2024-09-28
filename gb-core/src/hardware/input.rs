@@ -1,7 +1,5 @@
 use crate::hardware::interrupt_handler::{InterruptHandler, InterruptLine};
 
-
-
 #[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub enum Button {
     A,
@@ -37,28 +35,44 @@ pub trait Controller {
     fn any_pressed(&self) -> bool {
         let mut any = false;
         if self.is_pressed(Button::A) {
-            if !any { any = true; }
+            if !any {
+                any = true;
+            }
         }
         if self.is_pressed(Button::B) {
-            if !any { any = true; }
+            if !any {
+                any = true;
+            }
         }
         if self.is_pressed(Button::DOWN) {
-            if !any { any = true; }
+            if !any {
+                any = true;
+            }
         }
         if self.is_pressed(Button::UP) {
-            if !any { any = true; }
+            if !any {
+                any = true;
+            }
         }
         if self.is_pressed(Button::LEFT) {
-            if !any { any = true; }
+            if !any {
+                any = true;
+            }
         }
         if self.is_pressed(Button::RIGHT) {
-            if !any { any = true; }
+            if !any {
+                any = true;
+            }
         }
         if self.is_pressed(Button::SELECT) {
-            if !any { any = true; }
+            if !any {
+                any = true;
+            }
         }
         if self.is_pressed(Button::START) {
-            if !any { any = true; }
+            if !any {
+                any = true;
+            }
         }
         //Button::iter().any(|button| { self.is_pressed(button) })
         any

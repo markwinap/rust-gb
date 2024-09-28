@@ -1,9 +1,9 @@
 use core::ops::Index;
 
+use crate::hardware::cartridge::{BankableRam, Cartridge, Mbc1Cartridge, ReadOnlyMemoryCartridge};
 use alloc::boxed::Box;
-use num_traits::FromPrimitive;
-use crate::hardware::cartridge::{Cartridge, ReadOnlyMemoryCartridge, Mbc1Cartridge, BankableRam};
 use alloc::string::{String, ToString};
+use num_traits::FromPrimitive;
 
 #[derive(FromPrimitive, Clone, Copy)]
 pub enum RomType {
@@ -14,31 +14,32 @@ pub enum RomType {
 impl RomType {
     pub fn battery(&self) -> bool {
         match self {
-            RomType::RomOnly => { false }
-            RomType::MBC1 => { false }
-            _ => { false }
+            RomType::RomOnly => false,
+            RomType::MBC1 => false,
+            _ => false,
         }
     }
 
-    pub  fn to_cartridge<'a, RM: RomManager + 'a>(self, rom: Rom< RM >) -> Box<dyn Cartridge + 'a> {
-       
+    pub fn to_cartridge<'a, RM: RomManager + 'a>(self, rom: Rom<RM>) -> Box<dyn Cartridge + 'a> {
         match self {
-            RomType::RomOnly => Box::new(ReadOnlyMemoryCartridge::from_bytes( rom.data)),
-            RomType::MBC1 => Box::new(Mbc1Cartridge::new(rom.data, BankableRam::new(rom.ram_size.banks()))),
-            _ => panic!()
-          //  RomType::MBC1 => Box::new(Mbc1Cartridge::new(rom.data, BankableRam::new(rom.ram_size.banks())))
+            RomType::RomOnly => Box::new(ReadOnlyMemoryCartridge::from_bytes(rom.data)),
+            RomType::MBC1 => Box::new(Mbc1Cartridge::new(
+                rom.data,
+                BankableRam::new(rom.ram_size.banks()),
+            )),
+            _ => panic!(), //  RomType::MBC1 => Box::new(Mbc1Cartridge::new(rom.data, BankableRam::new(rom.ram_size.banks())))
         }
     }
 }
-
 
 // pub trait RomManager: Index<usize, Output = u8> +  Index<core::ops::Range<usize>, Output = [u8]>  {
 //     fn set_active_bank(&mut self, bank: u8);
 // }
 
-pub trait  RomManager: Index<usize, Output = u8> +  Index<core::ops::Range<usize>, Output = [u8]> {
-    
-    fn read_from_offset(&self, seek_offset: usize, index: usize) -> u8;                                                                                                                                                                                                                    
+pub trait RomManager:
+    Index<usize, Output = u8> + Index<core::ops::Range<usize>, Output = [u8]>
+{
+    fn read_from_offset(&self, seek_offset: usize, index: usize) -> u8;
 }
 
 #[derive(FromPrimitive)]
@@ -55,13 +56,13 @@ pub enum RomSize {
 impl RomSize {
     pub fn expected_size(&mut self) -> u32 {
         match self {
-            RomSize::_32KB => { 32 * 1024 }
-            RomSize::_64KB => { 64 * 1024 }
-            RomSize::_128KB => { 128 * 1024 }
-            RomSize::_256KB => { 256 * 1024 }
-            RomSize::_512KB => { 512 * 1024 }
-            RomSize::_1MB => { 1024 * 1024 }
-            RomSize::_2MB => { 2048 * 1024 }
+            RomSize::_32KB => 32 * 1024,
+            RomSize::_64KB => 64 * 1024,
+            RomSize::_128KB => 128 * 1024,
+            RomSize::_256KB => 256 * 1024,
+            RomSize::_512KB => 512 * 1024,
+            RomSize::_1MB => 1024 * 1024,
+            RomSize::_2MB => 2048 * 1024,
         }
     }
 }
@@ -77,19 +78,19 @@ pub enum RamSize {
 impl RamSize {
     pub fn ram_size(&self) -> u32 {
         match self {
-            RamSize::_2KB => { 2 * 1024 }
-            RamSize::_8KB => { 8 * 1024 }
-            RamSize::_32KB => { 32 * 1024 }
-            RamSize::_128KB => { 128 * 1024 }
+            RamSize::_2KB => 2 * 1024,
+            RamSize::_8KB => 8 * 1024,
+            RamSize::_32KB => 32 * 1024,
+            RamSize::_128KB => 128 * 1024,
         }
     }
 
     pub fn banks(&self) -> u8 {
         match self {
-            RamSize::_2KB => { 1 }
-            RamSize::_8KB => { 1 }
-            RamSize::_32KB => { 4 }
-            RamSize::_128KB => { 16 }
+            RamSize::_2KB => 1,
+            RamSize::_8KB => 1,
+            RamSize::_32KB => 4,
+            RamSize::_128KB => 16,
         }
     }
 }
@@ -98,7 +99,6 @@ pub enum Model {
     GameBoy,
     GameBoyColor,
 }
-
 
 impl Model {
     pub fn from_value(value: u8) -> Model {
@@ -131,18 +131,15 @@ pub struct Rom<RM: RomManager> {
     pub model: Model,
     pub region: Region,
     pub title: String,
-
 }
 
-impl <'a, RM: RomManager + 'a> Rom<RM> {
-
+impl<'a, RM: RomManager + 'a> Rom<RM> {
     pub fn into_cartridge(self) -> Box<dyn Cartridge + 'a> {
         let rom_type = self.rom_type.clone();
         rom_type.to_cartridge(self)
     }
 
     pub fn from_bytes(bytes: RM) -> Self {
-  
         let rom_size = RomSize::from_u8(bytes[0x148]).unwrap();
         let ram_size = RamSize::from_u8(bytes[0x149]).unwrap();
         let model = Model::from_value(bytes[0x143]);

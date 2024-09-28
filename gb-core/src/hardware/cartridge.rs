@@ -1,6 +1,6 @@
 use crate::memory::Memory;
-use bitflags::_core::ops::{Index, IndexMut};
 use alloc::boxed::Box;
+use bitflags::_core::ops::{Index, IndexMut};
 
 use super::rom::RomManager;
 
@@ -34,9 +34,7 @@ impl<RM: RomManager> Cartridge for ReadOnlyMemoryCartridge<RM> {
 
 impl<RM: RomManager> ReadOnlyMemoryCartridge<RM> {
     pub fn from_bytes(bytes: RM) -> Self {
-        Self {
-            bytes
-        }
+        Self { bytes }
     }
 
     pub fn compare(value: u16, from: u16, to: u16) -> isize {
@@ -54,12 +52,15 @@ impl<RM: RomManager> Memory for ReadOnlyMemoryCartridge<RM> {
 
     fn get_byte(&self, address: u16) -> u8 {
         if Self::compare(address, 0x4000, 0x7FFF) == 0 {
-            return self.bytes.read_from_offset(0x4000 as usize, (address - 0x4000) as usize);
+            return self
+                .bytes
+                .read_from_offset(0x4000 as usize, (address - 0x4000) as usize);
         }
-        return self.bytes.read_from_offset(0x0000 as usize, address as usize);
+        return self
+            .bytes
+            .read_from_offset(0x0000 as usize, address as usize);
     }
 }
-
 
 #[derive(Eq, PartialEq)]
 enum MemoryMode {
@@ -73,7 +74,6 @@ pub struct Mbc1Cartridge<RM: RomManager> {
     current_rom_bank: u8,
     mode: MemoryMode,
     ram_mode: bool,
-
 }
 
 impl<RM: RomManager> Cartridge for Mbc1Cartridge<RM> {
@@ -103,7 +103,11 @@ impl<RM: RomManager> Memory for Mbc1Cartridge<RM> {
             self.bank_ram.enable((data & 0b0000_1010) != 0);
         } else if address < 0x4000 {
             self.current_rom_bank = (data & 0b0001_1111);
-            if self.current_rom_bank == 0 || self.current_rom_bank == 0x20 || self.current_rom_bank == 0x40 || self.current_rom_bank == 0x60 {
+            if self.current_rom_bank == 0
+                || self.current_rom_bank == 0x20
+                || self.current_rom_bank == 0x40
+                || self.current_rom_bank == 0x60
+            {
                 self.current_rom_bank += 1;
             }
         } else if address < 0x6000 {
@@ -127,8 +131,11 @@ impl<RM: RomManager> Memory for Mbc1Cartridge<RM> {
 
     fn get_byte(&self, address: u16) -> u8 {
         if Self::compare(address, 0x4000, 0x7FFF) == 0 {
-            let bank_offset = ((self.current_rom_bank as u16 - 1) * (0x7FFF - 0x4000 + 1)) as usize + 0x4000;
-            let result = self.bytes.read_from_offset(bank_offset, (address - 0x4000) as usize);
+            let bank_offset =
+                ((self.current_rom_bank as u16 - 1) * (0x7FFF - 0x4000 + 1)) as usize + 0x4000;
+            let result = self
+                .bytes
+                .read_from_offset(bank_offset, (address - 0x4000) as usize);
             return result;
         } else if Self::compare(address, 0xA000, 0xBFFF) == 0 {
             return self.bank_ram.get_byte(address - 0xA000);
@@ -161,7 +168,7 @@ impl<RM: RomManager> Mbc1Cartridge<RM> {
 pub struct BankableRam {
     current_bank: u8,
     enabled: bool,
-    banks: Box<[[u8; 0xBFFF - 0xA000 + 1]]>
+    banks: Box<[[u8; 0xBFFF - 0xA000 + 1]]>,
 }
 
 impl BankableRam {

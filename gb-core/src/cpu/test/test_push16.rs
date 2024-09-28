@@ -1,11 +1,9 @@
-
-use crate::cpu::test::run_test;
 use crate::cpu::flags::Flags;
+use crate::cpu::test::run_test;
 use crate::cpu::Step;
 
-use quickcheck::quickcheck;
 use crate::cpu::registers::Reg16;
-
+use quickcheck::quickcheck;
 
 fn test_push16(opcode: u8, reg: Reg16, x: u16) -> bool {
     let machine = run_test(&[opcode, 0xed, 0x00, 0x00], |machine| {

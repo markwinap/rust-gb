@@ -1,6 +1,6 @@
-use std::sync::mpsc::Receiver;
-use gb_core::gameboy::{SCREEN_PIXELS, SCREEN_WIDTH, SCREEN_HEIGHT};
+use gb_core::gameboy::{SCREEN_HEIGHT, SCREEN_PIXELS, SCREEN_WIDTH};
 use minifb::{Window, WindowOptions};
+use std::sync::mpsc::Receiver;
 
 pub struct FbScreen {
     //   window: Window,
@@ -13,7 +13,7 @@ impl FbScreen {
     pub fn init(rom_name: String, receiver: Receiver<Box<[u8; SCREEN_PIXELS]>>) -> Self {
         Self {
             //  window: window,
-            receiver
+            receiver,
         }
     }
 
@@ -26,7 +26,8 @@ impl FbScreen {
                 SCREEN_WIDTH,
                 SCREEN_HEIGHT,
                 WindowOptions::default(),
-            ).unwrap();
+            )
+            .unwrap();
 
             while !stop {
                 match screen.receiver.recv() {
@@ -40,13 +41,14 @@ impl FbScreen {
     pub fn recalculate_screen(&mut self, window: &mut Window, data: &[u8; SCREEN_PIXELS]) {
         let mut buffer = [0; NUMBER_OF_PIXELS];
         for (i, pixel) in data.chunks(4).enumerate() {
-            buffer[i] =
-                (pixel[3] as u32) << 24
-                    | (pixel[2] as u32) << 16
-                    | (pixel[1] as u32) << 8
-                    | (pixel[0] as u32)
+            buffer[i] = (pixel[3] as u32) << 24
+                | (pixel[2] as u32) << 16
+                | (pixel[1] as u32) << 8
+                | (pixel[0] as u32)
         }
 
-        window.update_with_buffer(&buffer, SCREEN_WIDTH, SCREEN_HEIGHT).unwrap();
+        window
+            .update_with_buffer(&buffer, SCREEN_WIDTH, SCREEN_HEIGHT)
+            .unwrap();
     }
 }

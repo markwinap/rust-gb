@@ -1,11 +1,9 @@
-use crate::cpu::test::run_test;
 use crate::cpu::flags::Flags;
+use crate::cpu::test::run_test;
 use crate::cpu::Step;
 
-use quickcheck::quickcheck;
 use crate::cpu::registers::Reg16;
-
-
+use quickcheck::quickcheck;
 
 #[test]
 fn test_e0() {
@@ -67,11 +65,13 @@ fn test_ee_zero() {
     );
     assert_eq!(machine.t_cycles, 8);
     assert_eq!(machine.cpu.registers.a, 0x00);
-    assert_eq!(machine.cpu.registers.flags, Flags {
-        z: true,
-        n: false,
-        h: false,
-        c: false
-    });
+    assert_eq!(
+        machine.cpu.registers.flags,
+        Flags {
+            z: true,
+            n: false,
+            h: false,
+            c: false
+        }
+    );
 }
-

@@ -5,9 +5,8 @@ pub struct Color {
     pub red: u8,
     pub green: u8,
     pub blue: u8,
-   // pub cached_16: u16,
+    // pub cached_16: u16,
 }
-
 
 pub enum ColorPalette {
     FixedColorPalette {
@@ -15,36 +14,35 @@ pub enum ColorPalette {
         dark: Color,
         light: Color,
         lightest: Color,
-    }
+    },
 }
 
 impl ColorPalette {
     pub fn sprite(&self, shade: Shade, index: u8) -> Color {
         match self {
-            ColorPalette::FixedColorPalette { .. } => {
-                self.background(shade)
-            }
+            ColorPalette::FixedColorPalette { .. } => self.background(shade),
         }
     }
 
     pub fn window(&self, shade: Shade) -> Color {
         match self {
-            ColorPalette::FixedColorPalette { .. } => {
-                self.background(shade)
-            }
+            ColorPalette::FixedColorPalette { .. } => self.background(shade),
         }
     }
 
     pub fn background(&self, shade: Shade) -> Color {
         match self {
-            ColorPalette::FixedColorPalette { dark, darkest, light, lightest } => {
-                match shade {
-                    Shade::DARKEST => { *darkest }
-                    Shade::DARK => { *dark }
-                    Shade::LIGHT => { *light }
-                    Shade::LIGHTEST => { *lightest }
-                }
-            }
+            ColorPalette::FixedColorPalette {
+                dark,
+                darkest,
+                light,
+                lightest,
+            } => match shade {
+                Shade::DARKEST => *darkest,
+                Shade::DARK => *dark,
+                Shade::LIGHT => *light,
+                Shade::LIGHTEST => *lightest,
+            },
         }
     }
 }
@@ -81,5 +79,5 @@ pub const ORIGINAL_GREEN: ColorPalette = ColorPalette::FixedColorPalette {
         // cached_16: ((224 as u16 & 0b11111000) << 8)
         // + ((251 as u16 & 0b11111100) << 3)
         // + (210 as u16 >> 3)
-    }
+    },
 };

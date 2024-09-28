@@ -1,7 +1,6 @@
-use crate::cpu::test::run_test;
 use crate::cpu::flags::Flags;
+use crate::cpu::test::run_test;
 use crate::cpu::Step;
-
 
 #[test]
 fn test_70() {
@@ -90,7 +89,11 @@ fn test_76() {
     let machine = run_test(
         &[0x76], // HALT
         |machine| {
-            machine.cpu.interface.interrupt_handler.interrupt_master_enabled = true;
+            machine
+                .cpu
+                .interface
+                .interrupt_handler
+                .interrupt_master_enabled = true;
         },
     );
     assert_eq!(machine.t_cycles, 4);

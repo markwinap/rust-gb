@@ -2,13 +2,12 @@ use crate::cpu::address::{Cpu, PrevExec};
 use crate::cpu::registers::Registers;
 use crate::hardware::interrupt_handler::InterruptLine;
 
-
 pub mod flags;
 
-pub mod registers;
 pub mod address;
 pub mod alu;
 mod opcodes;
+pub mod registers;
 
 #[cfg(all(test, not(feature = "acceptance_tests")))]
 mod test;
@@ -36,7 +35,6 @@ pub trait Interface {
     fn step(&mut self) {}
 }
 
-
 impl<T: Interface> Cpu<T> {
     pub fn new(interface: T) -> Self {
         Cpu {
@@ -45,7 +43,7 @@ impl<T: Interface> Cpu<T> {
             interface,
             state: Step::Run,
             found: false,
-          //  prev_opcode: PrevExec::default(),
+            //  prev_opcode: PrevExec::default(),
             tick_count: 0,
         }
     }

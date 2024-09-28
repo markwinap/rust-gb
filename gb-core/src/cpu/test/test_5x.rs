@@ -1,6 +1,5 @@
-use crate::cpu::test::run_test;
 use crate::cpu::flags::Flags;
-
+use crate::cpu::test::run_test;
 
 #[test]
 fn test_50() {

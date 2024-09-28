@@ -4,11 +4,10 @@ extern crate alloc;
 #[macro_use]
 extern crate unroll;
 mod cpu;
+pub mod gameboy;
 pub mod hardware;
 mod memory;
 mod util;
-pub mod gameboy;
-
 
 extern crate num_traits;
 
@@ -22,6 +21,4 @@ extern crate bitflags;
 extern crate num_derive;
 
 #[cfg(test)]
-mod tests {
-
-}
+mod tests {}

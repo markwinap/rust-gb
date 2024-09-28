@@ -1,5 +1,5 @@
-use crate::cpu::registers::{Registers, Reg8, Reg16};
-use crate::cpu::{Step, Interface};
+use crate::cpu::registers::{Reg16, Reg8, Registers};
+use crate::cpu::{Interface, Step};
 
 pub struct Cpu<T: Interface> {
     pub registers: Registers,
@@ -7,7 +7,7 @@ pub struct Cpu<T: Interface> {
     pub interface: T,
     pub state: Step,
     pub found: bool,
-   // pub prev_opcode: PrevExec,
+    // pub prev_opcode: PrevExec,
     pub tick_count: usize,
 }
 
@@ -141,7 +141,7 @@ pub trait Write16<T: Copy> {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub enum Addr where {
+pub enum Addr {
     BC,
     DE,
     HL,
@@ -150,7 +150,6 @@ pub enum Addr where {
     Direct,
     ReadOffset(ReadOffType),
 }
-
 
 #[derive(Clone, Copy, Debug)]
 pub enum Addr16 {
@@ -164,7 +163,7 @@ pub enum ReadOffType {
 }
 
 impl<T: Interface> Read16<Addr16> for Cpu<T> {
- //   #[inline]
+    //   #[inline]
     fn read_16(&mut self, src: Addr16) -> u16 {
         match src {
             Addr16::Direct => {
@@ -178,20 +177,21 @@ impl<T: Interface> Read16<Addr16> for Cpu<T> {
 }
 
 impl<T: Interface> Write16<Addr16> for Cpu<T> {
-   // #[inline]
+    // #[inline]
     fn write_16(&mut self, dst: Addr16, val: u16) {
         match dst {
             Addr16::Direct => {
                 let addr = self.read_next_word();
                 self.interface.set_byte(addr, val as u8);
-                self.interface.set_byte(addr.wrapping_add(1), (val >> 8) as u8)
+                self.interface
+                    .set_byte(addr.wrapping_add(1), (val >> 8) as u8)
             }
         }
     }
 }
 
 impl<T: Interface> Write8<Addr> for Cpu<T> {
- //   #[inline]
+    //   #[inline]
     fn write_8(&mut self, dst: Addr, val: u8) {
         match dst {
             Addr::BC => {
@@ -232,18 +232,12 @@ impl<T: Interface> Write8<Addr> for Cpu<T> {
 }
 
 impl<T: Interface> Read8<Addr> for Cpu<T> {
-   // #[inline]
+    // #[inline]
     fn read_8(&mut self, src: Addr) -> u8 {
         match src {
-            Addr::BC => {
-                self.interface.get_byte(self.registers.get_bc())
-            }
-            Addr::DE => {
-                self.interface.get_byte(self.registers.get_de())
-            }
-            Addr::HL => {
-                self.interface.get_byte(self.registers.get_hl())
-            }
+            Addr::BC => self.interface.get_byte(self.registers.get_bc()),
+            Addr::DE => self.interface.get_byte(self.registers.get_de()),
+            Addr::HL => self.interface.get_byte(self.registers.get_hl()),
             Addr::HLD => {
                 let addr = self.registers.get_hl();
                 self.registers.set_hl(addr.wrapping_sub(1));

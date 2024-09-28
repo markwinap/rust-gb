@@ -1,6 +1,4 @@
-
 use num_traits::{PrimInt, WrappingAdd, WrappingSub};
-
 
 pub trait IntExt {
     /// Isolates the rightmost 1-bit leaving all other bits as 0
@@ -27,8 +25,8 @@ pub trait IntExt {
 }
 
 impl<T> IntExt for T
-    where
-        T: PrimInt + WrappingAdd + WrappingSub,
+where
+    T: PrimInt + WrappingAdd + WrappingSub,
 {
     /// Isolates the rightmost 1-bit leaving all other bits as 0
     /// e.g. 1010 1000 -> 0000 1000
@@ -79,4 +77,3 @@ impl<T> IntExt for T
         (a & mask) + (b & mask) > mask
     }
 }
-

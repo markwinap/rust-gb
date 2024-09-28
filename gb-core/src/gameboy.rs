@@ -16,7 +16,12 @@ pub struct GameBoy<'a, S: Screen> {
 }
 
 impl<'a, S: Screen> GameBoy<'a, S> {
-    pub fn create(screen: S, cartridge: Box<dyn Cartridge + 'a>, boot_rom: Bootrom, player: Box<dyn crate::hardware::sound::AudioPlayer>) -> GameBoy<S> {
+    pub fn create(
+        screen: S,
+        cartridge: Box<dyn Cartridge + 'a>,
+        boot_rom: Bootrom,
+        player: Box<dyn crate::hardware::sound::AudioPlayer>,
+    ) -> GameBoy<S> {
         let run_reset = !boot_rom.is_active();
         let hardware = Hardware::create(screen, cartridge, boot_rom, player);
         let mut cpu = Cpu::new(hardware);

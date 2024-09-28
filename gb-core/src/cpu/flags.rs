@@ -13,8 +13,7 @@ pub struct Flags(u8);
 //         write!(f, "z: {}, n: {}, h: {}, c: {}", self.z, self.n, self.h, self.c)
 //     }
 // }
-pub enum CpuFlag
-{
+pub enum CpuFlag {
     C = 0b00010000,
     H = 0b00100000,
     N = 0b01000000,
@@ -32,8 +31,6 @@ impl Flags {
     pub fn read_value(&self) -> u8 {
         self.0
     }
-
-    
 }
 
 impl core::convert::From<Flags> for u8 {

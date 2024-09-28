@@ -1,8 +1,9 @@
 use crate::cpu::address::Cpu;
-use crate::hardware::interrupt_handler::{InterruptHandler, InterruptLine};
 use crate::cpu::{Interface, Step};
+use crate::hardware::interrupt_handler::{InterruptHandler, InterruptLine};
 
-
+mod boot_test;
+mod cb_test;
 mod test_0x;
 mod test_1x;
 mod test_2x;
@@ -24,8 +25,6 @@ mod test_load16_hl_sp_e;
 mod test_load16_sp_hl;
 mod test_pop16;
 mod test_push16;
-mod cb_test;
-mod boot_test;
 mod test_roms;
 
 pub struct TestMachine {
@@ -33,9 +32,8 @@ pub struct TestMachine {
     t_cycles: usize,
 }
 
-
 impl TestMachine {
-    fn from_memory(input: &[u8]) -> TestMachine<> {
+    fn from_memory(input: &[u8]) -> TestMachine {
         TestMachine {
             cpu: Cpu::new(TestHardware::from_memory(input)),
             t_cycles: 0,
@@ -96,7 +94,6 @@ impl Interface for TestHardware {
         self.interrupt_handler.enabled_interrupts = InterruptLine::empty();
     }
 
-
     fn any_enabled(&self) -> bool {
         self.interrupt_handler.any_enabled()
     }
@@ -123,9 +120,7 @@ pub fn run_test(instructions: &[u8], init: impl Fn(&mut TestMachine)) -> TestMac
     machine.cpu.step();
     machine.t_cycles = 0;
     while machine.cpu.op_code != 0xed && machine.cpu.state != Step::Halt {
-        machine.t_cycles +=  machine.cpu.step() as usize;
+        machine.t_cycles += machine.cpu.step() as usize;
     }
     machine
 }
-
-

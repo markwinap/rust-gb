@@ -1,10 +1,9 @@
-
-use crate::cpu::test::run_test;
 use crate::cpu::flags::Flags;
+use crate::cpu::test::run_test;
 use crate::cpu::Step;
 
-use quickcheck::quickcheck;
 use crate::cpu::registers::Reg16;
+use quickcheck::quickcheck;
 
 macro_rules! test_bit_r8(
   ($test: ident, $reg: ident, $bit: expr, $op: expr) => (

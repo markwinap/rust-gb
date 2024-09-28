@@ -1,9 +1,11 @@
-use crate::cpu::{Step, Interface};
-use crate::cpu::address::{Cpu, Write8, Read8, Addr, Immediate8, ReadOffType, Read16, Write16, Addr16, Immediate16};
-use crate::cpu::registers::Reg8::{A, B, C, D, E, H, L};
-use crate::cpu::registers::Reg16;
-use crate::util::int::IntExt;
+use crate::cpu::address::{
+    Addr, Addr16, Cpu, Immediate16, Immediate8, Read16, Read8, ReadOffType, Write16, Write8,
+};
 use crate::cpu::registers::CpuFlag;
+use crate::cpu::registers::Reg16;
+use crate::cpu::registers::Reg8::{A, B, C, D, E, H, L};
+use crate::cpu::{Interface, Step};
+use crate::util::int::IntExt;
 
 use super::registers;
 #[derive(Clone, Copy, Debug)]
@@ -13,7 +15,6 @@ pub enum Cond {
     NC,
     C,
 }
-
 
 impl<T: Interface> Cpu<T> {
     pub fn decode(&mut self) -> ((Step, u16), u8) {
@@ -117,10 +118,22 @@ impl<T: Interface> Cpu<T> {
             0x32 => (self.load_8(Addr::HLD, A), 8),
             0x2a => (self.load_8(A, Addr::HLI), 8),
             0x22 => (self.load_8(Addr::HLI, A), 8),
-            0xf2 => (self.load_8(A, Addr::ReadOffset(ReadOffType::Register(C))), 8),
-            0xe2 => (self.load_8(Addr::ReadOffset(ReadOffType::Register(C)), A), 8),
-            0xf0 => (self.load_8(A, Addr::ReadOffset(ReadOffType::Immediate8)), 12),
-            0xe0 => (self.load_8(Addr::ReadOffset(ReadOffType::Immediate8), A), 12),
+            0xf2 => (
+                self.load_8(A, Addr::ReadOffset(ReadOffType::Register(C))),
+                8,
+            ),
+            0xe2 => (
+                self.load_8(Addr::ReadOffset(ReadOffType::Register(C)), A),
+                8,
+            ),
+            0xf0 => (
+                self.load_8(A, Addr::ReadOffset(ReadOffType::Immediate8)),
+                12,
+            ),
+            0xe0 => (
+                self.load_8(Addr::ReadOffset(ReadOffType::Immediate8), A),
+                12,
+            ),
 
             0x87 => (self.add(A), 4),
             0x80 => (self.add(B), 4),
@@ -233,25 +246,73 @@ impl<T: Interface> Cpu<T> {
             0xc9 => (self.ret(), 16),
             0xd9 => (self.reti(), 16),
 
-            0xc2 => (self.jp_cc(Cond::NZ), if self.check_cond(Cond::NZ) { 16 } else { 12 }),
-            0xca => (self.jp_cc(Cond::Z), if self.check_cond(Cond::Z) { 16 } else { 12 }),
-            0xd2 => (self.jp_cc(Cond::NC), if self.check_cond(Cond::NC) { 16 } else { 12 }),
-            0xda => (self.jp_cc(Cond::C), if self.check_cond(Cond::C) { 16 } else { 12 }),
+            0xc2 => (
+                self.jp_cc(Cond::NZ),
+                if self.check_cond(Cond::NZ) { 16 } else { 12 },
+            ),
+            0xca => (
+                self.jp_cc(Cond::Z),
+                if self.check_cond(Cond::Z) { 16 } else { 12 },
+            ),
+            0xd2 => (
+                self.jp_cc(Cond::NC),
+                if self.check_cond(Cond::NC) { 16 } else { 12 },
+            ),
+            0xda => (
+                self.jp_cc(Cond::C),
+                if self.check_cond(Cond::C) { 16 } else { 12 },
+            ),
 
-            0x20 => (self.jr_cc(Cond::NZ), if self.check_cond(Cond::NZ) { 12 } else { 8 }),
-            0x28 => (self.jr_cc(Cond::Z), if self.check_cond(Cond::Z) { 12 } else { 8 }),
-            0x30 => (self.jr_cc(Cond::NC), if self.check_cond(Cond::NC) { 12 } else { 8 }),
-            0x38 => (self.jr_cc(Cond::C), if self.check_cond(Cond::C) { 12 } else { 8 }),
+            0x20 => (
+                self.jr_cc(Cond::NZ),
+                if self.check_cond(Cond::NZ) { 12 } else { 8 },
+            ),
+            0x28 => (
+                self.jr_cc(Cond::Z),
+                if self.check_cond(Cond::Z) { 12 } else { 8 },
+            ),
+            0x30 => (
+                self.jr_cc(Cond::NC),
+                if self.check_cond(Cond::NC) { 12 } else { 8 },
+            ),
+            0x38 => (
+                self.jr_cc(Cond::C),
+                if self.check_cond(Cond::C) { 12 } else { 8 },
+            ),
 
-            0xc4 => (self.call_cc(Cond::NZ), if self.check_cond(Cond::NZ) { 24 } else { 12 }),
-            0xcc => (self.call_cc(Cond::Z), if self.check_cond(Cond::Z) { 24 } else { 12 }),
-            0xd4 => (self.call_cc(Cond::NC), if self.check_cond(Cond::NC) { 24 } else { 12 }),
-            0xdc => (self.call_cc(Cond::C), if self.check_cond(Cond::C) { 24 } else { 12 }),
+            0xc4 => (
+                self.call_cc(Cond::NZ),
+                if self.check_cond(Cond::NZ) { 24 } else { 12 },
+            ),
+            0xcc => (
+                self.call_cc(Cond::Z),
+                if self.check_cond(Cond::Z) { 24 } else { 12 },
+            ),
+            0xd4 => (
+                self.call_cc(Cond::NC),
+                if self.check_cond(Cond::NC) { 24 } else { 12 },
+            ),
+            0xdc => (
+                self.call_cc(Cond::C),
+                if self.check_cond(Cond::C) { 24 } else { 12 },
+            ),
 
-            0xc0 => (self.ret_cc(Cond::NZ), if self.check_cond(Cond::NZ) { 20 } else { 8 }),
-            0xc8 => (self.ret_cc(Cond::Z), if self.check_cond(Cond::Z) { 20 } else { 8 }),
-            0xd0 => (self.ret_cc(Cond::NC), if self.check_cond(Cond::NC) { 20 } else { 8 }),
-            0xd8 => (self.ret_cc(Cond::C), if self.check_cond(Cond::C) { 20 } else { 8 }),
+            0xc0 => (
+                self.ret_cc(Cond::NZ),
+                if self.check_cond(Cond::NZ) { 20 } else { 8 },
+            ),
+            0xc8 => (
+                self.ret_cc(Cond::Z),
+                if self.check_cond(Cond::Z) { 20 } else { 8 },
+            ),
+            0xd0 => (
+                self.ret_cc(Cond::NC),
+                if self.check_cond(Cond::NC) { 20 } else { 8 },
+            ),
+            0xd8 => (
+                self.ret_cc(Cond::C),
+                if self.check_cond(Cond::C) { 20 } else { 8 },
+            ),
 
             0xc7 => (self.rst(0x00), 16),
             0xcf => (self.rst(0x08), 16),
@@ -310,7 +371,7 @@ impl<T: Interface> Cpu<T> {
 
             0xcb => self.cb_prefix(),
             // _ => panic!("Undefined opcode {}", self.op_code)
-            _ => ((Step::Run, 0), 0)
+            _ => ((Step::Run, 0), 0),
         }
     }
 
@@ -319,7 +380,6 @@ impl<T: Interface> Cpu<T> {
         let result = self.cb_decode_execute();
         result
     }
-
 
     pub fn cb_decode_execute(&mut self) -> ((Step, u16), u8) {
         match self.op_code {
@@ -589,42 +649,48 @@ impl<T: Interface> Cpu<T> {
             0xae => (self.res(5, Addr::HL), 16),
             0xb6 => (self.res(6, Addr::HL), 16),
             0xbe => (self.res(7, Addr::HL), 16),
-            _ => panic!("WTF CB")
+            _ => panic!("WTF CB"),
         }
     }
 
     pub fn res<IO: Copy>(&mut self, bit: usize, io: IO) -> (Step, u16)
-        where Self: Read8<IO> + Write8<IO> {
+    where
+        Self: Read8<IO> + Write8<IO>,
+    {
         let value = self.read_8(io) & !(1 << bit);
         self.write_8(io, value);
         self.handle_return(self.registers.pc)
     }
 
     pub fn set<IO: Copy>(&mut self, bit: usize, io: IO) -> (Step, u16)
-        where Self: Read8<IO> + Write8<IO> {
+    where
+        Self: Read8<IO> + Write8<IO>,
+    {
         let value = self.read_8(io) | (1 << bit);
         self.write_8(io, value);
         self.handle_return(self.registers.pc)
     }
 
     pub fn bit<I: Copy>(&mut self, bit: usize, in8: I) -> (Step, u16)
-        where Self: Read8<I> {
+    where
+        Self: Read8<I>,
+    {
         let value = self.read_8(in8) & (1 << bit);
 
         self.registers.flag(CpuFlag::Z, value == 0);
         self.registers.flag(CpuFlag::N, false);
         self.registers.flag(CpuFlag::H, true);
-      
 
         self.handle_return(self.registers.pc)
     }
 
     pub fn swap<IO: Copy>(&mut self, io: IO) -> (Step, u16)
-        where Self: Read8<IO> + Write8<IO> {
+    where
+        Self: Read8<IO> + Write8<IO>,
+    {
         let value = self.read_8(io);
         let new_value = (value >> 4) | (value << 4);
 
-     
         self.registers.flag(CpuFlag::Z, new_value == 0);
         self.registers.flag(CpuFlag::N, false);
         self.registers.flag(CpuFlag::H, false);
@@ -635,7 +701,9 @@ impl<T: Interface> Cpu<T> {
     }
 
     pub fn srl<IO: Copy>(&mut self, io: IO) -> (Step, u16)
-        where Self: Read8<IO> + Write8<IO> {
+    where
+        Self: Read8<IO> + Write8<IO>,
+    {
         let value = self.read_8(io);
         let co = value & 0x01;
         let new_value = value >> 1;
@@ -645,13 +713,14 @@ impl<T: Interface> Cpu<T> {
         self.registers.flag(CpuFlag::H, false);
         self.registers.flag(CpuFlag::C, co != 0);
 
-
         self.write_8(io, new_value);
         self.handle_return(self.registers.pc)
     }
 
     pub fn sra<IO: Copy>(&mut self, io: IO) -> (Step, u16)
-        where Self: Read8<IO> + Write8<IO> {
+    where
+        Self: Read8<IO> + Write8<IO>,
+    {
         let value = self.read_8(io);
         let co = value & 0x01;
         let hi = value & 0x80;
@@ -667,7 +736,9 @@ impl<T: Interface> Cpu<T> {
     }
 
     pub fn sla<IO: Copy>(&mut self, io: IO) -> (Step, u16)
-        where Self: Read8<IO> + Write8<IO> {
+    where
+        Self: Read8<IO> + Write8<IO>,
+    {
         let value = self.read_8(io);
         let co = value & 0x80;
         let new_value = value << 1;
@@ -682,7 +753,8 @@ impl<T: Interface> Cpu<T> {
     }
 
     pub fn inc16<IO: Copy>(&mut self, io8: IO) -> (Step, u16)
-        where Self: Read16<IO> + Write16<IO>,
+    where
+        Self: Read16<IO> + Write16<IO>,
     {
         let value = self.read_16(io8);
         let result = value.wrapping_add(1);
@@ -691,7 +763,8 @@ impl<T: Interface> Cpu<T> {
     }
 
     pub fn dec16<IO: Copy>(&mut self, io8: IO) -> (Step, u16)
-        where Self: Read16<IO> + Write16<IO>,
+    where
+        Self: Read16<IO> + Write16<IO>,
     {
         let value = self.read_16(io8);
         let result = value.wrapping_sub(1);
@@ -700,27 +773,31 @@ impl<T: Interface> Cpu<T> {
     }
 
     pub fn add16<I: Copy>(&mut self, in16: I) -> (Step, u16)
-        where Self: Read16<I> {
+    where
+        Self: Read16<I>,
+    {
         let hl = self.registers.get_hl();
         let value = self.read_16(in16);
         let result = hl.wrapping_add(value);
 
         self.registers.flag(CpuFlag::N, false);
-        self.registers.flag(CpuFlag::H, u16::test_add_carry_bit(11, hl, value));
+        self.registers
+            .flag(CpuFlag::H, u16::test_add_carry_bit(11, hl, value));
         self.registers.flag(CpuFlag::C, hl > 0xffff - value);
         self.registers.set_hl(result);
         self.handle_return(self.registers.pc)
     }
-    pub fn add16_sp_e(&mut self) -> (Step, u16)
-    {
+    pub fn add16_sp_e(&mut self) -> (Step, u16) {
         let offset = self.read_next_byte() as i8 as i16 as u16;
         let sp = self.registers.sp;
         self.registers.set_sp(sp.wrapping_add(offset));
 
         self.registers.flag(CpuFlag::Z, false);
         self.registers.flag(CpuFlag::N, false);
-        self.registers.flag(CpuFlag::H, u16::test_add_carry_bit(3, sp, offset));
-        self.registers.flag(CpuFlag::C, u16::test_add_carry_bit(7, sp, offset));
+        self.registers
+            .flag(CpuFlag::H, u16::test_add_carry_bit(3, sp, offset));
+        self.registers
+            .flag(CpuFlag::C, u16::test_add_carry_bit(7, sp, offset));
         // self.registers.flags.z = false;
         // self.registers.flags.n = false;
         // self.registers.flags.h = u16::test_add_carry_bit(3, sp, offset);
@@ -729,16 +806,19 @@ impl<T: Interface> Cpu<T> {
         self.handle_return(self.registers.pc)
     }
 
-
     pub fn push16<I: Copy>(&mut self, in16: I) -> (Step, u16)
-        where Self: Read16<I> {
+    where
+        Self: Read16<I>,
+    {
         let result = self.read_16(in16);
         self.push_u16(result);
         self.handle_return(self.registers.pc)
     }
 
     pub fn pop16<O: Copy>(&mut self, out16: O) -> (Step, u16)
-        where Self: Write16<O> {
+    where
+        Self: Write16<O>,
+    {
         let result = self.pop_u16();
         self.write_16(out16, result);
         self.handle_return(self.registers.pc)
@@ -788,10 +868,10 @@ impl<T: Interface> Cpu<T> {
     }
 
     pub fn ccf(&mut self) -> (Step, u16) {
-    
         self.registers.flag(CpuFlag::N, false);
         self.registers.flag(CpuFlag::H, false);
-        self.registers.flag(CpuFlag::C, !self.registers.getflag(CpuFlag::C));
+        self.registers
+            .flag(CpuFlag::C, !self.registers.getflag(CpuFlag::C));
         self.handle_return(self.registers.pc)
     }
 
@@ -818,7 +898,14 @@ impl<T: Interface> Cpu<T> {
             }
         } else if self.registers.getflag(CpuFlag::C) {
             carry = true;
-            self.registers.a = self.registers.a.wrapping_add(if self.registers.getflag(CpuFlag::H) { 0x9a } else { 0xa0 })
+            self.registers.a =
+                self.registers
+                    .a
+                    .wrapping_add(if self.registers.getflag(CpuFlag::H) {
+                        0x9a
+                    } else {
+                        0xa0
+                    })
         } else if self.registers.getflag(CpuFlag::H) {
             self.registers.a = self.registers.a.wrapping_add(0xfa);
         }
@@ -836,7 +923,6 @@ impl<T: Interface> Cpu<T> {
 
         self.handle_return(self.registers.pc)
     }
-
 
     pub fn rst(&mut self, add: u8) -> (Step, u16) {
         let pc = self.registers.pc;
@@ -878,7 +964,6 @@ impl<T: Interface> Cpu<T> {
             self.handle_return(self.registers.pc)
         }
     }
-
 
     pub fn jp_cc(&mut self, cond: Cond) -> (Step, u16) {
         let addr = self.read_next_word();
@@ -937,9 +1022,11 @@ impl<T: Interface> Cpu<T> {
         self.handle_return(self.registers.pc)
     }
 
-   // #[inline(always)]
+    // #[inline(always)]
     pub fn load_8<I: Copy, O: Copy>(&mut self, out8: O, in8: I) -> (Step, u16)
-        where Self: Write8<O> + Read8<I> {
+    where
+        Self: Write8<O> + Read8<I>,
+    {
         let read = self.read_8(in8);
         //println!("writing value: {}", read);
         self.write_8(out8, read);
@@ -948,34 +1035,42 @@ impl<T: Interface> Cpu<T> {
 
     //#[inline(always)]
     pub fn load_16<I: Copy, O: Copy>(&mut self, out16: O, in16: I) -> (Step, u16)
-        where Self: Write16<O> + Read16<I> {
+    where
+        Self: Write16<O> + Read16<I>,
+    {
         let read = self.read_16(in16);
         self.write_16(out16, read);
         self.handle_return(self.registers.pc)
     }
 
-
     pub fn load_16_e<I: Copy, O: Copy>(&mut self, out16: O, in16: I) -> (Step, u16)
-        where Self: Write16<O> + Read16<I> {
+    where
+        Self: Write16<O> + Read16<I>,
+    {
         let offset = self.read_next_byte() as i8 as u16;
         let read = self.read_16(in16);
         let value = read.wrapping_add(offset);
         self.write_16(out16, value);
         self.registers.flag(CpuFlag::Z, false);
         self.registers.flag(CpuFlag::N, false);
-        self.registers.flag(CpuFlag::H, u16::test_add_carry_bit(3, read, offset));
-        self.registers.flag(CpuFlag::C, u16::test_add_carry_bit(7, read, offset));
-  
+        self.registers
+            .flag(CpuFlag::H, u16::test_add_carry_bit(3, read, offset));
+        self.registers
+            .flag(CpuFlag::C, u16::test_add_carry_bit(7, read, offset));
 
         self.handle_return(self.registers.pc)
     }
 
     pub fn add<I: Copy>(&mut self, in8: I) -> (Step, u16)
-        where Self: Read8<I> {
+    where
+        Self: Read8<I>,
+    {
         let value = self.read_8(in8);
         let (result, carry) = (self.registers.a).overflowing_add(value);
 
-        let half_carry = (self.registers.a & 0x0f).checked_add(value | 0xf0).is_none();
+        let half_carry = (self.registers.a & 0x0f)
+            .checked_add(value | 0xf0)
+            .is_none();
         self.registers.flag(CpuFlag::Z, result == 0);
         self.registers.flag(CpuFlag::N, false);
         self.registers.flag(CpuFlag::H, half_carry);
@@ -985,34 +1080,48 @@ impl<T: Interface> Cpu<T> {
     }
 
     pub fn addc<I: Copy>(&mut self, in8: I) -> (Step, u16)
-        where Self: Read8<I> {
+    where
+        Self: Read8<I>,
+    {
         let value = self.read_8(in8);
         let cy = self.registers.getflag(CpuFlag::C) as u8;
         let result = self.registers.a.wrapping_add(value).wrapping_add(cy);
         self.registers.flag(CpuFlag::Z, result == 0);
         self.registers.flag(CpuFlag::N, false);
-        self.registers.flag(CpuFlag::H,  (self.registers.a & 0xf) + (value & 0xf) + cy > 0xf);
-        self.registers.flag(CpuFlag::C,  self.registers.a as u16 + value as u16 + cy as u16 > 0xff);
+        self.registers.flag(
+            CpuFlag::H,
+            (self.registers.a & 0xf) + (value & 0xf) + cy > 0xf,
+        );
+        self.registers.flag(
+            CpuFlag::C,
+            self.registers.a as u16 + value as u16 + cy as u16 > 0xff,
+        );
         self.registers.a = result;
         self.handle_return(self.registers.pc)
     }
 
     pub fn sub<I: Copy>(&mut self, in8: I, carry: bool) -> (Step, u16)
-        where Self: Read8<I> {
+    where
+        Self: Read8<I>,
+    {
         let value = self.read_8(in8);
         self.registers.a = self.alu_sub(value, carry);
         self.handle_return(self.registers.pc)
     }
 
     pub fn cp<I: Copy>(&mut self, in8: I) -> (Step, u16)
-        where Self: Read8<I> {
+    where
+        Self: Read8<I>,
+    {
         let value = self.read_8(in8);
         self.alu_sub(value, false);
         self.handle_return(self.registers.pc)
     }
 
     pub fn and<I: Copy>(&mut self, in8: I) -> (Step, u16)
-        where Self: Read8<I> {
+    where
+        Self: Read8<I>,
+    {
         let value = self.read_8(in8);
         self.registers.a &= value;
         self.registers.flag(CpuFlag::Z, self.registers.a == 0);
@@ -1024,7 +1133,8 @@ impl<T: Interface> Cpu<T> {
     }
 
     pub fn or<I: Copy>(&mut self, in8: I) -> (Step, u16)
-        where Self: Read8<I>,
+    where
+        Self: Read8<I>,
     {
         let value = self.read_8(in8);
         self.registers.a |= value;
@@ -1040,7 +1150,8 @@ impl<T: Interface> Cpu<T> {
     }
 
     pub fn xor<I: Copy>(&mut self, in8: I) -> (Step, u16)
-        where Self: Read8<I>,
+    where
+        Self: Read8<I>,
     {
         let value = self.read_8(in8);
         self.registers.a ^= value;
@@ -1052,7 +1163,8 @@ impl<T: Interface> Cpu<T> {
     }
 
     pub fn inc<IO: Copy>(&mut self, io8: IO) -> (Step, u16)
-        where Self: Read8<IO> + Write8<IO>,
+    where
+        Self: Read8<IO> + Write8<IO>,
     {
         let value = self.read_8(io8);
         let result = value.wrapping_add(1);
@@ -1060,12 +1172,13 @@ impl<T: Interface> Cpu<T> {
         self.registers.flag(CpuFlag::Z, result == 0);
         self.registers.flag(CpuFlag::N, false);
         self.registers.flag(CpuFlag::H, (value & 0x0F) == 0x0F);
-  
+
         self.handle_return(self.registers.pc)
     }
 
     pub fn dec<IO: Copy>(&mut self, io8: IO) -> (Step, u16)
-        where Self: Read8<IO> + Write8<IO>,
+    where
+        Self: Read8<IO> + Write8<IO>,
     {
         let value = self.read_8(io8);
         let result = value.wrapping_sub(1);
@@ -1078,17 +1191,25 @@ impl<T: Interface> Cpu<T> {
     }
 
     pub fn rl<IO: Copy>(&mut self, io8: IO) -> (Step, u16)
-        where Self: Read8<IO> + Write8<IO>,
+    where
+        Self: Read8<IO> + Write8<IO>,
     {
         let value = self.read_8(io8);
-        let result = self.alu_rl(value, false, |flags, _| if registers::calc_flag(*flags, CpuFlag::C) { 1 } else { 0 });
+        let result = self.alu_rl(value, false, |flags, _| {
+            if registers::calc_flag(*flags, CpuFlag::C) {
+                1
+            } else {
+                0
+            }
+        });
 
         self.write_8(io8, result);
         self.handle_return(self.registers.pc)
     }
 
     pub fn rlc<IO: Copy>(&mut self, io8: IO) -> (Step, u16)
-        where Self: Read8<IO> + Write8<IO>,
+    where
+        Self: Read8<IO> + Write8<IO>,
     {
         let value = self.read_8(io8);
         let result = self.alu_rl(value, false, |_, n| n >> 7);
@@ -1105,7 +1226,13 @@ impl<T: Interface> Cpu<T> {
 
     pub fn rla(&mut self) -> (Step, u16) {
         let value = self.registers.a;
-        self.registers.a = self.alu_rl(value, true, |flags, _| if registers::calc_flag(*flags, CpuFlag::C) { 1 } else { 0 });
+        self.registers.a = self.alu_rl(value, true, |flags, _| {
+            if registers::calc_flag(*flags, CpuFlag::C) {
+                1
+            } else {
+                0
+            }
+        });
         self.handle_return(self.registers.pc)
     }
 
@@ -1117,13 +1244,19 @@ impl<T: Interface> Cpu<T> {
 
     pub fn rra(&mut self) -> (Step, u16) {
         let value = self.registers.a;
-        self.registers.a = self.alu_rr(value, true, |flags, _| if registers::calc_flag(*flags, CpuFlag::C) { 0b1000_0000 } else { 0 });
+        self.registers.a = self.alu_rr(value, true, |flags, _| {
+            if registers::calc_flag(*flags, CpuFlag::C) {
+                0b1000_0000
+            } else {
+                0
+            }
+        });
         self.handle_return(self.registers.pc)
     }
 
-
     pub fn rrc<IO: Copy>(&mut self, io8: IO) -> (Step, u16)
-        where Self: Read8<IO> + Write8<IO>,
+    where
+        Self: Read8<IO> + Write8<IO>,
     {
         let value = self.read_8(io8);
         let result = self.alu_rr(value, false, |_, n| (n & 0b0000_0001) << 7);
@@ -1133,10 +1266,17 @@ impl<T: Interface> Cpu<T> {
     }
 
     pub fn rr<IO: Copy>(&mut self, io8: IO) -> (Step, u16)
-        where Self: Read8<IO> + Write8<IO>,
+    where
+        Self: Read8<IO> + Write8<IO>,
     {
         let value = self.read_8(io8);
-        let result = self.alu_rr(value, false, |flags, _|  if registers::calc_flag(*flags, CpuFlag::C) { 0b1000_0000 } else { 0 });
+        let result = self.alu_rr(value, false, |flags, _| {
+            if registers::calc_flag(*flags, CpuFlag::C) {
+                0b1000_0000
+            } else {
+                0
+            }
+        });
 
         self.write_8(io8, result);
         self.handle_return(self.registers.pc)

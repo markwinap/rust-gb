@@ -162,7 +162,7 @@ impl<T: Screen> Ppu<T> {
         } else {
             self.stat.remove(Stat::COMPARE);
         }
-        
+
         if !self.update_lcd_stat_interrupts(interrupts) {
             return;
         }
@@ -622,8 +622,7 @@ bitflags!(
 struct VideoRam {
     tile_map0: [u8; TILE_MAP_SIZE],
     tile_map1: [u8; TILE_MAP_SIZE],
-    tiles:[Tile;TILE_COUNT]
-    // tiles: Vec<Tile>,
+    tiles: [Tile; TILE_COUNT], // tiles: Vec<Tile>,
 }
 
 impl VideoRam {

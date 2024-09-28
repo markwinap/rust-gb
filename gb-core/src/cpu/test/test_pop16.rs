@@ -1,10 +1,9 @@
-
-use crate::cpu::test::run_test;
 use crate::cpu::flags::Flags;
+use crate::cpu::test::run_test;
 use crate::cpu::Step;
 
-use quickcheck::quickcheck;
 use crate::cpu::registers::Reg16;
+use quickcheck::quickcheck;
 
 fn test_pop16(opcode: u8, x: u16, reg: Reg16) -> bool {
     let h = (x >> 8) as u8;

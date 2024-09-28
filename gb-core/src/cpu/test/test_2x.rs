@@ -1,6 +1,5 @@
-use crate::cpu::test::run_test;
 use crate::cpu::flags::Flags;
-
+use crate::cpu::test::run_test;
 
 #[test]
 fn test_20() {
@@ -33,7 +32,7 @@ fn test_20_nojump() {
                 z: true,
                 n: false,
                 h: false,
-                c: false
+                c: false,
             };
         },
     );
@@ -80,12 +79,15 @@ fn test_24_zero() {
     );
     assert_eq!(machine.t_cycles, 4);
     assert_eq!(machine.cpu.registers.h, 0x00);
-    assert_eq!(machine.cpu.registers.flags, Flags {
-        z: true,
-        n: false,
-        h: true,
-        c: false
-    });
+    assert_eq!(
+        machine.cpu.registers.flags,
+        Flags {
+            z: true,
+            n: false,
+            h: true,
+            c: false
+        }
+    );
 }
 
 #[test]
@@ -98,12 +100,15 @@ fn test_24_half_carry() {
     );
     assert_eq!(machine.t_cycles, 4);
     assert_eq!(machine.cpu.registers.h, 0x10);
-    assert_eq!(machine.cpu.registers.flags, Flags {
-        z: false,
-        n: false,
-        h: true,
-        c: false
-    });
+    assert_eq!(
+        machine.cpu.registers.flags,
+        Flags {
+            z: false,
+            n: false,
+            h: true,
+            c: false
+        }
+    );
 }
 
 #[test]
@@ -116,12 +121,15 @@ fn test_25() {
     );
     assert_eq!(machine.t_cycles, 4);
     assert_eq!(machine.cpu.registers.h, 0x41);
-    assert_eq!(machine.cpu.registers.flags, Flags {
-        z: false,
-        n: true,
-        h: false,
-        c: false
-    });
+    assert_eq!(
+        machine.cpu.registers.flags,
+        Flags {
+            z: false,
+            n: true,
+            h: false,
+            c: false
+        }
+    );
 }
 
 #[test]
@@ -134,12 +142,15 @@ fn test_25_zero() {
     );
     assert_eq!(machine.t_cycles, 4);
     assert_eq!(machine.cpu.registers.h, 0x00);
-    assert_eq!(machine.cpu.registers.flags,Flags {
-        z: true,
-        n: true,
-        h: false,
-        c: false
-    });
+    assert_eq!(
+        machine.cpu.registers.flags,
+        Flags {
+            z: true,
+            n: true,
+            h: false,
+            c: false
+        }
+    );
 }
 
 #[test]
@@ -152,12 +163,15 @@ fn test_25_half_carry() {
     );
     assert_eq!(machine.t_cycles, 4);
     assert_eq!(machine.cpu.registers.h, 0xff);
-    assert_eq!(machine.cpu.registers.flags, Flags {
-        z: false,
-        n: true,
-        h: true,
-        c: false
-    });
+    assert_eq!(
+        machine.cpu.registers.flags,
+        Flags {
+            z: false,
+            n: true,
+            h: true,
+            c: false
+        }
+    );
 }
 
 #[test]
@@ -179,7 +193,7 @@ fn test_28() {
                 z: true,
                 n: false,
                 h: false,
-                c: false
+                c: false,
             };
         },
     );
@@ -196,7 +210,7 @@ fn test_28_negative() {
                 z: true,
                 n: false,
                 h: false,
-                c: false
+                c: false,
             };
             machine.cpu.registers.pc = 0x02;
         },
@@ -253,12 +267,15 @@ fn test_2c_zero() {
     );
     assert_eq!(machine.t_cycles, 4);
     assert_eq!(machine.cpu.registers.l, 0x00);
-    assert_eq!(machine.cpu.registers.flags, Flags {
-        z: true,
-        n: false,
-        h: true,
-        c: false
-    });
+    assert_eq!(
+        machine.cpu.registers.flags,
+        Flags {
+            z: true,
+            n: false,
+            h: true,
+            c: false
+        }
+    );
 }
 
 #[test]
@@ -271,12 +288,15 @@ fn test_2c_half_carry() {
     );
     assert_eq!(machine.t_cycles, 4);
     assert_eq!(machine.cpu.registers.l, 0x10);
-    assert_eq!(machine.cpu.registers.flags, Flags {
-        z: false,
-        n: false,
-        h: true,
-        c: false
-    });
+    assert_eq!(
+        machine.cpu.registers.flags,
+        Flags {
+            z: false,
+            n: false,
+            h: true,
+            c: false
+        }
+    );
 }
 
 #[test]
@@ -289,12 +309,15 @@ fn test_2d() {
     );
     assert_eq!(machine.t_cycles, 4);
     assert_eq!(machine.cpu.registers.l, 0x41);
-    assert_eq!(machine.cpu.registers.flags, Flags {
-        z: false,
-        n: true,
-        h: false,
-        c: false
-    });
+    assert_eq!(
+        machine.cpu.registers.flags,
+        Flags {
+            z: false,
+            n: true,
+            h: false,
+            c: false
+        }
+    );
 }
 
 #[test]
@@ -307,12 +330,15 @@ fn test_2d_zero() {
     );
     assert_eq!(machine.t_cycles, 4);
     assert_eq!(machine.cpu.registers.l, 0x00);
-    assert_eq!(machine.cpu.registers.flags, Flags {
-        z: true,
-        n: true,
-        h: false,
-        c: false
-    });
+    assert_eq!(
+        machine.cpu.registers.flags,
+        Flags {
+            z: true,
+            n: true,
+            h: false,
+            c: false
+        }
+    );
 }
 
 #[test]
@@ -325,12 +351,15 @@ fn test_2d_half_carry() {
     );
     assert_eq!(machine.t_cycles, 4);
     assert_eq!(machine.cpu.registers.l, 0xff);
-    assert_eq!(machine.cpu.registers.flags, Flags {
-        z: false,
-        n: true,
-        h: true,
-        c: false
-    });
+    assert_eq!(
+        machine.cpu.registers.flags,
+        Flags {
+            z: false,
+            n: true,
+            h: true,
+            c: false
+        }
+    );
 }
 
 #[test]
@@ -353,10 +382,13 @@ fn test_2f() {
     );
     assert_eq!(machine.t_cycles, 4);
     assert_eq!(machine.cpu.registers.a, 0x55);
-    assert_eq!(machine.cpu.registers.flags, Flags {
-        z: false,
-        n: true,
-        h: true,
-        c: false
-    });
+    assert_eq!(
+        machine.cpu.registers.flags,
+        Flags {
+            z: false,
+            n: true,
+            h: true,
+            c: false
+        }
+    );
 }

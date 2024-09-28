@@ -1,11 +1,9 @@
-
-use crate::cpu::test::run_test;
 use crate::cpu::flags::Flags;
+use crate::cpu::test::run_test;
 use crate::cpu::Step;
 
-use quickcheck::quickcheck;
 use crate::cpu::registers::Reg16;
-
+use quickcheck::quickcheck;
 
 #[test]
 fn test_f9() {

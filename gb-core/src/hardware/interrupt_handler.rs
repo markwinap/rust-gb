@@ -1,6 +1,5 @@
-use bitflags::bitflags;
 use crate::util::int::IntExt;
-
+use bitflags::bitflags;
 
 bitflags!(
   pub struct InterruptLine: u8 {
@@ -11,7 +10,6 @@ bitflags!(
     const JOYPAD = 1 << 4;
   }
 );
-
 
 impl InterruptLine {
     pub fn highest_priority(&self) -> InterruptLine {
@@ -24,7 +22,6 @@ pub struct InterruptHandler {
     pub enable_delay: u8,
     pub enabled_interrupts: InterruptLine,
     pub requested_interrupts: InterruptLine,
-
 }
 
 impl InterruptHandler {
@@ -93,8 +90,7 @@ impl InterruptHandler {
         self.requested_interrupts.bits() | IF_UNUSED_MASK
     }
 
-
-    pub fn set_interrupt_flag(&mut self, value: u8)  {
+    pub fn set_interrupt_flag(&mut self, value: u8) {
         self.requested_interrupts = InterruptLine::from_bits_truncate(value);
     }
 
@@ -104,8 +100,7 @@ impl InterruptHandler {
         self.enabled_interrupts.bits() | IF_UNUSED_MASK
     }
 
-    pub fn set_enabled_interrupts_flag(&mut self, value: u8)  {
+    pub fn set_enabled_interrupts_flag(&mut self, value: u8) {
         self.enabled_interrupts = InterruptLine::from_bits_truncate(value);
     }
-
 }

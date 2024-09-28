@@ -1,6 +1,5 @@
-use crate::cpu::test::run_test;
 use crate::cpu::flags::Flags;
-
+use crate::cpu::test::run_test;
 
 #[test]
 fn test_a8() {
@@ -27,12 +26,15 @@ fn test_a8_zero() {
     );
     assert_eq!(machine.t_cycles, 4);
     assert_eq!(machine.cpu.registers.a, 0x00);
-    assert_eq!(machine.cpu.registers.flags, Flags {
-        z: true,
-        n: false,
-        h: false,
-        c: false,
-    });
+    assert_eq!(
+        machine.cpu.registers.flags,
+        Flags {
+            z: true,
+            n: false,
+            h: false,
+            c: false,
+        }
+    );
 }
 
 #[test]
@@ -60,12 +62,15 @@ fn test_a9_zero() {
     );
     assert_eq!(machine.t_cycles, 4);
     assert_eq!(machine.cpu.registers.a, 0x00);
-    assert_eq!(machine.cpu.registers.flags, Flags {
-        z: true,
-        n: false,
-        h: false,
-        c: false,
-    });
+    assert_eq!(
+        machine.cpu.registers.flags,
+        Flags {
+            z: true,
+            n: false,
+            h: false,
+            c: false,
+        }
+    );
 }
 
 #[test]
@@ -93,12 +98,15 @@ fn test_aa_zero() {
     );
     assert_eq!(machine.t_cycles, 4);
     assert_eq!(machine.cpu.registers.a, 0x00);
-    assert_eq!(machine.cpu.registers.flags, Flags {
-        z: true,
-        n: false,
-        h: false,
-        c: false,
-    });
+    assert_eq!(
+        machine.cpu.registers.flags,
+        Flags {
+            z: true,
+            n: false,
+            h: false,
+            c: false,
+        }
+    );
 }
 
 #[test]
@@ -126,12 +134,15 @@ fn test_ab_zero() {
     );
     assert_eq!(machine.t_cycles, 4);
     assert_eq!(machine.cpu.registers.a, 0x00);
-    assert_eq!(machine.cpu.registers.flags, Flags {
-        z: true,
-        n: false,
-        h: false,
-        c: false,
-    });
+    assert_eq!(
+        machine.cpu.registers.flags,
+        Flags {
+            z: true,
+            n: false,
+            h: false,
+            c: false,
+        }
+    );
 }
 
 #[test]
@@ -159,12 +170,15 @@ fn test_ac_zero() {
     );
     assert_eq!(machine.t_cycles, 4);
     assert_eq!(machine.cpu.registers.a, 0x00);
-    assert_eq!(machine.cpu.registers.flags, Flags {
-        z: true,
-        n: false,
-        h: false,
-        c: false,
-    });
+    assert_eq!(
+        machine.cpu.registers.flags,
+        Flags {
+            z: true,
+            n: false,
+            h: false,
+            c: false,
+        }
+    );
 }
 
 #[test]
@@ -192,12 +206,15 @@ fn test_ad_zero() {
     );
     assert_eq!(machine.t_cycles, 4);
     assert_eq!(machine.cpu.registers.a, 0x00);
-    assert_eq!(machine.cpu.registers.flags, Flags {
-        z: true,
-        n: false,
-        h: false,
-        c: false,
-    });
+    assert_eq!(
+        machine.cpu.registers.flags,
+        Flags {
+            z: true,
+            n: false,
+            h: false,
+            c: false,
+        }
+    );
 }
 
 #[test]
@@ -227,12 +244,15 @@ fn test_ae_zero() {
     );
     assert_eq!(machine.t_cycles, 8);
     assert_eq!(machine.cpu.registers.a, 0x00);
-    assert_eq!(machine.cpu.registers.flags, Flags {
-        z: true,
-        n: false,
-        h: false,
-        c: false,
-    });
+    assert_eq!(
+        machine.cpu.registers.flags,
+        Flags {
+            z: true,
+            n: false,
+            h: false,
+            c: false,
+        }
+    );
 }
 
 #[test]
@@ -245,10 +265,13 @@ fn test_af() {
     );
     assert_eq!(machine.t_cycles, 4);
     assert_eq!(machine.cpu.registers.a, 0x00);
-    assert_eq!(machine.cpu.registers.flags, Flags {
-        z: true,
-        n: false,
-        h: false,
-        c: false,
-    });
+    assert_eq!(
+        machine.cpu.registers.flags,
+        Flags {
+            z: true,
+            n: false,
+            h: false,
+            c: false,
+        }
+    );
 }

@@ -1,6 +1,5 @@
 use alloc::boxed::Box;
 
-
 pub struct WorkRam {
     ram: Box<[u8; 0x2000]>,
 }

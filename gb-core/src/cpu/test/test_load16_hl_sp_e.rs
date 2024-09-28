@@ -1,12 +1,9 @@
-
-use crate::cpu::test::run_test;
 use crate::cpu::flags::Flags;
+use crate::cpu::test::run_test;
 use crate::cpu::Step;
 
-use quickcheck::quickcheck;
 use crate::cpu::registers::Reg16;
-
-
+use quickcheck::quickcheck;
 
 fn test_load16_hl_sp_e<F: Fn(Flags) -> bool>(sp: u16, e: i8, check_flags: F) -> bool {
     let machine = run_test(&[0xf8, e as u8], |machine| {
@@ -28,12 +25,13 @@ fn test_f8() {
 
 #[test]
 fn test_f8_overflow_inc() {
-    assert!(test_load16_hl_sp_e(0xffff, 1, |f| f == Flags {
-        z: false,
-        n: false,
-        h: true,
-        c: true
-    }));
+    assert!(test_load16_hl_sp_e(0xffff, 1, |f| f
+        == Flags {
+            z: false,
+            n: false,
+            h: true,
+            c: true
+        }));
 }
 
 #[test]
