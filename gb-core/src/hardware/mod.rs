@@ -22,10 +22,12 @@ pub mod cartridge;
 pub mod rom;
 pub mod input;
 pub mod sound;
-
+//pub mod audio;
 pub const HIRAM_SIZE: usize = 0x80;
 
 pub type HiramData = [u8; HIRAM_SIZE];
+
+pub const CPU_FREQ_HZ: usize = 4_194_304;
 
 //pub const HIRAM_EMPTY: HiramData = [0; HIRAM_SIZE];
 

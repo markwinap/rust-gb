@@ -182,7 +182,7 @@ impl core::ops::Index<core::ops::Range<usize>>
 pub struct NullAudioPlayer;
 
 impl gb_core::hardware::sound::AudioPlayer for NullAudioPlayer {
-    fn play(&mut self, _buf_left: &[f32], _buf_right: &[f32]) {
+    fn play(&mut self, _buf_left: &[f32]) {
         // Do nothing
     }
 
