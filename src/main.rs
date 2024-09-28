@@ -184,7 +184,7 @@ impl core::ops::Index<core::ops::Range<usize>> for ByteRomManager {
 pub struct NullAudioPlayer;
 
 impl gb_core::hardware::sound::AudioPlayer for NullAudioPlayer {
-    fn play(&mut self, _buf_left: &[f32]) {
+    fn play(&mut self, _buf_left: &[i16]) {
         // Do nothing
     }
 
