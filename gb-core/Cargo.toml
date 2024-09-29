@@ -15,6 +15,7 @@ arrayvec = { version = "0.5.2", default-features = false }
 unroll= "0.1.5"
 fon = "0.6.0"
 bitfield-struct = "0.8.0"
+#libm = {version = "0.2.8", default-features = false}
 [dependencies.failure_derive]
 version = "~0.1"
 
