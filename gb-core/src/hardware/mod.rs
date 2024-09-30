@@ -66,7 +66,6 @@ impl<'a, T: Screen> Hardware<'a, T> {
         }
     }
 
-    fn do_step(&mut self) {}
     pub fn create(
         screen: T,
         cartridge: Box<dyn Cartridge + 'a>,

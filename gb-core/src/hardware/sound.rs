@@ -869,8 +869,8 @@ impl Sound {
         debug_assert!(sample_count == self.channel3.blip.samples_avail() as usize);
         debug_assert!(sample_count == self.channel4.blip.samples_avail() as usize);
 
-        let left_vol =  ((self.volume_left as i32 * (1 << 15)) + 210) / 420;
-        let right_vol =  ((self.volume_right as i32 * (1 << 15)) + 210) / 420;
+        let left_vol = ((self.volume_left as i32 * (1 << 15)) + 210) / 420;
+        let right_vol = ((self.volume_right as i32 * (1 << 15)) + 210) / 420;
 
         let mut outputted = 0;
 
@@ -882,11 +882,13 @@ impl Sound {
             let count1 = self.channel1.blip.read_samples(buf, buff_len as u32, false);
             for (i, v) in buf[..count1 as usize].iter().enumerate() {
                 if self.reg_ff25 & 0x10 == 0x10 {
-                    let scaled_sample = ((*v as i32) * left_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+                    let scaled_sample =
+                        ((*v as i32) * left_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
                     output_buffer[i * 2] += scaled_sample as u16;
                 }
                 if self.reg_ff25 & 0x01 == 0x01 {
-                    let scaled_sample = ((*v as i32) * right_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+                    let scaled_sample =
+                        ((*v as i32) * right_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
                     output_buffer[(i * 2) + 1] += scaled_sample as u16;
                 }
             }
@@ -895,11 +897,13 @@ impl Sound {
             let count2 = self.channel2.blip.read_samples(buf, buff_len as u32, false);
             for (i, v) in buf[..count2 as usize].iter().enumerate() {
                 if self.reg_ff25 & 0x20 == 0x20 {
-                    let scaled_sample = ((*v as i32) * left_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+                    let scaled_sample =
+                        ((*v as i32) * left_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
                     output_buffer[i * 2] += scaled_sample as u16;
                 }
                 if self.reg_ff25 & 0x02 == 0x02 {
-                    let scaled_sample = ((*v as i32) * right_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+                    let scaled_sample =
+                        ((*v as i32) * right_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
                     output_buffer[(i * 2) + 1] += scaled_sample as u16;
                 }
             }
@@ -910,11 +914,13 @@ impl Sound {
             let count3 = self.channel3.blip.read_samples(buf, buff_len as u32, false);
             for (i, v) in buf[..count3 as usize].iter().enumerate() {
                 if self.reg_ff25 & 0x40 == 0x40 {
-                    let scaled_sample = ((*v as i32) * left_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+                    let scaled_sample =
+                        ((*v as i32) * left_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
                     output_buffer[i * 2] += (scaled_sample / 4) as u16;
                 }
                 if self.reg_ff25 & 0x04 == 0x04 {
-                    let scaled_sample = ((*v as i32) * right_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+                    let scaled_sample =
+                        ((*v as i32) * right_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
                     output_buffer[(i * 2) + 1] += (scaled_sample / 4) as u16;
                 }
             }
@@ -923,16 +929,18 @@ impl Sound {
             let count4 = self.channel4.blip.read_samples(buf, buff_len as u32, false);
             for (i, v) in buf[..count4 as usize].iter().enumerate() {
                 if self.reg_ff25 & 0x80 == 0x80 {
-                    let scaled_sample = ((*v as i32) * left_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+                    let scaled_sample =
+                        ((*v as i32) * left_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
                     output_buffer[i * 2] += scaled_sample as u16;
                 }
-                
+
                 if self.reg_ff25 & 0x08 == 0x08 {
-                    let scaled_sample = ((*v as i32) * right_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+                    let scaled_sample =
+                        ((*v as i32) * right_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
                     output_buffer[(i * 2) + 1] += scaled_sample as u16;
                 }
             }
-        
+
             debug_assert!(count1 == count2);
             debug_assert!(count1 == count3);
             debug_assert!(count1 == count4);
@@ -941,7 +949,6 @@ impl Sound {
 
             outputted += count1 as usize;
         }
-        
     }
 
     fn clear_buffers(&mut self) {
