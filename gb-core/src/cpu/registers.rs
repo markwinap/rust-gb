@@ -40,14 +40,14 @@ pub enum CpuFlag {
     Z = 0b10000000,
 }
 
-#[inline(always)]
+//#[inline(always)]
 pub const fn calc_flag(flag: u8, flags: CpuFlag) -> bool {
     let mask = flags as u8;
     flag & mask > 0
 }
 
 impl Registers {
-    #[inline(always)]
+  //  #[inline(always)]
     pub fn flag(&mut self, flags: CpuFlag, set: bool) {
         let mask = flags as u8;
         match set {
@@ -57,7 +57,7 @@ impl Registers {
         self.flags &= 0xF0;
     }
 
-    #[inline(always)]
+    //#[inline(always)]
     pub fn getflag(&self, flags: CpuFlag) -> bool {
         let mask = flags as u8;
         self.flags & mask > 0
@@ -204,11 +204,11 @@ impl Registers {
     }
 }
 
-#[inline(always)]
-pub fn get_msb(v: u16) -> u8 {
+//#[inline(always)]
+pub const fn get_msb(v: u16) -> u8 {
     (v >> 8) as u8
 }
-#[inline(always)]
-pub fn get_lsb(v: u16) -> u8 {
+//#[inline(always)]
+pub const fn get_lsb(v: u16) -> u8 {
     v as u8
 }

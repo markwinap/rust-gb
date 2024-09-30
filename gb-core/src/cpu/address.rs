@@ -54,6 +54,7 @@ impl<T: Interface> Cpu<T> {
 }
 
 impl<T: Interface> Read8<Reg8> for Cpu<T> {
+    #[inline(always)]
     fn read_8(&mut self, src: Reg8) -> u8 {
         match src {
             Reg8::A => self.registers.a,
@@ -68,6 +69,7 @@ impl<T: Interface> Read8<Reg8> for Cpu<T> {
 }
 
 impl<T: Interface> Write8<Reg8> for Cpu<T> {
+    #[inline(always)]
     fn write_8(&mut self, dst: Reg8, val: u8) {
         match dst {
             Reg8::A => self.registers.set_a(val),
@@ -82,6 +84,7 @@ impl<T: Interface> Write8<Reg8> for Cpu<T> {
 }
 
 impl<T: Interface> Read16<Reg16> for Cpu<T> {
+    #[inline(always)]
     fn read_16(&mut self, src: Reg16) -> u16 {
         match src {
             Reg16::AF => self.registers.get_af(),
@@ -94,6 +97,7 @@ impl<T: Interface> Read16<Reg16> for Cpu<T> {
 }
 
 impl<T: Interface> Write16<Reg16> for Cpu<T> {
+    #[inline(always)]
     fn write_16(&mut self, dst: Reg16, val: u16) {
         //  println!("Inside write reg: {} with value: {}", dst, val);
         match dst {
@@ -163,7 +167,7 @@ pub enum ReadOffType {
 }
 
 impl<T: Interface> Read16<Addr16> for Cpu<T> {
-    //   #[inline]
+    #[inline(always)]
     fn read_16(&mut self, src: Addr16) -> u16 {
         match src {
             Addr16::Direct => {
@@ -177,7 +181,6 @@ impl<T: Interface> Read16<Addr16> for Cpu<T> {
 }
 
 impl<T: Interface> Write16<Addr16> for Cpu<T> {
-    // #[inline]
     fn write_16(&mut self, dst: Addr16, val: u16) {
         match dst {
             Addr16::Direct => {
@@ -191,7 +194,7 @@ impl<T: Interface> Write16<Addr16> for Cpu<T> {
 }
 
 impl<T: Interface> Write8<Addr> for Cpu<T> {
-    //   #[inline]
+    #[inline(always)] //IMPORTANT
     fn write_8(&mut self, dst: Addr, val: u8) {
         match dst {
             Addr::BC => {
@@ -232,7 +235,7 @@ impl<T: Interface> Write8<Addr> for Cpu<T> {
 }
 
 impl<T: Interface> Read8<Addr> for Cpu<T> {
-    // #[inline]
+    #[inline(always)] //IMPORTANT
     fn read_8(&mut self, src: Addr) -> u8 {
         match src {
             Addr::BC => self.interface.get_byte(self.registers.get_bc()),

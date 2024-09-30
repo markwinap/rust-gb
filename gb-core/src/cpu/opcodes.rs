@@ -806,6 +806,7 @@ impl<T: Interface> Cpu<T> {
         self.handle_return(self.registers.pc)
     }
 
+    #[inline(always)]
     pub fn push16<I: Copy>(&mut self, in16: I) -> (Step, u16)
     where
         Self: Read16<I>,
@@ -815,6 +816,7 @@ impl<T: Interface> Cpu<T> {
         self.handle_return(self.registers.pc)
     }
 
+    #[inline(always)]
     pub fn pop16<O: Copy>(&mut self, out16: O) -> (Step, u16)
     where
         Self: Write16<O>,
@@ -1022,7 +1024,7 @@ impl<T: Interface> Cpu<T> {
         self.handle_return(self.registers.pc)
     }
 
-    // #[inline(always)]
+    #[inline(always)]
     pub fn load_8<I: Copy, O: Copy>(&mut self, out8: O, in8: I) -> (Step, u16)
     where
         Self: Write8<O> + Read8<I>,
@@ -1033,7 +1035,7 @@ impl<T: Interface> Cpu<T> {
         self.handle_return(self.registers.pc)
     }
 
-    //#[inline(always)]
+    #[inline(always)]
     pub fn load_16<I: Copy, O: Copy>(&mut self, out16: O, in16: I) -> (Step, u16)
     where
         Self: Write16<O> + Read16<I>,
