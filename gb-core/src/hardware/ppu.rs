@@ -92,7 +92,7 @@ pub struct Ppu<T: Screen> {
     obj_palette0: Palette,
     obj_palette1: Palette,
     scanline: u8,
-    video_ram: VideoRam,
+    video_ram: Box<VideoRam>,
     control: Control,
     stat: Stat,
     compare_line: u8,
@@ -120,12 +120,12 @@ impl<T: Screen> Ppu<T> {
             obj_palette1: Palette(0),
             background_priority: [false; SCREEN_WIDTH],
             scanline: 0,
-            video_ram: VideoRam {
+            video_ram: Box::new(VideoRam {
                 tile_map0: [0; TILE_MAP_SIZE],
                 tile_map1: [0; TILE_MAP_SIZE],
                 //tiles: alloc::vec![Tile::new(); TILE_COUNT],
                 tiles: [Tile::new(); TILE_COUNT],
-            },
+            }),
             control: Control::empty(),
             stat: Stat::empty(),
             compare_line: 0,
@@ -266,7 +266,7 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn get_memory_as_mut(&mut self) -> &mut impl Memory {
-        &mut self.video_ram
+        &mut *self.video_ram
     }
 
     pub fn get_control(&self) -> u8 {
