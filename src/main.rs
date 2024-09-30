@@ -147,6 +147,10 @@ impl Screen for SynScreen {
         let stuff = self.off_screen_buffer.replace(Box::new([0; SCREEN_PIXELS]));
         self.sender.send(stuff).unwrap();
     }
+    
+    fn frame_rate(&self) -> u8 {
+        60
+    }
 }
 
 struct ByteRomManager {

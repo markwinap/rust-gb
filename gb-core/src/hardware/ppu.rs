@@ -1,4 +1,3 @@
-///HOLA MUNDO
 use crate::hardware::Screen;
 
 use crate::gameboy::{SCREEN_HEIGHT, SCREEN_WIDTH};
@@ -85,6 +84,8 @@ const ACCESS_VRAM_MIN_CYCLES: isize = 172;
 const HBLANK_MIN_CYCLES: isize = 204;
 const VBLANK_MIN_CYCLES: isize = 456;
 
+const FRAMES_PER_SECOND: u8 = 60;
+
 pub struct Ppu<T: Screen> {
     color_palette: ColorPalette,
     background_palette: Palette,
@@ -103,11 +104,10 @@ pub struct Ppu<T: Screen> {
     window_y: u8,
     cycle_counter: isize,
     pub screen: T,
-    tick: bool,
+    render_frame: bool,
+    skip_interval: f32,
     counter: u8,
-    //sprites: Vec<Sprite>,
     sprites: Box<[Sprite; SPRITE_COUNT]>,
-    //sprites: [Sprite; SPRITE_COUNT]
 }
 
 impl<T: Screen> Ppu<T> {
@@ -133,12 +133,11 @@ impl<T: Screen> Ppu<T> {
             mode: Mode::HBlank,
             window_x: 0,
             window_y: 0,
-            tick: false,
+            render_frame: false,
             counter: 0,
+            skip_interval: FRAMES_PER_SECOND as f32 / u8::min(screen.frame_rate(),FRAMES_PER_SECOND) as f32,
             cycle_counter: 0,
-            //sprites: alloc::vec![Sprite::new(Palette(0)); SPRITE_COUNT],
             sprites: Box::new([Sprite::new(Palette(0)); SPRITE_COUNT]),
-            //sprites: [Sprite::new(Palette(0)); SPRITE_COUNT],
             screen,
         }
     }
@@ -196,13 +195,13 @@ impl<T: Screen> Ppu<T> {
 
     //#[inline]
     fn draw_to_screen(&mut self) {
-        if self.counter % 2 == 0 {
-            self.tick = true;
-        } else {
-            self.tick = false;
-        }
         self.counter = self.counter.wrapping_add(1);
-        self.screen.draw(self.tick);
+        let should_render = (self.counter as f32 % self.skip_interval) as usize == 0;
+        self.render_frame = should_render;
+        if self.counter >= FRAMES_PER_SECOND {
+            self.counter = 0;
+        }
+        self.screen.draw(self.render_frame);
     }
 
     fn update_lcd_stat_interrupts(&mut self, interrupts: &mut InterruptHandler) -> bool {
@@ -270,39 +269,9 @@ impl<T: Screen> Ppu<T> {
         self.control.bits
     }
 
-    // #[unroll_for_loops]
-    // pub fn draw_scan_line(&mut self) {
-    //     if !self.tick {
-    //         return;
-    //     }
-
-    //     //let mut background_priority = [false; SCREEN_WIDTH];
-    //     if self.control.contains(Control::BG_ON) {
-    //         let do_background_pixels =
-    //             self.control.contains(Control::WINDOW_ON) && self.window_y <= self.scanline;
-
-    //         let tile_map = if self.control.contains(Control::WINDOW_MAP) {
-    //             &self.video_ram.tile_map1
-    //         } else {
-    //             &self.video_ram.tile_map0
-    //         };
-    //         for x in 0..SCREEN_WIDTH {
-    //             if do_background_pixels {
-    //                 self.draw_background_window_pixel(x as u8);
-    //             } else {
-    //                 self.draw_background_pixel(x as u8);
-    //             }
-    //         }
-    //     }
-    //     if self.control.contains(Control::OBJ_ON) {
-    //         self.draw_sprites();
-    //     }
-    //     self.screen.scanline_complete(self.scanline - 1, false);
-    // }
-
     //#[unroll_for_loops]
     pub fn draw_scan_line(&mut self) {
-        if !self.tick {
+        if !self.render_frame {
             return;
         }
 
