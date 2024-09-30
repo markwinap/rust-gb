@@ -201,7 +201,6 @@ impl<T: Screen> Ppu<T> {
         } else {
             self.tick = false;
         }
-        //self.tick = true;
         self.counter = self.counter.wrapping_add(1);
         self.screen.draw(self.tick);
     }
@@ -378,37 +377,6 @@ impl<T: Screen> Ppu<T> {
         self.background_priority[x as usize] = shade != Shade::LIGHTEST;
         self.draw_pixel(x, self.color_palette.background(shade));
     }
-
-    // pub fn draw_background_window_pixel(&mut self, x: u8) {
-    //     let y = (self.scanline - 1) - self.window_y;
-    //     let adjusted_x = (((x as u16 + self.window_x as u16 - 7) + SCREEN_WIDTH as u16)
-    //         % SCREEN_WIDTH as u16) as u8;
-    //     let tile_map = if self.control.contains(Control::WINDOW_MAP) {
-    //         &self.video_ram.tile_map1
-    //     } else {
-    //         &self.video_ram.tile_map0
-    //     };
-    //     let tile = self.tile_at(adjusted_x, y, tile_map);
-    //     let bit = (adjusted_x % 8).wrapping_sub(7).wrapping_mul(0xff) as usize;
-    //     let shade = tile.shade_at((y % 8) * 2, bit, &self.background_palette);
-    //     self.background_priority[x as usize] = shade != Shade::LIGHTEST;
-    //     self.draw_pixel(x, self.color_palette.background(shade));
-    // }
-
-    // pub fn draw_background_pixel(&mut self, x: u8) {
-    //     let y = (self.scanline - 1).wrapping_add(self.scroll_y);
-    //     let adjusted_x = x.wrapping_add(self.scroll_x);
-    //     let tile_map = if self.control.contains(Control::BG_MAP) {
-    //         &self.video_ram.tile_map1
-    //     } else {
-    //         &self.video_ram.tile_map0
-    //     };
-    //     let tile = self.tile_at(adjusted_x, y, tile_map);
-    //     let bit = (adjusted_x % 8).wrapping_sub(7).wrapping_mul(0xff) as usize;
-    //     let shade = tile.shade_at((y % 8) * 2, bit, &self.background_palette);
-    //     self.background_priority[x as usize] = shade != Shade::LIGHTEST;
-    //     self.draw_pixel(x, self.color_palette.background(shade));
-    // }
 
     pub fn draw_blank_screen(&mut self) {
         for y in 0..SCREEN_HEIGHT {
@@ -624,6 +592,7 @@ struct VideoRam {
 }
 
 impl VideoRam {
+    #[inline(always)]
     pub fn read_tile_map_byte(&self, address: u16) -> u8 {
         let mut offset_address: u16 = 0;
         let tile_map = if address < TILE_MAP_ADDRESS_1 as u16 {
@@ -636,6 +605,7 @@ impl VideoRam {
         tile_map[offset_address as usize]
     }
 
+    #[inline(always)]
     pub fn write_tile_map_byte(&mut self, address: u16, value: u8) {
         let offset_address;
         let tile_map = if address < TILE_MAP_ADDRESS_1 as u16 {
@@ -648,13 +618,13 @@ impl VideoRam {
 
         tile_map[offset_address as usize] = value;
     }
-
+    #[inline(always)]
     fn write_tile_byte(&mut self, address: u16, value: u8) {
         let virtual_address = address - 0x8000;
         let tile: &mut Tile = &mut self.tiles[virtual_address as usize / TILE_BYTE_SIZE];
         tile.data[virtual_address as usize % 16] = value;
     }
-
+    #[inline(always)]
     fn read_tile_byte(&self, address: u16) -> u8 {
         let virtual_address = address - 0x8000;
         let tile: &Tile = &self.tiles[virtual_address as usize / TILE_BYTE_SIZE];
