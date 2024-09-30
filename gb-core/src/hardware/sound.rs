@@ -20,7 +20,7 @@ const SWEEP_DELAY_ZERO_PERIOD: u8 = 8;
 const WAVE_INITIAL_DELAY: u32 = 4;
 
 pub trait AudioPlayer {
-    fn play(&mut self, output_buffer: &[f32]);
+    fn play(&mut self, output_buffer: &[u16]);
     fn samples_rate(&self) -> u32;
     fn underflowed(&self) -> bool;
 }
@@ -869,71 +869,79 @@ impl Sound {
         debug_assert!(sample_count == self.channel3.blip.samples_avail() as usize);
         debug_assert!(sample_count == self.channel4.blip.samples_avail() as usize);
 
+        let left_vol =  ((self.volume_left as i32 * (1 << 15)) + 210) / 420;
+        let right_vol =  ((self.volume_right as i32 * (1 << 15)) + 210) / 420;
+
         let mut outputted = 0;
 
-        let left_vol = (self.volume_left as f32 / 7.0) * (1.0 / 15.0) * 0.25;
-        let right_vol = (self.volume_right as f32 / 7.0) * (1.0 / 15.0) * 0.25;
-
         while outputted < sample_count {
-          
-            let output_buffer = &mut [0f32;( OUTPUT_SAMPLE_COUNT + 10) * 2];
+            let output_buffer = &mut [0u16; (OUTPUT_SAMPLE_COUNT + 10) * 2];
             let buf = &mut [0i16; OUTPUT_SAMPLE_COUNT + 10];
 
             let buff_len = buf.len();
-            let count1 = self.channel1.blip.read_samples(buf, buff_len as u32,false);
+            let count1 = self.channel1.blip.read_samples(buf, buff_len as u32, false);
             for (i, v) in buf[..count1 as usize].iter().enumerate() {
                 if self.reg_ff25 & 0x10 == 0x10 {
-                    output_buffer[i * 2] += *v as f32 * left_vol;
+                    let scaled_sample = ((*v as i32) * left_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+                    output_buffer[i * 2] += scaled_sample as u16;
                 }
                 if self.reg_ff25 & 0x01 == 0x01 {
-                    output_buffer[(i * 2) + 1] += *v as f32 * right_vol;
+                    let scaled_sample = ((*v as i32) * right_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+                    output_buffer[(i * 2) + 1] += scaled_sample as u16;
                 }
             }
 
             let buff_len = buf.len();
-            let count2 = self.channel2.blip.read_samples(buf, buff_len as u32,false);
+            let count2 = self.channel2.blip.read_samples(buf, buff_len as u32, false);
             for (i, v) in buf[..count2 as usize].iter().enumerate() {
                 if self.reg_ff25 & 0x20 == 0x20 {
-                    output_buffer[i * 2] += *v as f32 * left_vol;
+                    let scaled_sample = ((*v as i32) * left_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+                    output_buffer[i * 2] += scaled_sample as u16;
                 }
                 if self.reg_ff25 & 0x02 == 0x02 {
-                    output_buffer[(i * 2) + 1] += *v as f32 * right_vol;
+                    let scaled_sample = ((*v as i32) * right_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+                    output_buffer[(i * 2) + 1] += scaled_sample as u16;
                 }
             }
 
             // channel3 is the WaveChannel, that outputs samples with a 4x
             // increase in amplitude in order to avoid a loss of precision.
             let buff_len = buf.len();
-            let count3 = self.channel3.blip.read_samples(buf, buff_len as u32,false);
+            let count3 = self.channel3.blip.read_samples(buf, buff_len as u32, false);
             for (i, v) in buf[..count3 as usize].iter().enumerate() {
                 if self.reg_ff25 & 0x40 == 0x40 {
-                    output_buffer[i * 2] += ((*v as f32) / 4.0) * left_vol;
+                    let scaled_sample = ((*v as i32) * left_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+                    output_buffer[i * 2] += (scaled_sample / 4) as u16;
                 }
                 if self.reg_ff25 & 0x04 == 0x04 {
-                    output_buffer[(i * 2) + 1] += ((*v as f32) / 4.0) * right_vol;
+                    let scaled_sample = ((*v as i32) * right_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+                    output_buffer[(i * 2) + 1] += (scaled_sample / 4) as u16;
                 }
             }
 
             let buff_len = buf.len();
-            let count4 = self.channel4.blip.read_samples(buf, buff_len as u32,false);
+            let count4 = self.channel4.blip.read_samples(buf, buff_len as u32, false);
             for (i, v) in buf[..count4 as usize].iter().enumerate() {
                 if self.reg_ff25 & 0x80 == 0x80 {
-                    output_buffer[i * 2] += *v as f32 * left_vol;
+                    let scaled_sample = ((*v as i32) * left_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+                    output_buffer[i * 2] += scaled_sample as u16;
                 }
+                
                 if self.reg_ff25 & 0x08 == 0x08 {
-                    output_buffer[(i * 2) + 1] += *v as f32 * right_vol;
+                    let scaled_sample = ((*v as i32) * right_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+                    output_buffer[(i * 2) + 1] += scaled_sample as u16;
                 }
             }
-
+        
             debug_assert!(count1 == count2);
             debug_assert!(count1 == count3);
             debug_assert!(count1 == count4);
 
             self.player.play(&output_buffer[..(count1 * 2) as usize]);
 
-
             outputted += count1 as usize;
         }
+        
     }
 
     fn clear_buffers(&mut self) {
