@@ -102,7 +102,7 @@ impl<RM: RomManager> Memory for Mbc1Cartridge<RM> {
         if address < 0x2000 {
             self.bank_ram.enable((data & 0b0000_1010) != 0);
         } else if address < 0x4000 {
-            self.current_rom_bank = (data & 0b0001_1111);
+            self.current_rom_bank = data & 0b0001_1111;
             if self.current_rom_bank == 0
                 || self.current_rom_bank == 0x20
                 || self.current_rom_bank == 0x40

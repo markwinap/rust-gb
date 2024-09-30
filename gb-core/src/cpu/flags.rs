@@ -1,4 +1,3 @@
-use bitflags::_core::fmt::{Display, Formatter};
 
 const ZERO_FLAG_BYTE_POSITION: u8 = 7;
 const SUBTRACT_FLAG_BYTE_POSITION: u8 = 6;

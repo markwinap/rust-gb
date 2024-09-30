@@ -1,8 +1,6 @@
-use core::iter;
 
 use crate::util::blip_buf::Blip;
-use alloc::{boxed::Box, vec};
-use fon::chan::Ch32;
+use alloc::boxed::Box;
 
 const WAVE_PATTERN: [[i32; 8]; 4] = [
     [-1, -1, -1, -1, 1, -1, -1, -1],

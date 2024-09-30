@@ -7,7 +7,6 @@ use crate::hardware::interrupt_handler::{InterruptHandler, InterruptLine};
 use crate::memory::Memory;
 use alloc::boxed::Box;
 use arrayvec::ArrayVec;
-use bitflags::_core::time::Duration;
 use bitflags::bitflags;
 use core::cmp::Ordering;
 use num_traits::FromPrimitive;
@@ -28,7 +27,7 @@ const SPRITE_HEIGHT: u8 = 16;
 const SPRITE_WIDTH: usize = 8;
 
 const SCREEN_FREQUENCY: usize = 60;
-const STAT_UNUSED_MASK: u8 = (0 << 7);
+const STAT_UNUSED_MASK: u8 = 0 << 7;
 
 const ACCESS_OAM_CYCLES: isize = 21;
 const ACCESS_VRAM_CYCLES: isize = 43;
@@ -780,7 +779,7 @@ struct Palette(u8);
 impl Palette {
     pub fn shade(&self, input: TilePixelValue) -> Shade {
         let offset = input as u16 * 2;
-        let mask = (0b0000_0011 << offset);
+        let mask = 0b0000_0011 << offset;
         let result = (self.0 & mask) >> offset;
         match result {
             0 => Shade::LIGHTEST,

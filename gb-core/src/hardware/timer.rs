@@ -1,7 +1,5 @@
 use crate::hardware::interrupt_handler::{InterruptHandler, InterruptLine};
 use crate::memory::Memory;
-use bitflags::_core::ops::IndexMut;
-use core::ops::Index;
 bitflags!(
   struct TacReg: u8 {
     const ENABLE = 0b100;
@@ -15,10 +13,10 @@ pub const FREQUENCY: u32 = 4 * 1024 * 1024;
 impl TacReg {
     fn counter_mask(&self) -> u16 {
         match self.bits() & 0b11 {
-            0b11 => (1 << 5),
-            0b10 => (1 << 3),
-            0b01 => (1 << 1),
-            _ => (1 << 7),
+            0b11 => 1 << 5,
+            0b10 => 1 << 3,
+            0b01 => 1 << 1,
+            _ => 1 << 7,
         }
     }
     fn to_frequency(&self) -> u32 {

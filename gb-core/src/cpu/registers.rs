@@ -1,4 +1,3 @@
-use crate::cpu::flags::Flags;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Reg8 {
@@ -70,7 +69,7 @@ impl Registers {
 
     pub fn set_af(&mut self, v: u16) {
         self.a = get_msb(v);
-        self.flags = (get_lsb(v));
+        self.flags = get_lsb(v);
     }
 
     pub fn get_bc(&self) -> u16 {

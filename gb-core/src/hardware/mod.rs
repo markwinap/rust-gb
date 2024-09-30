@@ -1,9 +1,8 @@
-use crate::cpu::address::Cpu;
-use crate::cpu::{Interface, Step};
-use crate::hardware::boot_rom::{Bootrom, BootromData};
+use crate::cpu::Interface;
+use crate::hardware::boot_rom::Bootrom;
 use crate::hardware::cartridge::Cartridge;
 use crate::hardware::color_palette::Color;
-use crate::hardware::input::{Controller, InputController};
+use crate::hardware::input::InputController;
 use crate::hardware::interrupt_handler::{InterruptHandler, InterruptLine};
 use crate::hardware::ppu::Ppu;
 use crate::hardware::timer::Timer;

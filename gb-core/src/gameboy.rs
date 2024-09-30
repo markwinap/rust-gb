@@ -1,8 +1,7 @@
 use crate::cpu::address::Cpu;
-use crate::cpu::Step;
 use crate::hardware::boot_rom::Bootrom;
 use crate::hardware::cartridge::Cartridge;
-use crate::hardware::input::{Button, Controller};
+use crate::hardware::input::Button;
 use crate::hardware::{Hardware, Screen};
 use alloc::boxed::Box;
 
