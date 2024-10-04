@@ -3,6 +3,7 @@ use core::ops::Index;
 use crate::hardware::cartridge::{BankableRam, Cartridge, Mbc1Cartridge, ReadOnlyMemoryCartridge};
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
+use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 
 #[derive(FromPrimitive, Clone, Copy)]

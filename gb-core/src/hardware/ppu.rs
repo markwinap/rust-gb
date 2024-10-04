@@ -1,10 +1,10 @@
 use crate::hardware::Screen;
-
+use alloc::boxed::Box;
+use num_derive::FromPrimitive;
 use crate::gameboy::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use crate::hardware::color_palette::{Color, ColorPalette, ORIGINAL_GREEN};
 use crate::hardware::interrupt_handler::{InterruptHandler, InterruptLine};
 use crate::memory::Memory;
-use alloc::boxed::Box;
 use arrayvec::ArrayVec;
 use bitflags::bitflags;
 use core::cmp::Ordering;
@@ -266,7 +266,7 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn get_control(&self) -> u8 {
-        self.control.bits
+        self.control.bits()
     }
 
     //#[unroll_for_loops]
@@ -306,7 +306,7 @@ impl<T: Screen> Ppu<T> {
     }
     pub fn set_stat(&mut self, value: u8) {
         let new_stat = Stat::from_bits_truncate(value);
-
+       // let current_stat = self.stat ;
         self.stat = (self.stat & Stat::COMPARE)
             | (new_stat & Stat::HBLANK_INT)
             | (new_stat & Stat::VBLANK_INT)
@@ -315,7 +315,7 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn get_stat(&self) -> u8 {
-        self.mode.bits() | self.stat.bits | STAT_UNUSED_MASK
+        self.mode.bits() | self.stat.bits() | STAT_UNUSED_MASK
     }
 
     pub fn draw_background_window_pixel(&mut self, x: u8, y: u8, window_map: bool) {
@@ -380,7 +380,8 @@ impl<T: Screen> Ppu<T> {
         } else {
             SPRITE_HEIGHT / 2
         };
-        let mut sprites_to_draw: ArrayVec<[(usize, &Sprite); 10]> = self
+
+        let mut sprites_to_draw: ArrayVec<(usize, &Sprite), 10> = self
             .sprites
             .iter()
             .filter(|sprite| current_line.wrapping_sub(sprite.y) < size)
@@ -545,6 +546,8 @@ bitflags!(
   }
 );
 bitflags!(
+
+  #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
   struct Stat: u8 {
     const COMPARE = 1 << 2;
     const HBLANK_INT = 1 << 3;
@@ -681,6 +684,7 @@ impl Tile {
 }
 
 bitflags!(
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
   struct SpriteFlags: u8 {
     const UNUSED_MASK = 0b_0000_1111;
     const PALETTE     = 0b_0001_0000;
