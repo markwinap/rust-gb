@@ -1,5 +1,5 @@
 use crate::hardware::Screen;
-
+use num_derive::FromPrimitive;
 use crate::gameboy::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use crate::hardware::color_palette::{Color, ColorPalette, ORIGINAL_GREEN};
 use crate::hardware::interrupt_handler::{InterruptHandler, InterruptLine};

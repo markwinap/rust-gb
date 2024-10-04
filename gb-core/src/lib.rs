@@ -8,11 +8,3 @@ pub mod hardware;
 mod memory;
 mod util;
 
-extern crate num_traits;
-
-
-
-
-#[macro_use]
-extern crate num_derive;
-
