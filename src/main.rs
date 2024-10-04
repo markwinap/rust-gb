@@ -23,28 +23,6 @@ fn main() {
     construct_cpu()
 }
 
-// pub fn load_rom(zip_file: &str, rom_name: &str) -> Rom<'static> {
-//     println!("sd {}", 3);
-
-//     let foo = format!("sd {}", 3);
-//     let file = fs::File::open(&zip_file).unwrap();
-//     let mut archive = zip::ZipArchive::new(file).unwrap();
-
-//     let bytes = match archive.by_name(rom_name) {
-//         Ok(rom_file) => {
-//             rom_file.bytes()
-//         }
-//         Err(_) => { panic!() }
-//     };
-//     let data: Result<Vec<_>, _> = bytes.collect();
-//     Rom::from_bytes(Box::leak(Box::new(data.unwrap())))
-// }
-
-// pub fn load_rom_from_path(path: &Path) -> Rom<> {
-//     let mut gb_rom: Vec<u8> = vec![];
-//     File::open(path).and_then(|mut f| f.read_to_end(&mut gb_rom)).map_err(|_| "Could not read ROM").unwrap();
-//    // Rom::from_bytes(Box::leak(Box::new(gb_rom)))
-// }
 
 pub fn construct_cpu() {
     let mut gb_rom: Vec<u8> = vec![];
