@@ -126,7 +126,7 @@ impl InputController {
     }
 }
 
-bitflags!(
+bitflags::bitflags!(
   /// P1 register
   ///
   /// Bits are inverted in get_register/set_register, so in P1

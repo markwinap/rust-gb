@@ -380,7 +380,8 @@ impl<T: Screen> Ppu<T> {
         } else {
             SPRITE_HEIGHT / 2
         };
-        let mut sprites_to_draw: ArrayVec<[(usize, &Sprite); 10]> = self
+
+        let mut sprites_to_draw: ArrayVec<(usize, &Sprite), 10> = self
             .sprites
             .iter()
             .filter(|sprite| current_line.wrapping_sub(sprite.y) < size)
