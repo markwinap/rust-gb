@@ -8,16 +8,12 @@ use crate::gl_screen::{render, GlScreen};
 use gb_core::gameboy::{GameBoy, GbEvents, SCREEN_PIXELS, SCREEN_WIDTH};
 use gb_core::hardware::boot_rom::{Bootrom, BootromData};
 use gb_core::hardware::color_palette::Color;
-use gb_core::hardware::rom::Rom;
 use gb_core::hardware::Screen;
 use std::cell::RefCell;
-use std::fs;
 use std::fs::File;
 use std::io::Read;
-use std::ops::DerefMut;
-use std::path::Path;
 use std::sync::mpsc::{Receiver, SyncSender, TryRecvError};
-use std::sync::{mpsc, Arc};
+use std::sync::mpsc;
 
 fn main() {
     construct_cpu()
@@ -33,8 +29,7 @@ pub fn construct_cpu() {
 
     let gb_rom = ByteRomManager::new(gb_rom.into_boxed_slice());
     let gb_rom = gb_core::hardware::rom::Rom::from_bytes(gb_rom);
-    // let gb_rom = load_rom("test-roms/cpu_instrs.zip", "cpu_instrs/cpu_instrs.gb");
-    // let boot_rom = std::path::PathBuf::from("/home/plozano/gbrom/dmg_boot.bin");
+
 
     let (sender2, receiver2) = mpsc::sync_channel::<Box<[u8; SCREEN_PIXELS]>>(1);
     let (control_sender, control_receiver) = mpsc::channel::<GbEvents>();
@@ -51,7 +46,7 @@ pub fn construct_cpu() {
 
     let cputhread = std::thread::spawn(move || {
         let periodic = timer_periodic(16);
-        let mut limit_speed = true;
+        let limit_speed = true;
 
         let waitticks = (4194304f64 / 1000.0 * 16.0).round() as u32;
         let mut ticks = 0;

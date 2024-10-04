@@ -1,18 +1,12 @@
-use gb_core::hardware::color_palette::Color;
 use gb_core::hardware::Screen;
 
 use gb_core::gameboy::{GbEvents, SCREEN_HEIGHT, SCREEN_PIXELS, SCREEN_WIDTH};
 use gb_core::hardware::input::Button;
-use glium::glutin::event::WindowEvent::KeyboardInput;
-use glium::glutin::event::{Event, VirtualKeyCode, WindowEvent};
 use glium::glutin::event_loop::EventLoop;
 use glium::glutin::platform::run_return::EventLoopExtRunReturn;
-use std::cell::RefCell;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{self, Receiver, Sender, SyncSender, TryRecvError, TrySendError};
-use std::sync::{Arc, Mutex, RwLock};
-use std::thread::JoinHandle;
-use std::time::Duration;
+use std::sync::atomic::AtomicBool;
+use std::sync::mpsc::{Receiver, Sender};
+use std::sync::{Arc, RwLock};
 
 pub struct GlScreen {
     rw_lock: Arc<RwLock<bool>>,
@@ -29,7 +23,7 @@ impl GlScreen {
     pub fn init(rom_name: String, receiver: Receiver<Box<[u8; SCREEN_PIXELS]>>) -> Self {
         let window_builder = create_window_builder(&rom_name);
         let context_builder = glium::glutin::ContextBuilder::new();
-        let mut event_loop = glium::glutin::event_loop::EventLoop::new();
+        let event_loop = glium::glutin::event_loop::EventLoop::new();
         let display =
             glium::backend::glutin::Display::new(window_builder, context_builder, &event_loop)
                 .unwrap();
@@ -50,7 +44,7 @@ impl GlScreen {
     }
 }
 
-pub fn render(mut screen: GlScreen, sender: Sender<GbEvents>) {
+pub fn render(screen: GlScreen, sender: Sender<GbEvents>) {
     use glium::glutin::event::ElementState::{Pressed, Released};
     use glium::glutin::event::VirtualKeyCode;
     use glium::glutin::event::{Event, KeyboardInput, WindowEvent};
@@ -166,7 +160,7 @@ fn recalculate_screen(
         format: glium::texture::ClientFormat::U8U8U8,
     };
 
-    let mut texture = glium::texture::texture2d::Texture2d::empty_with_format(
+    let texture = glium::texture::texture2d::Texture2d::empty_with_format(
         display,
         glium::texture::UncompressedFloatFormat::U8U8U8,
         glium::texture::MipmapsOption::NoMipmap,
