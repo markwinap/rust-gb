@@ -1,4 +1,5 @@
 use crate::hardware::Screen;
+use alloc::boxed::Box;
 use num_derive::FromPrimitive;
 use crate::gameboy::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use crate::hardware::color_palette::{Color, ColorPalette, ORIGINAL_GREEN};
@@ -106,7 +107,7 @@ pub struct Ppu<T: Screen> {
     render_frame: bool,
     skip_interval: f32,
     counter: u8,
-    sprites: [Sprite; SPRITE_COUNT],
+    sprites: Box<[Sprite; SPRITE_COUNT]>,
 }
 
 impl<T: Screen> Ppu<T> {
@@ -136,7 +137,7 @@ impl<T: Screen> Ppu<T> {
             counter: 0,
             skip_interval: FRAMES_PER_SECOND as f32 / u8::min(screen.frame_rate(),FRAMES_PER_SECOND) as f32,
             cycle_counter: 0,
-            sprites: [Sprite::new(Palette(0)); SPRITE_COUNT],
+            sprites: Box::new([Sprite::new(Palette(0)); SPRITE_COUNT]),
             screen,
         }
     }
