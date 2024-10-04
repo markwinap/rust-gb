@@ -131,6 +131,7 @@ bitflags!(
   ///
   /// Bits are inverted in get_register/set_register, so in P1
   /// a set bit is 1 as usual.
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   pub struct P1: u8 {
     const P10                = 1 << 0; // P10: →, A
     const P11                = 1 << 1; // P11: ←, B
@@ -141,11 +142,11 @@ bitflags!(
 
     /// Only select bits are writable
     const WRITABLE =
-      P1::SELECT_DIRECTIONAL.bits | P1::SELECT_BUTTON.bits;
+      P1::SELECT_DIRECTIONAL.bits() | P1::SELECT_BUTTON.bits();
 
     /// DMG: initial state 0xCF
     /// See docs/accuracy/joypad.markdown
-    const INITIAL_STATE = P1::WRITABLE.bits;
+    const INITIAL_STATE = P1::WRITABLE.bits();
   }
 );
 

@@ -2,6 +2,7 @@ use crate::util::int::IntExt;
 use bitflags::bitflags;
 
 bitflags!(
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   pub struct InterruptLine: u8 {
     const VBLANK = 1 << 0;
     const STAT = 1 << 1;

@@ -1,6 +1,7 @@
 use crate::hardware::interrupt_handler::{InterruptHandler, InterruptLine};
 use crate::memory::Memory;
 bitflags!(
+  #[derive(Debug, Clone, Copy)]
   struct TacReg: u8 {
     const ENABLE = 0b100;
     const MASK_1 = 0b010;

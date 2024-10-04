@@ -1,6 +1,7 @@
+use core::ops::{Index, IndexMut};
+
 use crate::memory::Memory;
 use alloc::boxed::Box;
-use bitflags::_core::ops::{Index, IndexMut};
 
 use super::rom::RomManager;
 

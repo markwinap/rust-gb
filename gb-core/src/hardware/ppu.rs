@@ -266,7 +266,7 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn get_control(&self) -> u8 {
-        self.control.bits
+        self.control.bits()
     }
 
     //#[unroll_for_loops]
@@ -306,7 +306,7 @@ impl<T: Screen> Ppu<T> {
     }
     pub fn set_stat(&mut self, value: u8) {
         let new_stat = Stat::from_bits_truncate(value);
-
+       // let current_stat = self.stat ;
         self.stat = (self.stat & Stat::COMPARE)
             | (new_stat & Stat::HBLANK_INT)
             | (new_stat & Stat::VBLANK_INT)
@@ -315,7 +315,7 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn get_stat(&self) -> u8 {
-        self.mode.bits() | self.stat.bits | STAT_UNUSED_MASK
+        self.mode.bits() | self.stat.bits() | STAT_UNUSED_MASK
     }
 
     pub fn draw_background_window_pixel(&mut self, x: u8, y: u8, window_map: bool) {
@@ -545,6 +545,8 @@ bitflags!(
   }
 );
 bitflags!(
+
+  #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
   struct Stat: u8 {
     const COMPARE = 1 << 2;
     const HBLANK_INT = 1 << 3;
@@ -681,6 +683,7 @@ impl Tile {
 }
 
 bitflags!(
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
   struct SpriteFlags: u8 {
     const UNUSED_MASK = 0b_0000_1111;
     const PALETTE     = 0b_0001_0000;
