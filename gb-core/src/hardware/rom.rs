@@ -33,14 +33,11 @@ impl RomType {
     }
 }
 
-// pub trait RomManager: Index<usize, Output = u8> +  Index<core::ops::Range<usize>, Output = [u8]>  {
-//     fn set_active_bank(&mut self, bank: u8);
-// }
-
 pub trait RomManager:
     Index<usize, Output = u8> + Index<core::ops::Range<usize>, Output = [u8]>
 {
     fn read_from_offset(&self, seek_offset: usize, index: usize) -> u8;
+    fn clock(&mut self) -> u64;
 }
 
 #[derive(FromPrimitive)]

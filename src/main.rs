@@ -14,6 +14,7 @@ use std::fs::File;
 use std::io::Read;
 use std::sync::mpsc::{Receiver, SyncSender, TryRecvError};
 use std::sync::mpsc;
+use std::time::Instant;
 
 fn main() {
     construct_cpu()
@@ -128,11 +129,12 @@ impl Screen for SynScreen {
 
 struct ByteRomManager {
     data: Box<[u8]>,
+    instant: Instant,
 }
 
 impl ByteRomManager {
     fn new(data: Box<[u8]>) -> Self {
-        return Self { data };
+        return Self { data, instant: Instant::now() };
     }
 }
 
@@ -140,6 +142,10 @@ impl gb_core::hardware::rom::RomManager for ByteRomManager {
     fn read_from_offset(&self, seek_offset: usize, index: usize) -> u8 {
         let address = seek_offset + index;
         self.data[address]
+    }
+    
+    fn clock(&mut self) -> u64 {
+        self.instant.elapsed().as_micros() as u64
     }
 }
 
