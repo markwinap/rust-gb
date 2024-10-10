@@ -2,14 +2,18 @@ use core::ops::Index;
 
 use crate::hardware::cartridge::{BankableRam, Cartridge, Mbc1Cartridge, ReadOnlyMemoryCartridge};
 use alloc::boxed::Box;
+use alloc::format;
 use alloc::string::{String, ToString};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
+
+use super::cartridge::Mbc3Cartridge;
 
 #[derive(FromPrimitive, Clone, Copy)]
 pub enum RomType {
     RomOnly = 0x00,
     MBC1 = 0x01,
+    MBC3 = 0x13,
 }
 
 impl RomType {
@@ -28,6 +32,7 @@ impl RomType {
                 rom.data,
                 BankableRam::new(rom.ram_size.banks()),
             )),
+            RomType::MBC3 => Box::new(Mbc3Cartridge::new(rom.data, rom.ram_size.banks())),
             _ => panic!(), //  RomType::MBC1 => Box::new(Mbc1Cartridge::new(rom.data, BankableRam::new(rom.ram_size.banks())))
         }
     }
@@ -37,7 +42,7 @@ pub trait RomManager:
     Index<usize, Output = u8> + Index<core::ops::Range<usize>, Output = [u8]>
 {
     fn read_from_offset(&self, seek_offset: usize, index: usize) -> u8;
-    fn clock(&mut self) -> u64;
+    fn clock(&self) -> u64;
 }
 
 #[derive(FromPrimitive)]
@@ -143,7 +148,8 @@ impl<'a, RM: RomManager + 'a> Rom<RM> {
         let model = Model::from_value(bytes[0x143]);
         let region = Region::from_value(bytes[0x14A]);
         let title = Rom::resolve_name(&bytes);
-        let rom_type = RomType::from_u8(bytes[0x147]).unwrap();
+        let rom_type = RomType::from_u8(bytes[0x147])
+            .expect(&format!("Rom type not matched: {}", bytes[0x147]));
         Self {
             data: bytes,
             rom_type: rom_type,

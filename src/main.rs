@@ -144,7 +144,7 @@ impl gb_core::hardware::rom::RomManager for ByteRomManager {
         self.data[address]
     }
     
-    fn clock(&mut self) -> u64 {
+    fn clock(& self) -> u64 {
         self.instant.elapsed().as_micros() as u64
     }
 }
