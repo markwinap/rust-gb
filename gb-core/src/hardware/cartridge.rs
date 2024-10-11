@@ -405,7 +405,7 @@ impl<RM: RomManager> Memory for Mbc3Cartridge<RM> {
                 s => unimplemented!("Unknown selector: {:02x}", s),
             }
         } else {
-            0xFF
+            self.rom_manager.read_from_offset(0x0000, address as usize)
         }
     }
 }
