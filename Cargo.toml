@@ -8,6 +8,27 @@ edition = "2021"
 
 [dependencies]
 gb-core = { version = "*", path = "gb-core" }
-glium = { version = "0.29", default_features = false, features = [ "glutin" ] }
+glium = { version = "0.29", default_features = false, features = ["glutin"] }
 minifb = "0.19.2"
 zip = "0.5"
+env_logger = "0.11"
+log = "0.4"
+[dev-dependencies]
+
+
+# cargo build/run
+[profile.dev]
+codegen-units = 1
+debug = true
+debug-assertions = true
+incremental = false
+opt-level = 0
+overflow-checks = true
+
+
+[profile.dev.build-override]
+codegen-units = 8
+debug = true
+debug-assertions = true
+opt-level = 0
+overflow-checks = true

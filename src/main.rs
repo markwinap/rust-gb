@@ -9,28 +9,40 @@ use gb_core::gameboy::{GameBoy, GbEvents, SCREEN_PIXELS, SCREEN_WIDTH};
 use gb_core::hardware::boot_rom::{Bootrom, BootromData};
 use gb_core::hardware::color_palette::Color;
 use gb_core::hardware::Screen;
+use log::info;
 use std::cell::RefCell;
 use std::fs::File;
 use std::io::Read;
-use std::sync::mpsc::{Receiver, SyncSender, TryRecvError};
 use std::sync::mpsc;
+use std::sync::mpsc::{Receiver, SyncSender, TryRecvError};
 use std::time::Instant;
 
 fn main() {
+    use std::io::Write;
+
+    let mut builder = env_logger::Builder::from_default_env();
+
+    builder
+        .format(|buf, record| {
+            let ts = buf.timestamp_millis();
+
+            writeln!(buf, "{}: {}: {}", ts, record.level(), record.args())
+        })
+        .init();
+
+    info!("HELLO");
     construct_cpu()
 }
 
-
 pub fn construct_cpu() {
     let mut gb_rom: Vec<u8> = vec![];
-    File::open("C:\\roms\\sml.gb")
+    File::open("C:\\roms\\cpu_instrs.gb")
         .and_then(|mut f| f.read_to_end(&mut gb_rom))
         .map_err(|_| "Could not read ROM")
         .unwrap();
 
     let gb_rom = ByteRomManager::new(gb_rom.into_boxed_slice());
     let gb_rom = gb_core::hardware::rom::Rom::from_bytes(gb_rom);
-
 
     let (sender2, receiver2) = mpsc::sync_channel::<Box<[u8; SCREEN_PIXELS]>>(1);
     let (control_sender, control_receiver) = mpsc::channel::<GbEvents>();
@@ -121,7 +133,7 @@ impl Screen for SynScreen {
         let stuff = self.off_screen_buffer.replace(Box::new([0; SCREEN_PIXELS]));
         self.sender.send(stuff).unwrap();
     }
-    
+
     fn frame_rate(&self) -> u8 {
         60
     }
@@ -134,7 +146,10 @@ struct ByteRomManager {
 
 impl ByteRomManager {
     fn new(data: Box<[u8]>) -> Self {
-        return Self { data, instant: Instant::now() };
+        return Self {
+            data,
+            instant: Instant::now(),
+        };
     }
 }
 
@@ -143,8 +158,8 @@ impl gb_core::hardware::rom::RomManager for ByteRomManager {
         let address = seek_offset + index;
         self.data[address]
     }
-    
-    fn clock(& self) -> u64 {
+
+    fn clock(&self) -> u64 {
         self.instant.elapsed().as_micros() as u64
     }
 }
