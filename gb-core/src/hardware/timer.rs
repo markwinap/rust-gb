@@ -1,74 +1,92 @@
-use crate::hardware::interrupt_handler::{InterruptHandler, InterruptLine};
 use crate::memory::Memory;
-bitflags::bitflags!(
-  #[derive(Debug, Clone, Copy)]
-  struct TacReg: u8 {
-    const ENABLE = 0b100;
-    const MASK_1 = 0b010;
-    const MASK_0 = 0b001;
-  }
-);
 
-pub const FREQUENCY: u32 = 4 * 1024 * 1024;
-
-impl TacReg {
-    fn counter_mask(&self) -> u16 {
-        match self.bits() & 0b11 {
-            0b11 => 1 << 5,
-            0b10 => 1 << 3,
-            0b01 => 1 << 1,
-            _ => 1 << 7,
-        }
-    }
-    fn to_frequency(&self) -> u32 {
-        match self.bits() & 0b11 {
-            0b11 => 16284,
-            0b10 => 65536,
-            0b01 => 262144,
-            _ => 4096,
-        }
-    }
-}
+use super::interrupt_handler::{InterruptHandler, InterruptLine};
 
 pub struct Timer {
+    divider: u8,
+    counter: u8,
+    modulo: u8,
     enabled: bool,
-    tac: TacReg,
-    divider_cycles: isize,
-    divider_counter: u8,
-    timer_cycles: i32,
-    timer_counter: u8,
-    timer_modulo: u8,
+    step: u32,
+    internalcnt: u32,
+    internaldiv: u32,
+    pub interrupt: u8,
 }
 
 impl Timer {
-    pub fn new() -> Self {
+    pub fn new() -> Timer {
         Timer {
+            divider: 0,
+            counter: 0,
+            modulo: 0,
             enabled: false,
-            tac: TacReg::empty(),
-            divider_cycles: 0,
-            divider_counter: 0,
-            timer_cycles: 0,
-            timer_counter: 0,
-            timer_modulo: 0,
+            step: 1024,
+            internalcnt: 0,
+            internaldiv: 0,
+            interrupt: 0,
         }
     }
+
+    pub fn rb(&self, a: u16) -> u8 {
+        match a {
+            0xFF04 => self.divider,
+            0xFF05 => self.counter,
+            0xFF06 => self.modulo,
+            0xFF07 => {
+                0xF8 | (if self.enabled { 0x4 } else { 0 })
+                    | (match self.step {
+                        16 => 1,
+                        64 => 2,
+                        256 => 3,
+                        _ => 0,
+                    })
+            }
+            _ => panic!("Timer does not handler read {:4X}", a),
+        }
+    }
+
+    pub fn wb(&mut self, a: u16, v: u8) {
+        match a {
+            0xFF04 => {
+                self.divider = 0;
+            }
+            0xFF05 => {
+                self.counter = v;
+            }
+            0xFF06 => {
+                self.modulo = v;
+            }
+            0xFF07 => {
+                self.enabled = v & 0x4 != 0;
+                self.step = match v & 0x3 {
+                    1 => 16,
+                    2 => 64,
+                    3 => 256,
+                    _ => 1024,
+                };
+            }
+            _ => panic!("Timer does not handler write {:4X}", a),
+        };
+    }
+
     pub fn do_cycle(&mut self, ticks: u32, interrupts: &mut InterruptHandler) {
-        self.divider_cycles -= ticks as isize;
-        while self.divider_cycles <= 0 {
-            self.divider_cycles += 255;
-            self.divider_counter = (self.divider_counter.wrapping_add(1)) & 0xFF;
+        self.internaldiv += ticks;
+        while self.internaldiv >= 256 {
+            self.divider = self.divider.wrapping_add(1);
+            self.internaldiv -= 256;
         }
 
         if self.enabled {
-            self.timer_cycles -= ticks as i32;
-            while self.timer_cycles <= 0 {
-                self.timer_cycles += self.tac.to_frequency() as i32;
-                if self.timer_counter == 0xFF {
-                    self.timer_counter = self.timer_modulo;
+            self.internalcnt += ticks;
+
+            while self.internalcnt >= self.step {
+                self.counter = self.counter.wrapping_add(1);
+                if self.counter == 0 {
+                    self.counter = self.modulo;
+                    self.interrupt |= 0x04;
                     interrupts.request(InterruptLine::TIMER, true);
-                } else {
-                    self.timer_counter += 1;
                 }
+                self.internalcnt -= self.step;
             }
         }
     }
@@ -76,39 +94,10 @@ impl Timer {
 
 impl Memory for Timer {
     fn set_byte(&mut self, address: u16, value: u8) {
-        let current_tac = self.tac;
-        match address {
-            0xFF04 => {
-                self.divider_counter = 0;
-            }
-            0xFF05 => {
-                self.timer_counter = value;
-            }
-            0xFF06 => {
-                self.timer_modulo = value;
-            }
-            0xFF07 => {
-                self.tac = TacReg::from_bits_truncate(value);
-                self.enabled = self.tac.contains(TacReg::ENABLE);
-            }
-            _ => panic!("Timer does not handler write {:4X}", address),
-        };
-
-        if current_tac.to_frequency() != self.tac.to_frequency() {
-            self.timer_cycles = (FREQUENCY / self.tac.to_frequency()) as i32;
-        }
+        self.wb(address, value);
     }
 
     fn get_byte(&self, address: u16) -> u8 {
-        match address {
-            0xFF04 => self.divider_counter,
-            0xFF05 => self.timer_counter,
-            0xFF06 => self.timer_modulo,
-            0xFF07 => {
-                const TAC_UNUSED: u8 = 0b1111_1000;
-                TAC_UNUSED | self.tac.bits()
-            }
-            _ => panic!("Timer does not handler read {:4X}", address),
-        }
+        self.rb(address)
     }
 }
