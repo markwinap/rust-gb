@@ -1,4 +1,3 @@
-
 use crate::util::blip_buf::Blip;
 use alloc::boxed::Box;
 
@@ -690,10 +689,10 @@ impl Sound {
     fn new_internal(player: Box<dyn AudioPlayer>, dmg_mode: bool) -> Sound {
         let output_period = ((OUTPUT_SAMPLE_COUNT as u64 * CLOCKS_PER_SECOND as u64)
             / player.samples_rate() as u64) as u32;
-        let blipbuf1 = create_blipbuf(player.samples_rate(), output_period);
-        let blipbuf2 = create_blipbuf(player.samples_rate(), output_period);
-        let blipbuf3 = create_blipbuf(player.samples_rate(), output_period);
-        let blipbuf4 = create_blipbuf(player.samples_rate(), output_period);
+        let blipbuf1 = create_blipbuf(player.samples_rate());
+        let blipbuf2 = create_blipbuf(player.samples_rate());
+        let blipbuf3 = create_blipbuf(player.samples_rate());
+        let blipbuf4 = create_blipbuf(player.samples_rate());
 
         Sound {
             on: false,
@@ -957,7 +956,7 @@ impl Sound {
     }
 }
 
-fn create_blipbuf(samples_rate: u32, sample_count: u32) -> Blip {
+fn create_blipbuf(samples_rate: u32) -> Blip {
     let mut blipbuf = Blip::new((OUTPUT_SAMPLE_COUNT * 2) as u32);
     blipbuf.set_rates(CLOCKS_PER_SECOND as f64, samples_rate as f64);
     blipbuf

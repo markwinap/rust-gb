@@ -26,16 +26,14 @@ impl Display for Flags {
 }
 
 impl Flags {
-    pub fn empty() -> Flags {
-        Flags::default()
-    }
+    #[inline(always)]
     pub fn set_value(&mut self, v: u8) {
         self.z = (v & (1 << ZERO_FLAG_BYTE_POSITION)) != 0;
         self.n = (v & (1 << SUBTRACT_FLAG_BYTE_POSITION)) != 0;
         self.h = (v & (1 << HALF_CARRY_FLAG_BYTE_POSITION)) != 0;
         self.c = (v & (1 << CARRY_FLAG_BYTE_POSITION)) != 0;
     }
-
+    #[inline(always)]
     pub fn read_value(&self) -> u8 {
         let z = self.z as u8;
         let n = self.n as u8;

@@ -524,7 +524,7 @@ bitflags!(
 struct VideoRam {
     tile_map0: [u8; TILE_MAP_SIZE],
     tile_map1: [u8; TILE_MAP_SIZE],
-    tiles: [Tile; TILE_COUNT], // tiles: Vec<Tile>,
+    tiles: [Tile; TILE_COUNT],
 }
 
 impl VideoRam {
@@ -555,13 +555,13 @@ impl VideoRam {
     fn write_tile_byte(&mut self, address: u16, value: u8) {
         let virtual_address = address - 0x8000;
         let tile: &mut Tile = &mut self.tiles[virtual_address as usize / TILE_BYTE_SIZE];
-        tile.data[virtual_address as usize % 16] = value;
+        tile.0[virtual_address as usize % 16] = value;
     }
     #[inline(always)]
     fn read_tile_byte(&self, address: u16) -> u8 {
         let virtual_address = address - 0x8000;
         let tile: &Tile = &self.tiles[virtual_address as usize / TILE_BYTE_SIZE];
-        tile.data[virtual_address as usize % 16]
+        tile.0[virtual_address as usize % 16]
     }
 }
 
@@ -612,19 +612,16 @@ impl Default for Shade {
 }
 
 #[derive(Clone, Copy)]
-pub struct Tile {
-    data: [u8; 16],
-}
-
+pub struct Tile([u8; 16]);
 impl Tile {
     fn new() -> Tile {
-        Tile { data: [0; 16] }
+        Tile([0; 16])
     }
 
     fn shade_at(&self, line: u8, bit: usize, palette: &Palette) -> Shade {
         use crate::util::int::IntExt;
-        let data1 = self.data[(line as u16) as usize];
-        let data2 = self.data[(line as u16 + 1) as usize];
+        let data1 = self.0[(line as u16) as usize];
+        let data2 = self.0[(line as u16 + 1) as usize];
         let color_value = (data2.bit(bit) << 1) | data1.bit(bit);
         palette.shade(TilePixelValue::from_u8(color_value).unwrap())
     }
@@ -664,6 +661,7 @@ impl Sprite {
 struct Palette(u8);
 
 impl Palette {
+    #[inline(always)]
     pub fn shade(&self, input: TilePixelValue) -> Shade {
         let offset = input as u16 * 2;
         let mask = 0b0000_0011 << offset;
