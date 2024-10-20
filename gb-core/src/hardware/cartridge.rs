@@ -2,6 +2,7 @@ use core::ops::{Index, IndexMut};
 
 use crate::memory::Memory;
 use alloc::boxed::Box;
+use log::info;
 
 use super::rom::RomManager;
 
@@ -342,6 +343,7 @@ impl<RM: RomManager> Memory for Mbc3Cartridge<RM> {
             self.ram_rtc_enabled = (data & 0b0000_1010) != 0;
         } else if address < 0x4000 {
             self.current_rom_bank = data & 0x7f;
+            info!("Changing bank: {}", self.current_rom_bank);
         } else if address < 0x6000 {
             self.current_bank_or_rtc = data;
             //TODO SAVE

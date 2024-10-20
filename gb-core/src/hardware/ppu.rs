@@ -284,6 +284,7 @@ impl<T: Screen> Ppu<T> {
         self.mode.bits() | self.stat.bits() | STAT_UNUSED_MASK
     }
 
+    #[inline(always)]
     pub fn draw_background_window_pixel(&mut self, x: u8, y: u8) {
         let adjusted_x = (((x as u16 + self.window_x as u16 - 7) + SCREEN_WIDTH as u16)
             % SCREEN_WIDTH as u16) as u8;
@@ -298,6 +299,7 @@ impl<T: Screen> Ppu<T> {
         self.draw_pixel(x, shade, self.color_palette.background(shade));
     }
 
+    #[inline(always)]
     pub fn draw_background_pixel(&mut self, x: u8, y: u8) {
         let adjusted_x = x.wrapping_add(self.scroll_x);
         let bg_map = self.control.contains(Control::BG_MAP);
@@ -324,7 +326,7 @@ impl<T: Screen> Ppu<T> {
             }
         }
     }
-
+    #[inline(always)]
     fn tile_at(&self, x: u8, y: u8, tile_map: &[u8; TILE_MAP_SIZE]) -> &Tile {
         let col = x as usize / TILE_WIDTH;
         let row = y as usize / TILE_HEIGHT;
@@ -339,6 +341,7 @@ impl<T: Screen> Ppu<T> {
     }
 
     //#[unroll_for_loops]
+    // #[inline(always)]
     pub fn draw_sprites(&mut self) {
         let current_line = self.scanline - 1;
         let size = if self.control.contains(Control::OBJ_SIZE) {
@@ -347,7 +350,7 @@ impl<T: Screen> Ppu<T> {
             SPRITE_HEIGHT / 2
         };
 
-        let mut sprites_to_draw: ArrayVec<(usize, &Sprite), 10> = self
+        let sprites_to_draw: ArrayVec<(usize, &Sprite), 10> = self
             .sprites
             .iter()
             .filter(|sprite| current_line.wrapping_sub(sprite.y) < size)
@@ -355,10 +358,10 @@ impl<T: Screen> Ppu<T> {
             .enumerate()
             .collect();
 
-        sprites_to_draw.sort_by(|&(a_index, a), &(b_index, b)| match a.x.cmp(&b.x) {
-            Ordering::Equal => a_index.cmp(&b_index).reverse(),
-            other => other.reverse(),
-        });
+        // sprites_to_draw.sort_by(|&(a_index, a), &(b_index, b)| match a.x.cmp(&b.x) {
+        //     Ordering::Equal => a_index.cmp(&b_index).reverse(),
+        //     other => other.reverse(),
+        // });
 
         for (_, sprite) in sprites_to_draw {
             let palette = if sprite.flags.contains(SpriteFlags::PALETTE) {
