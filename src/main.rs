@@ -122,12 +122,12 @@ impl Screen for SynScreen {
     fn turn_off(&mut self) {}
 
     fn set_pixel(&mut self, x: u8, y: u8, color: Color) {
-        self.off_screen_buffer.get_mut()[y as usize * SCREEN_WIDTH * 3 + x as usize * 3 + 0] =
-            color.red;
-        self.off_screen_buffer.get_mut()[y as usize * SCREEN_WIDTH * 3 + x as usize * 3 + 1] =
-            color.green;
-        self.off_screen_buffer.get_mut()[y as usize * SCREEN_WIDTH * 3 + x as usize * 3 + 2] =
-            color.blue;
+        self.off_screen_buffer.get_mut()
+            [y as usize * SCREEN_WIDTH as usize * 3 + x as usize * 3 + 0] = color.red;
+        self.off_screen_buffer.get_mut()
+            [y as usize * SCREEN_WIDTH as usize * 3 + x as usize * 3 + 1] = color.green;
+        self.off_screen_buffer.get_mut()
+            [y as usize * SCREEN_WIDTH as usize * 3 + x as usize * 3 + 2] = color.blue;
     }
 
     fn draw(&mut self, skip: bool) {

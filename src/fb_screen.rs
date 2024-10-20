@@ -23,8 +23,8 @@ impl FbScreen {
 
             let mut window = Window::new(
                 "Mario Land",
-                SCREEN_WIDTH,
-                SCREEN_HEIGHT,
+                SCREEN_WIDTH as usize,
+                SCREEN_HEIGHT as usize,
                 WindowOptions::default(),
             )
             .unwrap();
@@ -48,7 +48,7 @@ impl FbScreen {
         }
 
         window
-            .update_with_buffer(&buffer, SCREEN_WIDTH, SCREEN_HEIGHT)
+            .update_with_buffer(&buffer, SCREEN_WIDTH as usize, SCREEN_HEIGHT as usize)
             .unwrap();
     }
 }

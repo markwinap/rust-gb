@@ -5,9 +5,9 @@ use crate::hardware::input::Button;
 use crate::hardware::{Hardware, Screen};
 use alloc::boxed::Box;
 
-pub const SCREEN_HEIGHT: usize = 144;
-pub const SCREEN_WIDTH: usize = 160;
-pub const SCREEN_PIXELS: usize = SCREEN_WIDTH * SCREEN_HEIGHT * 3;
+pub const SCREEN_HEIGHT: u8 = 144;
+pub const SCREEN_WIDTH: u8 = 160;
+pub const SCREEN_PIXELS: usize = (SCREEN_WIDTH as usize * SCREEN_HEIGHT as usize * 3) as usize;
 
 pub struct GameBoy<'a, S: Screen> {
     pub cpu: Cpu<Hardware<'a, S>>,

@@ -65,7 +65,7 @@ pub struct Ppu<T: Screen> {
     compare_line: u8,
     scroll_x: u8,
     scroll_y: u8,
-    background_priority: [bool; SCREEN_WIDTH],
+    background_priority: [bool; SCREEN_WIDTH as usize],
     mode: Mode,
     window_x: u8,
     window_y: u8,
@@ -84,7 +84,7 @@ impl<T: Screen> Ppu<T> {
             background_palette: Palette(0),
             obj_palette0: Palette(0),
             obj_palette1: Palette(0),
-            background_priority: [false; SCREEN_WIDTH],
+            background_priority: [false; SCREEN_WIDTH as usize],
             scanline: 0,
             video_ram: VideoRam {
                 tile_map0: [0; TILE_MAP_SIZE],
@@ -151,7 +151,7 @@ impl<T: Screen> Ppu<T> {
                 interrupts.request(InterruptLine::VBLANK, true);
             } else if self.scanline >= SCREEN_HEIGHT as u8 + 10 {
                 self.draw_to_screen();
-                if self.scanline != 0 && self.scanline as usize != SCREEN_HEIGHT + 10 {
+                if self.scanline != 0 && self.scanline != SCREEN_HEIGHT + 10 {
                     self.scanline = 0;
                 }
                 self.scanline = 0;
@@ -176,7 +176,7 @@ impl<T: Screen> Ppu<T> {
         if !self.control.contains(Control::LCD_ON) {
             self.cycle_counter = VBLANK_MIN_CYCLES;
             self.mode = Mode::VBlank;
-            if self.scanline != 0 && self.scanline as usize != SCREEN_HEIGHT {
+            if self.scanline != 0 && self.scanline != SCREEN_HEIGHT {
                 self.scanline = 0;
             }
             self.scanline = 0;

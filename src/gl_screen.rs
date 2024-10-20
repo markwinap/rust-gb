@@ -40,7 +40,7 @@ impl GlScreen {
     }
 
     fn index(x: u8, y: u8) -> usize {
-        3 * ((y as usize * SCREEN_WIDTH) + x as usize)
+        3 * ((y as usize * SCREEN_WIDTH as usize) + x as usize)
     }
 }
 
