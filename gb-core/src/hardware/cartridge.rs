@@ -326,7 +326,7 @@ impl<RM: RomManager> Cartridge for Mbc3Cartridge<RM> {
     }
 
     fn read_ram(&self, address: u16) -> u8 {
-        if self.ram_rtc_enabled {
+        if !self.ram_rtc_enabled {
             return 0;
         }
         self.get_byte(address)
@@ -387,7 +387,7 @@ impl<RM: RomManager> Memory for Mbc3Cartridge<RM> {
     fn get_byte(&self, address: u16) -> u8 {
         if Self::compare(address, 0x4000, 0x7FFF) == 0 {
             let bank_offset =
-                ((self.current_rom_bank as u16 - 1) * (0x7FFF - 0x4000 + 1)) as usize + 0x4000;
+                ((self.current_rom_bank as usize - 1) * (0x7FFF - 0x4000 + 1)) as usize + 0x4000;
             let result = self
                 .rom_manager
                 .read_from_offset(bank_offset, (address - 0x4000) as usize);

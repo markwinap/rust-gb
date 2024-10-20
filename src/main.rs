@@ -24,9 +24,10 @@ fn main() {
 
     builder
         .format(|buf, record| {
+            // let ts = buf.timestamp_millis();
+            // writeln!(buf, "{}: {}: {}", ts, record.level(), record.args())
             let ts = buf.timestamp_millis();
-
-            writeln!(buf, "{}: {}: {}", ts, record.level(), record.args())
+            writeln!(buf, "{}", record.args())
         })
         .init();
 
@@ -36,7 +37,7 @@ fn main() {
 
 pub fn construct_cpu() {
     let mut gb_rom: Vec<u8> = vec![];
-    File::open("C:\\roms\\cpu_instrs.gb")
+    File::open("C:\\roms\\pkred.gb")
         .and_then(|mut f| f.read_to_end(&mut gb_rom))
         .map_err(|_| "Could not read ROM")
         .unwrap();
