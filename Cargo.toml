@@ -14,7 +14,11 @@ zip = "0.5"
 env_logger = "0.11"
 log = "0.4"
 [dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
 
+[[bench]]
+name = "my_benchmark"
+harness = false
 
 # cargo build/run
 [profile.dev]
@@ -32,3 +36,12 @@ debug = true
 debug-assertions = true
 opt-level = 0
 overflow-checks = true
+
+
+[profile.bench]
+codegen-units = 1
+debug = true
+debug-assertions = false
+incremental = false
+lto = 'fat'
+opt-level = 3

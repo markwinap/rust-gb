@@ -924,6 +924,7 @@ impl<T: Interface> Cpu<T> {
         }
     }
 
+    #[inline(always)]
     fn check_cond(&self, cond: Cond) -> bool {
         match cond {
             Cond::NZ => !self.registers.flags.z,

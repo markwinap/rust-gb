@@ -296,7 +296,7 @@ impl<T: Screen> Ppu<T> {
         let tile = self.tile_at(adjusted_x, y, tile_map);
         let bit = (adjusted_x % 8).wrapping_sub(7).wrapping_mul(0xff) as usize;
         let shade = tile.shade_at((y % 8) * 2, bit, &self.background_palette);
-        self.draw_pixel(x, shade, self.color_palette.background(shade));
+        self.draw_pixel(x, shade, self.color_palette.window(shade));
     }
 
     #[inline(always)]
