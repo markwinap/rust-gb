@@ -1,27 +1,21 @@
-use alloc::boxed::Box;
-
-pub struct WorkRam {
-    ram: Box<[u8; 0x2000]>,
-}
+pub struct WorkRam([u8; 0x2000]);
 
 impl WorkRam {
     pub fn new() -> WorkRam {
-        WorkRam {
-            ram: Box::new([0; 0x2000]),
-        }
+        WorkRam([0; 0x2000])
     }
 
     pub fn read_lower(&self, addr: u16) -> u8 {
-        self.ram[(addr as usize) & 0x1fff]
+        self.0[(addr as usize) & 0x1fff]
     }
     pub fn write_lower(&mut self, addr: u16, value: u8) {
-        self.ram[(addr as usize) & 0x1fff] = value;
+        self.0[(addr as usize) & 0x1fff] = value;
     }
 
     pub fn read_upper(&self, addr: u16) -> u8 {
-        self.ram[(addr as usize) & 0x1fff]
+        self.0[(addr as usize) & 0x1fff]
     }
     pub fn write_upper(&mut self, addr: u16, value: u8) {
-        self.ram[(addr as usize) & 0x1fff] = value;
+        self.0[(addr as usize) & 0x1fff] = value;
     }
 }
