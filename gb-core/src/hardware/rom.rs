@@ -21,6 +21,7 @@ impl RomType {
         match self {
             RomType::RomOnly => false,
             RomType::MBC1 => false,
+            RomType::MBC3 => true,
             _ => false,
         }
     }
@@ -32,7 +33,7 @@ impl RomType {
                 rom.data,
                 BankableRam::new(rom.ram_size.banks()),
             )),
-            RomType::MBC3 => Box::new(Mbc3Cartridge::new(rom.data, rom.ram_size.banks())),
+            RomType::MBC3 => Box::new(Mbc3Cartridge::new(rom)),
             _ => panic!(), //  RomType::MBC1 => Box::new(Mbc1Cartridge::new(rom.data, BankableRam::new(rom.ram_size.banks())))
         }
     }
@@ -42,7 +43,12 @@ pub trait RomManager:
     Index<usize, Output = u8> + Index<core::ops::Range<usize>, Output = [u8]>
 {
     fn read_from_offset(&self, seek_offset: usize, index: usize) -> u8;
+
     fn clock(&self) -> u64;
+
+    fn save(&mut self, game_title: &str, bank_index: u8, bank: &[u8]);
+
+    fn load_to_bank(&mut self, game_title: &str, bank_index: u8, bank: &mut [u8]);
 }
 
 #[derive(FromPrimitive)]

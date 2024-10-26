@@ -42,6 +42,7 @@ pub fn construct_cpu() {
         .map_err(|_| "Could not read ROM")
         .unwrap();
 
+    info!("STARTING");
     let gb_rom = ByteRomManager::new(gb_rom.into_boxed_slice());
     let gb_rom = gb_core::hardware::rom::Rom::from_bytes(gb_rom);
 
@@ -165,6 +166,10 @@ impl gb_core::hardware::rom::RomManager for ByteRomManager {
         //print!("rr");
         //0
     }
+
+    fn save(&mut self, game_title: &str, bank_index: u8, bank: &[u8]) {}
+
+    fn load_to_bank(&mut self, game_title: &str, bank_index: u8, bank: &mut [u8]) {}
 }
 
 impl core::ops::Index<usize> for ByteRomManager {

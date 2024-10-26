@@ -2,8 +2,9 @@ use core::ops::{Index, IndexMut};
 
 use crate::memory::Memory;
 use alloc::boxed::Box;
+use log::info;
 
-use super::rom::RomManager;
+use super::rom::{Rom, RomManager};
 
 pub trait Cartridge {
     fn step(&mut self) {}
@@ -216,7 +217,7 @@ impl IndexMut<u16> for BankableRam {
 }
 
 pub struct Mbc3Cartridge<RM: RomManager> {
-    rom_manager: RM,
+    rom_manager: Rom<RM>,
     current_bank_or_rtc: u8,
     ram_rtc_enabled: bool,
     ram_banks: Box<[[u8; 0xBFFF - 0xA000 + 1]]>,
@@ -243,9 +244,10 @@ impl<RM: RomManager> Mbc3Cartridge<RM> {
         return 0;
     }
 
-    pub fn new(rom_manager: RM, banks: u8) -> Self {
-        let epoch = rom_manager.clock() / 1_000_000;
-        Self {
+    pub fn new(rom_manager: Rom<RM>) -> Self {
+        let epoch = rom_manager.data.clock() / 1_000_000;
+        let banks = rom_manager.ram_size.banks();
+        let mut cartridge = Self {
             rom_manager,
             ram_banks: (0..banks).map(|_| [0; 0xBFFF - 0xA000 + 1]).collect(),
             current_bank_or_rtc: 0,
@@ -258,7 +260,15 @@ impl<RM: RomManager> Mbc3Cartridge<RM> {
             rtc_day_high: 0,
             epoch: epoch,
             prelatch: false,
+        };
+        for (index, bank) in &mut cartridge.ram_banks.iter_mut().enumerate() {
+            cartridge.rom_manager.data.load_to_bank(
+                &cartridge.rom_manager.title,
+                index as u8,
+                bank,
+            );
         }
+        cartridge
     }
 
     fn update_epoch(&mut self) {
@@ -266,7 +276,7 @@ impl<RM: RomManager> Mbc3Cartridge<RM> {
     }
 
     fn epoch(&self) -> u64 {
-        self.rom_manager.clock() / 1_000_000
+        self.rom_manager.data.clock() / 1_000_000
     }
 
     fn day(&self) -> u64 {
@@ -339,12 +349,28 @@ impl<RM: RomManager> Cartridge for Mbc3Cartridge<RM> {
 impl<RM: RomManager> Memory for Mbc3Cartridge<RM> {
     fn set_byte(&mut self, address: u16, data: u8) {
         if address < 0x2000 {
+            let current_state = self.ram_rtc_enabled;
             self.ram_rtc_enabled = (data & 0b0000_1010) != 0;
+            if !self.ram_rtc_enabled
+                && current_state
+                && (self.current_bank_or_rtc == 0x00
+                    || self.current_bank_or_rtc == 0x01
+                    || self.current_bank_or_rtc == 0x02
+                    || self.current_bank_or_rtc == 0x03)
+            {
+                //SAVE ROM
+                self.rom_manager.data.save(
+                    &self.rom_manager.title,
+                    self.current_bank_or_rtc,
+                    &self.ram_banks[self.current_bank_or_rtc as usize],
+                )
+            }
+            info!("Ram bank state:{}", self.ram_rtc_enabled);
         } else if address < 0x4000 {
             self.current_rom_bank = data & 0x7f;
         } else if address < 0x6000 {
             self.current_bank_or_rtc = data;
-            //TODO SAVE
+            info!("SWITCHING BANKS!: {}", self.current_bank_or_rtc);
         } else if address < 0x8000 {
             if self.prelatch {
                 if data == 0x01 {
@@ -390,6 +416,7 @@ impl<RM: RomManager> Memory for Mbc3Cartridge<RM> {
                 ((self.current_rom_bank as usize - 1) * (0x7FFF - 0x4000 + 1)) as usize + 0x4000;
             let result = self
                 .rom_manager
+                .data
                 .read_from_offset(bank_offset, (address - 0x4000) as usize);
             return result;
         } else if Self::compare(address, 0xa000, 0xbfff) == 0 {
@@ -405,7 +432,9 @@ impl<RM: RomManager> Memory for Mbc3Cartridge<RM> {
                 s => unimplemented!("Unknown selector: {:02x}", s),
             }
         } else {
-            self.rom_manager.read_from_offset(0x0000, address as usize)
+            self.rom_manager
+                .data
+                .read_from_offset(0x0000, address as usize)
         }
     }
 }
