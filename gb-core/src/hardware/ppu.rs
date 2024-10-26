@@ -671,7 +671,9 @@ impl Palette {
             1 => Shade::LIGHT,
             2 => Shade::DARK,
             3 => Shade::DARKEST,
-            _ => Shade::LIGHTEST,
+            _ => {
+                panic!("Wrong val!");
+            }
         }
     }
 }
