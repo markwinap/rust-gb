@@ -167,9 +167,13 @@ impl gb_core::hardware::rom::RomManager for ByteRomManager {
         //0
     }
 
-    fn save(&mut self, game_title: &str, bank_index: u8, bank: &[u8]) {}
+    fn save(&mut self, game_title: &str, bank_index: u8, bank: &[u8]) {
+        info!("SAVING RAM BANK: {}", bank_index);
+    }
 
-    fn load_to_bank(&mut self, game_title: &str, bank_index: u8, bank: &mut [u8]) {}
+    fn load_to_bank(&mut self, game_title: &str, bank_index: u8, bank: &mut [u8]) {
+        info!("LOADING RAM BANK: {}", bank_index);
+    }
 }
 
 impl core::ops::Index<usize> for ByteRomManager {

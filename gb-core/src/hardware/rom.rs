@@ -42,7 +42,7 @@ impl RomType {
 pub trait RomManager:
     Index<usize, Output = u8> + Index<core::ops::Range<usize>, Output = [u8]>
 {
-    fn read_from_offset(&self, seek_offset: usize, index: usize) -> u8;
+    fn read_from_offset(&self, seek_offset: usize, index: usize, bank_number: u8) -> u8;
 
     fn clock(&self) -> u64;
 

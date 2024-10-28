@@ -55,11 +55,11 @@ impl<RM: RomManager> Memory for ReadOnlyMemoryCartridge<RM> {
         if Self::compare(address, 0x4000, 0x7FFF) == 0 {
             return self
                 .bytes
-                .read_from_offset(0x4000 as usize, (address - 0x4000) as usize);
+                .read_from_offset(0x4000 as usize, (address - 0x4000) as usize, 1);
         }
         return self
             .bytes
-            .read_from_offset(0x0000 as usize, address as usize);
+            .read_from_offset(0x0000 as usize, address as usize, 1);
     }
 }
 
@@ -133,14 +133,17 @@ impl<RM: RomManager> Memory for Mbc1Cartridge<RM> {
         if Self::compare(address, 0x4000, 0x7FFF) == 0 {
             let bank_offset =
                 ((self.current_rom_bank as u16 - 1) * (0x7FFF - 0x4000 + 1)) as usize + 0x4000;
-            let result = self
-                .rom_manager
-                .read_from_offset(bank_offset, (address - 0x4000) as usize);
+            let result = self.rom_manager.read_from_offset(
+                bank_offset,
+                (address - 0x4000) as usize,
+                self.current_rom_bank,
+            );
             return result;
         } else if Self::compare(address, 0xA000, 0xBFFF) == 0 {
             return self.bank_ram.get_byte(address - 0xA000);
         }
-        self.rom_manager.read_from_offset(0x0000, address as usize)
+        self.rom_manager
+            .read_from_offset(0x0000, address as usize, 1)
     }
 }
 
@@ -411,10 +414,11 @@ impl<RM: RomManager> Memory for Mbc3Cartridge<RM> {
         if Self::compare(address, 0x4000, 0x7FFF) == 0 {
             let bank_offset =
                 ((self.current_rom_bank as usize - 1) * (0x7FFF - 0x4000 + 1)) as usize + 0x4000;
-            let result = self
-                .rom_manager
-                .data
-                .read_from_offset(bank_offset, (address - 0x4000) as usize);
+            let result = self.rom_manager.data.read_from_offset(
+                bank_offset,
+                (address - 0x4000) as usize,
+                self.current_rom_bank,
+            );
             return result;
         } else if Self::compare(address, 0xa000, 0xbfff) == 0 {
             match self.current_bank_or_rtc {
@@ -431,7 +435,7 @@ impl<RM: RomManager> Memory for Mbc3Cartridge<RM> {
         } else {
             self.rom_manager
                 .data
-                .read_from_offset(0x0000, address as usize)
+                .read_from_offset(0x0000, address as usize, 1)
         }
     }
 }
