@@ -156,7 +156,7 @@ impl ByteRomManager {
 }
 
 impl gb_core::hardware::rom::RomManager for ByteRomManager {
-    fn read_from_offset(&self, seek_offset: usize, index: usize) -> u8 {
+    fn read_from_offset(&self, seek_offset: usize, index: usize, _bank_number: u8) -> u8 {
         let address = seek_offset + index;
         self.data[address]
     }
