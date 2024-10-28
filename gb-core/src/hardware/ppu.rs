@@ -3,11 +3,10 @@ use crate::hardware::color_palette::{Color, ColorPalette, ORIGINAL_GREEN};
 use crate::hardware::interrupt_handler::{InterruptHandler, InterruptLine};
 use crate::hardware::Screen;
 use crate::memory::Memory;
-use alloc::boxed::Box;
+
 use arrayvec::ArrayVec;
 use bitflags::bitflags;
 
-use core::cmp::Ordering;
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 
@@ -26,6 +25,9 @@ const SPRITE_HEIGHT: u8 = 16;
 const STAT_UNUSED_MASK: u8 = 0 << 7;
 
 const TILE_MAP_SIZE: usize = 0x400;
+
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
 
 #[derive(Copy, Clone, PartialEq, Eq, FromPrimitive)]
 enum Mode {

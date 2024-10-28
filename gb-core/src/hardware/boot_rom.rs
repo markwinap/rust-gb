@@ -1,5 +1,7 @@
-use alloc::vec::Vec;
 use core::ops::Index;
+
+#[cfg(not(feature = "std"))]
+use alloc::vec::{self, Vec};
 
 pub struct BootromData(pub Vec<u8>);
 

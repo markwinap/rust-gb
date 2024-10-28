@@ -1,13 +1,24 @@
 use core::ops::Index;
+use core::str::FromStr;
 
 use crate::hardware::cartridge::{BankableRam, Cartridge, Mbc1Cartridge, ReadOnlyMemoryCartridge};
-use alloc::boxed::Box;
-use alloc::format;
-use alloc::string::{String, ToString};
+
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 
 use super::cartridge::Mbc3Cartridge;
+
+#[cfg(feature = "std")]
+use std as core;
+
+#[cfg(not(feature = "std"))]
+use alloc::string::String;
+
+#[cfg(not(feature = "std"))]
+use alloc::format;
+
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
 
 #[derive(FromPrimitive, Clone, Copy)]
 pub enum RomType {
@@ -175,9 +186,9 @@ impl<'a, RM: RomManager + 'a> Rom<RM> {
             } else {
                 &data[0x134..0x143]
             };
-            let utf8 = alloc::str::from_utf8(slice).unwrap();
+            let utf8 = core::str::from_utf8(slice).unwrap();
 
-            utf8.trim_end_matches('\0').to_string()
+            String::from_str(utf8.trim_end_matches('\0')).unwrap()
         }
     }
 }

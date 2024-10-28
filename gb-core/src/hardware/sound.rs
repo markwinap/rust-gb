@@ -1,4 +1,6 @@
 use crate::util::blip_buf::Blip;
+
+#[cfg(not(feature = "std"))]
 use alloc::boxed::Box;
 
 const WAVE_PATTERN: [[i32; 8]; 4] = [

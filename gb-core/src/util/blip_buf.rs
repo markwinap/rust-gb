@@ -1,3 +1,6 @@
+#[cfg(not(feature = "std"))]
+use alloc::{vec, vec::Vec};
+
 const PRE_SHIFT: u8 = 32;
 const TIME_BITS: u8 = PRE_SHIFT + 20;
 const TIME_UNIT: u64 = 1 << TIME_BITS;
@@ -61,7 +64,7 @@ pub struct Blip {
     avail: u32,
     size: u32,
     integrator: i32,
-    buffer: alloc::vec::Vec<i32>,
+    buffer: Vec<i32>,
 }
 
 impl Blip {
@@ -69,7 +72,7 @@ impl Blip {
     /// so that there are blip_max_ratio clocks per sample. Returns pointer to new
     /// buffer, or NULL if insufficient memory.
     pub fn new(sample_count: u32) -> Self {
-        let buffer = alloc::vec![0; (sample_count + BUF_EXTRA as u32) as usize];
+        let buffer = vec![0; (sample_count + BUF_EXTRA as u32) as usize];
         const FACTOR: u64 = TIME_UNIT / BLIP_MAX_RATIO as u64;
         let offset = FACTOR / 2;
         Self {

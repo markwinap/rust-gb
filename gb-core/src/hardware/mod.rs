@@ -8,7 +8,7 @@ use crate::hardware::ppu::Ppu;
 use crate::hardware::timer::Timer;
 use crate::hardware::work_ram::WorkRam;
 use crate::memory::Memory;
-use alloc::boxed::Box;
+
 use sound::Sound;
 
 pub mod boot_rom;
@@ -21,7 +21,10 @@ pub mod rom;
 pub mod sound;
 pub mod timer;
 pub mod work_ram;
-//pub mod audio;
+
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
+
 pub const HIRAM_SIZE: usize = 0x80;
 
 pub type HiramData = [u8; HIRAM_SIZE];

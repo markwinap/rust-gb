@@ -1,6 +1,11 @@
 use core::ops::{Index, IndexMut};
 
 use crate::memory::Memory;
+
+#[cfg(not(feature = "std"))]
+use alloc::vec::{self, Vec};
+
+#[cfg(not(feature = "std"))]
 use alloc::boxed::Box;
 
 use super::rom::{Rom, RomManager};

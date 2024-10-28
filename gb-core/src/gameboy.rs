@@ -3,6 +3,8 @@ use crate::hardware::boot_rom::Bootrom;
 use crate::hardware::cartridge::Cartridge;
 use crate::hardware::input::Button;
 use crate::hardware::{Hardware, Screen};
+
+#[cfg(not(feature = "std"))]
 use alloc::boxed::Box;
 
 pub const SCREEN_HEIGHT: usize = 144;
