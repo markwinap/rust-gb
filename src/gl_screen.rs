@@ -1,5 +1,3 @@
-use gb_core::hardware::Screen;
-
 use gb_core::gameboy::{GbEvents, SCREEN_HEIGHT, SCREEN_PIXELS, SCREEN_WIDTH};
 use gb_core::hardware::input::Button;
 use glium::glutin::event_loop::EventLoop;
