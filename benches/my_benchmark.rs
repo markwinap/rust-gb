@@ -21,7 +21,7 @@ fn fibonacci() {
         "C:\\roms\\dmg_boot.bin"
     ))));
 
-    let state = fs::read_to_string("C:\\roms\\pk.state").unwrap();
+    let state = fs::read_to_string("C:\\roms\\pk_intro.state").unwrap();
     let gb_state = serde_json::from_str::<GameBoyState>(&state).unwrap(); //GameBoyState
 
     let cart = gb_rom.into_cartridge();

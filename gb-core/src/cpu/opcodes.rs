@@ -640,7 +640,6 @@ impl<T: Interface> Cpu<T> {
             0xae => (self.res(5, Addr::HL), 16),
             0xb6 => (self.res(6, Addr::HL), 16),
             0xbe => (self.res(7, Addr::HL), 16),
-            _ => panic!("WTF CB"),
         }
     }
 

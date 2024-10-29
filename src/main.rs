@@ -69,7 +69,7 @@ pub fn construct_cpu() {
 
         let cart = gb_rom.into_cartridge();
 
-        let state = fs::read_to_string("C:\\roms\\pk.state").unwrap();
+        let state = fs::read_to_string("C:\\roms\\pk_intro.state").unwrap();
         let gb_state = serde_json::from_str::<GameBoyState>(&state).unwrap(); //GameBoyState
         let mut gameboy = GameBoy::create_from_state(
             sync_screen,
@@ -97,7 +97,7 @@ pub fn construct_cpu() {
                             info!("SAVING STATE");
                             let state = gameboy.create_state();
                             let string = serde_json::to_string(&state).unwrap();
-                            let mut file = File::create("C:\\roms\\pk.state").unwrap();
+                            let mut file = File::create("C:\\roms\\pk_intro.state").unwrap();
                             file.write_all(string.as_bytes()).unwrap();
                         }
                     },

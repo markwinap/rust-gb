@@ -181,6 +181,7 @@ impl<T: Interface> Read16<Addr16> for Cpu<T> {
 }
 
 impl<T: Interface> Write16<Addr16> for Cpu<T> {
+    #[inline(always)] //IMPORTANT
     fn write_16(&mut self, dst: Addr16, val: u16) {
         match dst {
             Addr16::Direct => {
@@ -262,9 +263,7 @@ impl<T: Interface> Read8<Addr> for Cpu<T> {
                 };
 
                 let value = self.interface.get_byte(0xFF00 | offset as u16);
-                // if cfg!(feature = "debug") {
-                //     println!("ReadOffset address: {:#04X?} with value: {}", 0xFF00 | offset as u16, value);
-                // }
+
                 value
             }
         }

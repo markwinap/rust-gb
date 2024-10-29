@@ -33,7 +33,6 @@ impl RomType {
             RomType::RomOnly => false,
             RomType::MBC1 => false,
             RomType::MBC3 => true,
-            _ => false,
         }
     }
 
@@ -45,7 +44,6 @@ impl RomType {
                 BankableRam::new(rom.ram_size.banks()),
             )),
             RomType::MBC3 => Box::new(Mbc3Cartridge::new(rom)),
-            _ => panic!(), //  RomType::MBC1 => Box::new(Mbc1Cartridge::new(rom.data, BankableRam::new(rom.ram_size.banks())))
         }
     }
 }
