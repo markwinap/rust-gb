@@ -9,6 +9,7 @@ pub mod alu;
 mod opcodes;
 pub mod registers;
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Step {
     Run,
@@ -18,6 +19,13 @@ pub enum Step {
     Stopped,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy)]
+pub struct CpuState {
+    pub registers: Registers,
+    pub op_code: u8,
+    pub state: Step,
+}
 pub trait Interface {
     fn set_interrupt_disabled(&mut self, disabled: bool);
     fn request(&mut self, interrupt: InterruptLine, requested: bool);
@@ -39,8 +47,23 @@ impl<T: Interface> Cpu<T> {
             op_code: 0x00,
             interface,
             state: Step::Run,
-            found: false,
-            tick_count: 0,
+        }
+    }
+
+    pub fn new_from_state(interface: T, state: CpuState) -> Self {
+        Cpu {
+            registers: state.registers,
+            op_code: state.op_code,
+            interface,
+            state: state.state,
+        }
+    }
+
+    pub fn create_state(&self) -> CpuState {
+        CpuState {
+            registers: self.registers,
+            op_code: self.op_code,
+            state: self.state,
         }
     }
 }

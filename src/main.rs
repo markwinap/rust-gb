@@ -1,22 +1,23 @@
 mod fb_screen;
 pub mod gl_screen;
 
-extern crate gb_core;
-extern crate glium;
-
 use crate::gl_screen::{render, GlScreen};
-use gb_core::gameboy::{GameBoy, GbEvents, SCREEN_PIXELS, SCREEN_WIDTH};
+use gb_core::gameboy::{GameBoy, GameBoyState, GbEvents, SCREEN_PIXELS, SCREEN_WIDTH};
 use gb_core::hardware::boot_rom::{Bootrom, BootromData};
 use gb_core::hardware::color_palette::Color;
 use gb_core::hardware::Screen;
 use log::info;
 use std::cell::RefCell;
-use std::fs::File;
-use std::io::Read;
+use std::fs::{self, File};
+use std::io::{Read, Write};
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, SyncSender, TryRecvError};
 use std::time::Instant;
 
+pub enum EmulatorKeyEvent {
+    GbEvent(GbEvents),
+    Save,
+}
 fn main() {
     use std::io::Write;
 
@@ -47,7 +48,7 @@ pub fn construct_cpu() {
     let gb_rom = gb_core::hardware::rom::Rom::from_bytes(gb_rom);
 
     let (sender2, receiver2) = mpsc::sync_channel::<Box<[u8; SCREEN_PIXELS]>>(1);
-    let (control_sender, control_receiver) = mpsc::channel::<GbEvents>();
+    let (control_sender, control_receiver) = mpsc::channel::<EmulatorKeyEvent>();
     let gl_screen = GlScreen::init("foo".to_string(), receiver2);
 
     let sync_screen = SynScreen {
@@ -67,11 +68,15 @@ pub fn construct_cpu() {
         let mut ticks = 0;
 
         let cart = gb_rom.into_cartridge();
-        let mut gameboy = GameBoy::create(
+
+        let state = fs::read_to_string("C:\\roms\\pk.state").unwrap();
+        let gb_state = serde_json::from_str::<GameBoyState>(&state).unwrap(); //GameBoyState
+        let mut gameboy = GameBoy::create_from_state(
             sync_screen,
             cart,
             boot_room_stuff,
             Box::new(NullAudioPlayer),
+            gb_state,
         );
 
         'outer: loop {
@@ -84,8 +89,17 @@ pub fn construct_cpu() {
             'recv: loop {
                 match control_receiver.try_recv() {
                     Ok(event) => match event {
-                        GbEvents::KeyUp(key) => gameboy.key_released(key),
-                        GbEvents::KeyDown(key) => gameboy.key_pressed(key),
+                        EmulatorKeyEvent::GbEvent(gb_events) => match gb_events {
+                            GbEvents::KeyUp(key) => gameboy.key_released(key),
+                            GbEvents::KeyDown(key) => gameboy.key_pressed(key),
+                        },
+                        EmulatorKeyEvent::Save => {
+                            info!("SAVING STATE");
+                            let state = gameboy.create_state();
+                            let string = serde_json::to_string(&state).unwrap();
+                            let mut file = File::create("C:\\roms\\pk.state").unwrap();
+                            file.write_all(string.as_bytes()).unwrap();
+                        }
                     },
                     Err(TryRecvError::Empty) => break 'recv,
                     Err(TryRecvError::Disconnected) => break 'outer,

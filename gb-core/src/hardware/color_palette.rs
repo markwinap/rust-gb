@@ -1,6 +1,7 @@
 use crate::hardware::ppu::Shade;
 
 #[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Color {
     pub red: u8,
     pub green: u8,
@@ -8,6 +9,8 @@ pub struct Color {
     // pub cached_16: u16,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy)]
 pub enum ColorPalette {
     FixedColorPalette {
         darkest: Color,

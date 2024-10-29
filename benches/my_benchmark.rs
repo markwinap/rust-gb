@@ -1,8 +1,8 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use gb_core::hardware::boot_rom::{Bootrom, BootromData};
 use gb_core::hardware::sound::AudioPlayer;
-use gb_core::{gameboy::GameBoy, hardware::Screen};
-use std::fs::File;
+use gb_core::{gameboy::GameBoy, gameboy::GameBoyState, hardware::Screen};
+use std::fs::{self, File};
 use std::hint::black_box;
 use std::io::Read;
 use std::time::Instant;
@@ -21,12 +21,16 @@ fn fibonacci() {
         "C:\\roms\\dmg_boot.bin"
     ))));
 
+    let state = fs::read_to_string("C:\\roms\\pk.state").unwrap();
+    let gb_state = serde_json::from_str::<GameBoyState>(&state).unwrap(); //GameBoyState
+
     let cart = gb_rom.into_cartridge();
-    let mut gameboy: GameBoy<'_, DummyScreen> = GameBoy::create(
+    let mut gameboy: GameBoy<'_, DummyScreen> = GameBoy::create_from_state(
         DummyScreen::new(),
         cart,
         boot_room_stuff,
         Box::new(NullAudioPlayer),
+        gb_state,
     );
 
     for i in 0..500_000_00 {

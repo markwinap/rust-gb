@@ -3,6 +3,7 @@ use bitflags::bitflags;
 
 bitflags!(
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
   pub struct InterruptLine: u8 {
     const VBLANK = 1 << 0;
     const STAT = 1 << 1;
@@ -18,6 +19,8 @@ impl InterruptLine {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy)]
 pub struct InterruptHandler {
     pub interrupt_master_enabled: bool,
     pub enable_delay: u8,

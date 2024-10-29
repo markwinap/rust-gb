@@ -1,14 +1,14 @@
 use crate::cpu::registers::{Reg16, Reg8, Registers};
 use crate::cpu::{Interface, Step};
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Cpu<T: Interface> {
     pub registers: Registers,
     pub op_code: u8,
     pub interface: T,
     pub state: Step,
-    pub found: bool,
     // pub prev_opcode: PrevExec,
-    pub tick_count: usize,
+    //pub tick_count: usize,
 }
 
 #[derive(Default)]

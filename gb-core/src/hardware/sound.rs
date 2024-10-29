@@ -24,6 +24,7 @@ pub trait AudioPlayer {
     fn underflowed(&self) -> bool;
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct VolumeEnvelope {
     period: u8,
     goes_up: bool,
@@ -84,6 +85,7 @@ impl VolumeEnvelope {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct LengthCounter {
     enabled: bool,
     value: u16,
@@ -138,6 +140,7 @@ impl LengthCounter {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct SquareChannel {
     active: bool,
     dac_enabled: bool,
@@ -345,6 +348,7 @@ impl SquareChannel {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct WaveChannel {
     active: bool,
     dac_enabled: bool,
@@ -541,6 +545,7 @@ impl WaveChannel {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct NoiseChannel {
     active: bool,
     dac_enabled: bool,

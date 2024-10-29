@@ -58,6 +58,7 @@ const BL_STEP: [[i16; HALF_WIDTH as usize]; PHASE_COUNT as usize + 1] = [
     [0, 43, -115, 350, -488, 1136, -914, 5861],
 ];
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Blip {
     factor: u64,
     offset: u64,

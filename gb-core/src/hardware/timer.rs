@@ -2,6 +2,8 @@ use crate::memory::Memory;
 
 use super::interrupt_handler::{InterruptHandler, InterruptLine};
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy)]
 pub struct Timer {
     divider: u8,
     counter: u8,

@@ -1,4 +1,8 @@
-pub struct WorkRam([u8; 0x2000]);
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy)]
+pub struct WorkRam(
+    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))] [u8; 0x2000],
+);
 
 impl WorkRam {
     pub fn new() -> WorkRam {

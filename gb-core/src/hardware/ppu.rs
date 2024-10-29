@@ -29,6 +29,7 @@ const TILE_MAP_SIZE: usize = 0x400;
 #[cfg(not(feature = "std"))]
 use alloc::boxed::Box;
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Copy, Clone, PartialEq, Eq, FromPrimitive)]
 enum Mode {
     AccessOam,
@@ -55,6 +56,33 @@ const VBLANK_MIN_CYCLES: isize = 456;
 
 const FRAMES_PER_SECOND: u8 = 60;
 
+#[derive(Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct PPuState {
+    background_palette: Palette,
+    obj_palette0: Palette,
+    obj_palette1: Palette,
+    scanline: u8,
+    video_ram: VideoRam,
+    control: Control,
+    stat: Stat,
+    compare_line: u8,
+    scroll_x: u8,
+    scroll_y: u8,
+    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    background_priority: [bool; SCREEN_WIDTH],
+    mode: Mode,
+    window_x: u8,
+    window_y: u8,
+    cycle_counter: isize,
+    render_frame: bool,
+    skip_interval: f32,
+    counter: u8,
+    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    sprites: [Sprite; SPRITE_COUNT],
+}
+
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Ppu<T: Screen> {
     color_palette: ColorPalette,
     background_palette: Palette,
@@ -67,6 +95,7 @@ pub struct Ppu<T: Screen> {
     compare_line: u8,
     scroll_x: u8,
     scroll_y: u8,
+    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
     background_priority: [bool; SCREEN_WIDTH],
     mode: Mode,
     window_x: u8,
@@ -76,10 +105,60 @@ pub struct Ppu<T: Screen> {
     render_frame: bool,
     skip_interval: f32,
     counter: u8,
-    sprites: Box<[Sprite; SPRITE_COUNT]>,
+    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    sprites: [Sprite; SPRITE_COUNT],
 }
 
 impl<T: Screen> Ppu<T> {
+    pub fn create_state(&self) -> PPuState {
+        PPuState {
+            background_palette: self.background_palette,
+            obj_palette0: self.obj_palette0,
+            obj_palette1: self.obj_palette1,
+            scanline: self.scanline,
+            video_ram: self.video_ram,
+            control: self.control,
+            stat: self.stat,
+            compare_line: self.compare_line,
+            scroll_x: self.scroll_x,
+            scroll_y: self.scroll_y,
+            background_priority: self.background_priority,
+            mode: self.mode,
+            window_x: self.window_x,
+            window_y: self.window_y,
+            cycle_counter: self.cycle_counter,
+            render_frame: self.render_frame,
+            skip_interval: self.skip_interval,
+            counter: self.counter,
+            sprites: self.sprites,
+        }
+    }
+    pub fn new_from_state(screen: T, state: PPuState) -> Ppu<T> {
+        Ppu {
+            color_palette: ORIGINAL_GREEN,
+            background_palette: state.background_palette,
+            obj_palette0: state.obj_palette0,
+            obj_palette1: state.obj_palette0,
+            scanline: state.scanline,
+            video_ram: state.video_ram,
+            control: state.control,
+            stat: state.stat,
+            compare_line: state.compare_line,
+            scroll_x: state.scroll_x,
+            scroll_y: state.scroll_y,
+            background_priority: state.background_priority,
+            mode: state.mode,
+            window_x: state.window_x,
+            window_y: state.window_y,
+            cycle_counter: state.cycle_counter,
+            screen,
+            render_frame: state.render_frame,
+            skip_interval: state.skip_interval,
+            counter: state.counter,
+            sprites: state.sprites,
+        }
+    }
+
     pub fn new(screen: T) -> Ppu<T> {
         Ppu {
             color_palette: ORIGINAL_GREEN,
@@ -107,7 +186,7 @@ impl<T: Screen> Ppu<T> {
             skip_interval: FRAMES_PER_SECOND as f32
                 / u8::min(screen.frame_rate(), FRAMES_PER_SECOND) as f32,
             cycle_counter: 0,
-            sprites: Box::new([Sprite::new(); SPRITE_COUNT]),
+            sprites: [Sprite::new(); SPRITE_COUNT],
             screen,
         }
     }
@@ -500,6 +579,8 @@ impl<T: Screen> Ppu<T> {
 }
 
 bitflags!(
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+    #[derive(Clone, Copy)]
   struct Control: u8 {
     const BG_ON = 1 << 0;
     const OBJ_ON = 1 << 1;
@@ -513,6 +594,7 @@ bitflags!(
 );
 bitflags!(
 
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
   #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
   struct Stat: u8 {
     const COMPARE = 1 << 2;
@@ -523,9 +605,14 @@ bitflags!(
   }
 );
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy)]
 struct VideoRam {
+    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
     tile_map0: [u8; TILE_MAP_SIZE],
+    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
     tile_map1: [u8; TILE_MAP_SIZE],
+    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
     tiles: [Tile; TILE_COUNT],
 }
 
@@ -586,6 +673,7 @@ impl Memory for VideoRam {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Shade {
     DARKEST,
     DARK,
@@ -594,6 +682,7 @@ pub enum Shade {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, FromPrimitive)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum TilePixelValue {
     Zero = 0,
     One = 1,
@@ -614,6 +703,7 @@ impl Default for Shade {
 }
 
 #[derive(Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Tile([u8; 16]);
 impl Tile {
     fn new() -> Tile {
@@ -630,7 +720,8 @@ impl Tile {
 }
 
 bitflags!(
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash,)]
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
   struct SpriteFlags: u8 {
     const UNUSED_MASK = 0b_0000_1111;
     const PALETTE     = 0b_0001_0000;
@@ -641,6 +732,7 @@ bitflags!(
 );
 
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Sprite {
     x: u8,
     y: u8,
@@ -660,6 +752,7 @@ impl Sprite {
 }
 
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Palette(u8);
 
 impl Palette {

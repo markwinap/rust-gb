@@ -2,9 +2,12 @@ use gb_core::gameboy::{GbEvents, SCREEN_HEIGHT, SCREEN_PIXELS, SCREEN_WIDTH};
 use gb_core::hardware::input::Button;
 use glium::glutin::event_loop::EventLoop;
 use glium::glutin::platform::run_return::EventLoopExtRunReturn;
+use log::info;
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, RwLock};
+
+use crate::EmulatorKeyEvent;
 
 pub struct GlScreen {
     rw_lock: Arc<RwLock<bool>>,
@@ -42,7 +45,7 @@ impl GlScreen {
     }
 }
 
-pub fn render(screen: GlScreen, sender: Sender<GbEvents>) {
+pub fn render(screen: GlScreen, sender: Sender<EmulatorKeyEvent>) {
     use glium::glutin::event::ElementState::{Pressed, Released};
     use glium::glutin::event::VirtualKeyCode;
     use glium::glutin::event::{Event, KeyboardInput, WindowEvent};
@@ -67,8 +70,11 @@ pub fn render(screen: GlScreen, sender: Sender<GbEvents>) {
                         virtual_keycode: Some(glutinkey),
                         ..
                     } => {
+                        if glutinkey == VirtualKeyCode::F5 {
+                            let _ = sender.send(EmulatorKeyEvent::Save);
+                        }
                         if let Some(key) = glium_key_to_button(glutinkey) {
-                            let _ = sender.send(GbEvents::KeyDown(key));
+                            let _ = sender.send(EmulatorKeyEvent::GbEvent(GbEvents::KeyDown(key)));
                         }
                     }
                     KeyboardInput {
@@ -77,7 +83,7 @@ pub fn render(screen: GlScreen, sender: Sender<GbEvents>) {
                         ..
                     } => {
                         if let Some(key) = glium_key_to_button(glutinkey) {
-                            let _ = sender.send(GbEvents::KeyUp(key));
+                            let _ = sender.send(EmulatorKeyEvent::GbEvent(GbEvents::KeyUp(key)));
                         }
                     }
                     _ => (),

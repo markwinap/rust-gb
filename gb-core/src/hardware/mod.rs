@@ -9,6 +9,7 @@ use crate::hardware::timer::Timer;
 use crate::hardware::work_ram::WorkRam;
 use crate::memory::Memory;
 
+use ppu::PPuState;
 use sound::Sound;
 
 pub mod boot_rom;
@@ -42,7 +43,9 @@ pub trait Screen {
     fn frame_rate(&self) -> u8;
 }
 
-struct Dma {
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy)]
+pub struct Dma {
     source: u8,
 }
 
@@ -89,6 +92,49 @@ impl<'a, T: Screen> Hardware<'a, T> {
             input_controller: InputController::new(),
         }
     }
+
+    pub fn create_state(&self) -> HardwareState {
+        HardwareState {
+            interrupt_handler: self.interrupt_handler,
+            work_ram: self.work_ram,
+            hiram: self.hiram,
+            timer: self.timer,
+            dma: self.dma,
+        }
+    }
+
+    pub fn create_from_state(
+        screen: T,
+        cartridge: Box<dyn Cartridge + 'a>,
+        boot_rom: Bootrom,
+        player: Box<dyn sound::AudioPlayer>,
+        hardware_state: HardwareState,
+        ppu_state: PPuState,
+    ) -> Hardware<'a, T> {
+        let ppu: Ppu<T> = Ppu::new_from_state(screen, ppu_state);
+        Hardware {
+            interrupt_handler: hardware_state.interrupt_handler,
+            work_ram: hardware_state.work_ram,
+            hiram: hardware_state.hiram,
+            timer: hardware_state.timer,
+            cartridge,
+            gpu: ppu,
+            bootrom: boot_rom,
+            dma: hardware_state.dma,
+            sound: Sound::new_dmg(player),
+            input_controller: InputController::new(),
+        }
+    }
+}
+
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct HardwareState {
+    pub interrupt_handler: InterruptHandler,
+    pub work_ram: WorkRam,
+    #[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
+    pub hiram: HiramData,
+    pub timer: Timer,
+    pub dma: Dma,
 }
 
 impl<'a, T: Screen> Interface for Hardware<'a, T> {
