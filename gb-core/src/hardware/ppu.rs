@@ -325,16 +325,19 @@ impl<T: Screen> Ppu<T> {
             return;
         }
 
-        if self.control.contains(Control::BG_ON) {
-            let y = (self.scanline - 0).wrapping_add(self.scroll_y);
-            for x in 0..SCREEN_WIDTH {
-                self.draw_background_pixel(x as u8, y);
-            }
-        }
-        if self.control.contains(Control::WINDOW_ON) && self.window_y <= self.scanline {
-            let y = (self.scanline - 0) - self.window_y;
-            for x in 0..SCREEN_WIDTH {
-                self.draw_background_window_pixel(x as u8, y);
+        let bg_on = self.control.contains(Control::BG_ON);
+
+        let scanline = self.scanline;
+        let window_y = self.window_y;
+        let background_y_cord = (self.scanline - 0).wrapping_add(self.scroll_y);
+        let window_on = self.control.contains(Control::WINDOW_ON);
+        let window_visible_x = self.window_x.saturating_sub(7);
+        let window_y_cord = (self.scanline - 0) - self.window_y;
+        for x in 0..SCREEN_WIDTH {
+            if (bg_on && !window_on) || !(window_y <= scanline) || !(window_visible_x <= x as u8) {
+                self.draw_background_pixel(x as u8, background_y_cord);
+            } else if window_on && window_y <= scanline {
+                self.draw_background_window_pixel(x as u8, window_y_cord);
             }
         }
 
@@ -629,13 +632,10 @@ impl VideoRam {
 
     #[inline(always)]
     pub fn write_tile_map_byte(&mut self, address: u16, value: u8) {
-        let offset_address;
-        let tile_map = if address < TILE_MAP_ADDRESS_1 as u16 {
-            offset_address = address - TILE_MAP_ADDRESS_0 as u16;
-            &mut self.tile_map0
+        let (tile_map, offset_address) = if address < TILE_MAP_ADDRESS_1 as u16 {
+            (&mut self.tile_map0, address - TILE_MAP_ADDRESS_0 as u16)
         } else {
-            offset_address = address - TILE_MAP_ADDRESS_1 as u16;
-            &mut self.tile_map1
+            (&mut self.tile_map1, address - TILE_MAP_ADDRESS_1 as u16)
         };
 
         tile_map[offset_address as usize] = value;
@@ -712,10 +712,21 @@ impl Tile {
 
     fn shade_at(&self, line: u8, bit: usize, palette: &Palette) -> Shade {
         use crate::util::int::IntExt;
-        let data1 = self.0[(line as u16) as usize];
-        let data2 = self.0[(line as u16 + 1) as usize];
+        let data1 = self.0[(line as u8) as usize];
+        let data2 = self.0[(line as u8 + 1) as usize];
         let color_value = (data2.bit(bit) << 1) | data1.bit(bit);
-        palette.shade(TilePixelValue::from_u8(color_value).unwrap())
+        //palette.shade(TilePixelValue::from_u8(color_value).unwrap())
+
+        let result = ((palette.0 >> ((color_value as usize) * 2)) & 0b11) as usize;
+        match result {
+            0 => Shade::LIGHTEST,
+            1 => Shade::LIGHT,
+            2 => Shade::DARK,
+            3 => Shade::DARKEST,
+            _ => {
+                panic!("Wrong val!");
+            }
+        }
     }
 }
 
@@ -756,11 +767,41 @@ impl Sprite {
 struct Palette(u8);
 
 impl Palette {
+    // #[inline(always)]
+    // pub fn shade(&self, input: TilePixelValue) -> Shade {
+    //     let offset = input as u16 * 2;
+    //     let mask = 0b0000_0011 << offset;
+    //     let result = (self.0 & mask) >> offset;
+    //     match result {
+    //         0 => Shade::LIGHTEST,
+    //         1 => Shade::LIGHT,
+    //         2 => Shade::DARK,
+    //         3 => Shade::DARKEST,
+    //         _ => {
+    //             panic!("Wrong val!");
+    //         }
+    //     }
+    // }
+    // #[inline(always)]
+    // pub fn shade(&self, input: TilePixelValue) -> Shade {
+    //     let offset = input as u16 * 2;
+    //     let result = (self.0 & (0b11 << offset)) >> offset;
+    //     const SHADES: [Shade; 4] = [Shade::LIGHTEST, Shade::LIGHT, Shade::DARK, Shade::DARKEST];
+    //     SHADES[result as usize]
+    // }
+    // #[inline(always)]
+    // pub fn shade(&self, input: TilePixelValue) -> Shade {
+    //     const SHADES: [Shade; 4] = [Shade::LIGHTEST, Shade::LIGHT, Shade::DARK, Shade::DARKEST];
+    //     let offset = (input as u16) << 1;
+    //     SHADES[((self.0 & (0b11 << offset)) >> offset) as usize]
+    // }
+
     #[inline(always)]
-    pub fn shade(&self, input: TilePixelValue) -> Shade {
-        let offset = input as u16 * 2;
-        let mask = 0b0000_0011 << offset;
-        let result = (self.0 & mask) >> offset;
+    pub fn shade(self, input: TilePixelValue) -> Shade {
+        // const SHADES: [Shade; 4] = [Shade::LIGHTEST, Shade::LIGHT, Shade::DARK, Shade::DARKEST];
+        // let offset = (input as u16) << 1;
+        // let result = ((self.0 & (0b11 << offset)) >> offset) as usize;
+        let result = ((self.0 >> ((input as usize) * 2)) & 0b11) as usize;
         match result {
             0 => Shade::LIGHTEST,
             1 => Shade::LIGHT,
