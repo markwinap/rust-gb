@@ -69,15 +69,23 @@ pub fn construct_cpu() {
 
         let cart = gb_rom.into_cartridge();
 
-        let state = fs::read_to_string("C:\\roms\\pk_intro.state").unwrap();
+        let state = fs::read_to_string("C:\\roms\\pk.state").unwrap();
         let gb_state = serde_json::from_str::<GameBoyState>(&state).unwrap(); //GameBoyState
-        let mut gameboy = GameBoy::create_from_state(
+        let mut gameboy = GameBoy::create(
             sync_screen,
             cart,
             boot_room_stuff,
             Box::new(NullAudioPlayer),
-            gb_state,
+            // gb_state,
         );
+
+        // let mut gameboy = GameBoy::create_from_state(
+        //     sync_screen,
+        //     cart,
+        //     boot_room_stuff,
+        //     Box::new(NullAudioPlayer),
+        //     gb_state,
+        // );
 
         'outer: loop {
             while ticks < waitticks {

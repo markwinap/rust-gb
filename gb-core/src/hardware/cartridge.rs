@@ -64,7 +64,7 @@ impl<RM: RomManager> Memory for ReadOnlyMemoryCartridge<RM> {
         }
         return self
             .bytes
-            .read_from_offset(0x0000 as usize, address as usize, 1);
+            .read_from_offset(0x0000 as usize, address as usize, 0);
     }
 }
 
@@ -148,7 +148,7 @@ impl<RM: RomManager> Memory for Mbc1Cartridge<RM> {
             return self.bank_ram.get_byte(address - 0xA000);
         }
         self.rom_manager
-            .read_from_offset(0x0000, address as usize, 1)
+            .read_from_offset(0x0000, address as usize, 0)
     }
 }
 
@@ -440,7 +440,7 @@ impl<RM: RomManager> Memory for Mbc3Cartridge<RM> {
         } else {
             self.rom_manager
                 .data
-                .read_from_offset(0x0000, address as usize, 1)
+                .read_from_offset(0x0000, address as usize, 0)
         }
     }
 }

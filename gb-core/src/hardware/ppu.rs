@@ -332,7 +332,8 @@ impl<T: Screen> Ppu<T> {
         let background_y_cord = (self.scanline - 0).wrapping_add(self.scroll_y);
         let window_on = self.control.contains(Control::WINDOW_ON);
         let window_visible_x = self.window_x.saturating_sub(7);
-        let window_y_cord = (self.scanline - 0) - self.window_y;
+        let window_y_cord = (self.scanline - 0).saturating_sub(self.window_y);
+
         for x in 0..SCREEN_WIDTH {
             if (bg_on && !window_on) || !(window_y <= scanline) || !(window_visible_x <= x as u8) {
                 self.draw_background_pixel(x as u8, background_y_cord);
@@ -344,6 +345,7 @@ impl<T: Screen> Ppu<T> {
         if self.control.contains(Control::OBJ_ON) {
             self.draw_sprites();
         }
+
         self.screen.scanline_complete(self.scanline - 1, false);
     }
 
