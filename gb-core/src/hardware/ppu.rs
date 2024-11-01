@@ -468,20 +468,25 @@ impl<T: Screen> Ppu<T> {
             line *= 2;
             let tile = self.video_ram.tiles[tile_num];
 
-            for x in (0..TILE_WIDTH).rev() {
+            for x in (0..TILE_WIDTH) {
                 let bit = if sprite.flags.contains(SpriteFlags::FLIPX) {
                     7 - x
                 } else {
                     x
                 } as usize;
-                let target_x = sprite.x.wrapping_add(7 - x as u8);
-                let shade = tile.shade_at(line, bit, &palette);
-                let color = self.color_palette.sprite(shade, 0);
 
+                let target_x = sprite.x.wrapping_add(7 - x as u8);
+
+                let raw_color_value = tile.raw_pixel_color(line, bit);
+                if raw_color_value == 0 {
+                    continue;
+                }
+                let shade = Tile::shade(raw_color_value, &palette);
                 if target_x < SCREEN_WIDTH as u8 && shade != Shade::LIGHTEST {
                     if !sprite.flags.contains(SpriteFlags::PRIORITY)
                         || !self.background_priority[target_x as usize]
                     {
+                        let color: Color = self.color_palette.sprite(shade, 0);
                         self.background_priority[x as usize] = shade != Shade::LIGHTEST;
                         self.screen.set_pixel(target_x, self.scanline - 1, color);
                     }
@@ -712,13 +717,17 @@ impl Tile {
         Tile([0; 16])
     }
 
-    fn shade_at(&self, line: u8, bit: usize, palette: &Palette) -> Shade {
+    #[inline(always)]
+    fn raw_pixel_color(&self, line: u8, bit: usize) -> u8 {
         use crate::util::int::IntExt;
         let data1 = self.0[(line as u8) as usize];
         let data2 = self.0[(line as u8 + 1) as usize];
-        let color_value = (data2.bit(bit) << 1) | data1.bit(bit);
-        //palette.shade(TilePixelValue::from_u8(color_value).unwrap())
 
+        (data2.bit(bit) << 1) | data1.bit(bit)
+    }
+
+    #[inline(always)]
+    fn shade(color_value: u8, palette: &Palette) -> Shade {
         let result = ((palette.0 >> ((color_value as usize) * 2)) & 0b11) as usize;
         match result {
             0 => Shade::LIGHTEST,
@@ -729,6 +738,12 @@ impl Tile {
                 panic!("Wrong val!");
             }
         }
+    }
+
+    #[inline(always)]
+    fn shade_at(&self, line: u8, bit: usize, palette: &Palette) -> Shade {
+        let color_value = self.raw_pixel_color(line, bit);
+        Self::shade(color_value, palette)
     }
 }
 
@@ -767,51 +782,3 @@ impl Sprite {
 #[derive(Copy, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Palette(u8);
-
-impl Palette {
-    // #[inline(always)]
-    // pub fn shade(&self, input: TilePixelValue) -> Shade {
-    //     let offset = input as u16 * 2;
-    //     let mask = 0b0000_0011 << offset;
-    //     let result = (self.0 & mask) >> offset;
-    //     match result {
-    //         0 => Shade::LIGHTEST,
-    //         1 => Shade::LIGHT,
-    //         2 => Shade::DARK,
-    //         3 => Shade::DARKEST,
-    //         _ => {
-    //             panic!("Wrong val!");
-    //         }
-    //     }
-    // }
-    // #[inline(always)]
-    // pub fn shade(&self, input: TilePixelValue) -> Shade {
-    //     let offset = input as u16 * 2;
-    //     let result = (self.0 & (0b11 << offset)) >> offset;
-    //     const SHADES: [Shade; 4] = [Shade::LIGHTEST, Shade::LIGHT, Shade::DARK, Shade::DARKEST];
-    //     SHADES[result as usize]
-    // }
-    // #[inline(always)]
-    // pub fn shade(&self, input: TilePixelValue) -> Shade {
-    //     const SHADES: [Shade; 4] = [Shade::LIGHTEST, Shade::LIGHT, Shade::DARK, Shade::DARKEST];
-    //     let offset = (input as u16) << 1;
-    //     SHADES[((self.0 & (0b11 << offset)) >> offset) as usize]
-    // }
-
-    #[inline(always)]
-    pub fn shade(self, input: TilePixelValue) -> Shade {
-        // const SHADES: [Shade; 4] = [Shade::LIGHTEST, Shade::LIGHT, Shade::DARK, Shade::DARKEST];
-        // let offset = (input as u16) << 1;
-        // let result = ((self.0 & (0b11 << offset)) >> offset) as usize;
-        let result = ((self.0 >> ((input as usize) * 2)) & 0b11) as usize;
-        match result {
-            0 => Shade::LIGHTEST,
-            1 => Shade::LIGHT,
-            2 => Shade::DARK,
-            3 => Shade::DARKEST,
-            _ => {
-                panic!("Wrong val!");
-            }
-        }
-    }
-}
