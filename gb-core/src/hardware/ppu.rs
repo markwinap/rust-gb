@@ -468,7 +468,7 @@ impl<T: Screen> Ppu<T> {
             line *= 2;
             let tile = self.video_ram.tiles[tile_num];
 
-            for x in (0..TILE_WIDTH) {
+            for x in 0..TILE_WIDTH {
                 let bit = if sprite.flags.contains(SpriteFlags::FLIPX) {
                     7 - x
                 } else {
@@ -482,7 +482,7 @@ impl<T: Screen> Ppu<T> {
                     continue;
                 }
                 let shade = Tile::shade(raw_color_value, &palette);
-                if target_x < SCREEN_WIDTH as u8 && shade != Shade::LIGHTEST {
+                if target_x < SCREEN_WIDTH as u8 {
                     if !sprite.flags.contains(SpriteFlags::PRIORITY)
                         || !self.background_priority[target_x as usize]
                     {
