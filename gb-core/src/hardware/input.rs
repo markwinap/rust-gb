@@ -12,21 +12,6 @@ pub enum Button {
     SELECT,
 }
 
-// impl Display for Button {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), ::core::fmt::Error> {
-//         match *self {
-//             Button::A => f.write_str("A"),
-//             Button::B => f.write_str("B"),
-//             Button::UP => f.write_str("UP"),
-//             Button::DOWN => f.write_str("DOWN"),
-//             Button::LEFT => f.write_str("LEFT"),
-//             Button::RIGHT => f.write_str("RIGHT"),
-//             Button::START => f.write_str("START"),
-//             Button::SELECT => f.write_str("SELECT"),
-//         }
-//     }
-// }
-
 pub trait Controller {
     fn is_pressed(&self, button: Button) -> bool;
 
@@ -74,7 +59,6 @@ pub trait Controller {
                 any = true;
             }
         }
-        //Button::iter().any(|button| { self.is_pressed(button) })
         any
     }
 }
