@@ -37,6 +37,7 @@ impl<'a, S: Screen> GameBoy<'a, S> {
         if run_reset {
             cpu.reset();
             cpu.interface.gpu.reset();
+            cpu.interface.interrupt_handler.reset();
         }
         cpu.handle_return(cpu.registers.pc);
         GameBoy { cpu }
@@ -86,20 +87,6 @@ impl<'a, S: Screen> GameBoy<'a, S> {
 
     pub fn get_screen(&mut self) -> &mut S {
         &mut self.cpu.interface.gpu.screen
-    }
-
-    #[cfg(feature = "debug")]
-    pub fn tick(&mut self) -> u8 {
-        let mut cycles = self.cpu.step();
-        if self.cpu.state == Step::Interrupt {
-            cycles += self.cpu.step();
-        }
-        let interrupts = &mut self.cpu.interface.interrupt_handler;
-        self.cpu.interface.input_controller.update_state(interrupts);
-        self.cpu.interface.timer.do_cycle(cycles as u32, interrupts);
-        self.cpu.interface.gpu.step(cycles as isize, interrupts);
-        self.cpu.interface.cartridge.step();
-        cycles
     }
 
     pub fn key_pressed(&mut self, button: Button) {

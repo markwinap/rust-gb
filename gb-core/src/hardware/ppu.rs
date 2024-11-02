@@ -8,7 +8,6 @@ use arrayvec::ArrayVec;
 use bitflags::bitflags;
 
 use num_derive::FromPrimitive;
-use num_traits::FromPrimitive;
 
 const TILE_MAP_ADDRESS_0: usize = 0x9800;
 const TILE_MAP_ADDRESS_1: usize = 0x9C00;
@@ -202,6 +201,7 @@ impl<T: Screen> Ppu<T> {
         self.window_x = 0x00;
         self.window_y = 0x00;
     }
+
     pub fn step(&mut self, cycles: isize, interrupts: &mut InterruptHandler) {
         if self.scanline == self.compare_line {
             self.stat.insert(Stat::COMPARE);

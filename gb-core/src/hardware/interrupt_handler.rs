@@ -48,6 +48,11 @@ impl InterruptHandler {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.enabled_interrupts = InterruptLine::empty();
+        self.requested_interrupts = InterruptLine::empty();
+    }
+
     pub fn set_interrupt_disabled(&mut self, disabled: bool) {
         if !disabled {
             self.enable_delay = 2;
