@@ -110,10 +110,10 @@ impl<T: Interface> Write16<Reg16> for Cpu<T> {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub struct Immediate8;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub struct Immediate16;
 
 impl<T: Interface> Read8<Immediate8> for Cpu<T> {
@@ -144,7 +144,7 @@ pub trait Write16<T: Copy> {
     fn write_16(&mut self, dst: T, val: u16);
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub enum Addr {
     BC,
     DE,
@@ -155,12 +155,12 @@ pub enum Addr {
     ReadOffset(ReadOffType),
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub enum Addr16 {
     Direct,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub enum ReadOffType {
     Register(Reg8),
     Immediate8,

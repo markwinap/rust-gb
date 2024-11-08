@@ -6,7 +6,7 @@ use crate::cpu::registers::Reg8::{A, B, C, D, E, H, L};
 use crate::cpu::{Interface, Step};
 use crate::util::int::IntExt;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub enum Cond {
     NZ,
     Z,

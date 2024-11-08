@@ -1,6 +1,6 @@
 use crate::cpu::flags::Flags;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub enum Reg8 {
     A,
     B,
@@ -11,7 +11,7 @@ pub enum Reg8 {
     L,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub enum Reg16 {
     AF,
     BC,
@@ -21,7 +21,7 @@ pub enum Reg16 {
 }
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Default, Clone, Copy)]
 pub struct Registers {
     pub a: u8,
     pub b: u8,

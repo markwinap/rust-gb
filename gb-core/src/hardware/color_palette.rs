@@ -1,6 +1,6 @@
 use crate::hardware::ppu::Shade;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Color {
     pub red: u8,

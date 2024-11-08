@@ -10,7 +10,7 @@ mod opcodes;
 pub mod registers;
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 pub enum Step {
     Run,
     Interrupt,

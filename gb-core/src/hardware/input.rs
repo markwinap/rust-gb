@@ -115,7 +115,7 @@ bitflags::bitflags!(
   ///
   /// Bits are inverted in get_register/set_register, so in P1
   /// a set bit is 1 as usual.
-  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+  #[derive( Clone, Copy, PartialEq, Eq)]
   pub struct P1: u8 {
     const P10                = 1 << 0; // P10: →, A
     const P11                = 1 << 1; // P11: ←, B

@@ -56,9 +56,11 @@ pub fn construct_cpu() {
         off_screen_buffer: RefCell::new(Box::new([0; SCREEN_PIXELS])),
     };
 
-    let boot_room_stuff = Bootrom::new(Some(BootromData::from_bytes(include_bytes!(
-        "C:\\roms\\dmg_boot.bin"
-    ))));
+    // let boot_room_stuff = Bootrom::new(Some(BootromData::from_bytes(include_bytes!(
+    //     "C:\\roms\\dmg_boot.bin"
+    // ))));
+
+    let boot_room_stuff = Bootrom::new(None);
 
     let cputhread = std::thread::spawn(move || {
         let periodic = timer_periodic(16);

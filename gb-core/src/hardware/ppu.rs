@@ -605,7 +605,7 @@ bitflags!(
 bitflags!(
 
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-  #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+  #[derive( Clone, Copy, PartialEq, Eq, Hash)]
   struct Stat: u8 {
     const COMPARE = 1 << 2;
     const HBLANK_INT = 1 << 3;
@@ -679,7 +679,7 @@ impl Memory for VideoRam {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Shade {
     DARKEST,
@@ -688,7 +688,7 @@ pub enum Shade {
     LIGHTEST,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, FromPrimitive)]
+#[derive(Copy, Clone, PartialEq, FromPrimitive)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum TilePixelValue {
     Zero = 0,
@@ -748,7 +748,7 @@ impl Tile {
 }
 
 bitflags!(
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash,)]
+    #[derive( Clone, Copy, PartialEq, Eq, Hash,)]
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
   struct SpriteFlags: u8 {
     const UNUSED_MASK = 0b_0000_1111;

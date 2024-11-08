@@ -8,7 +8,7 @@ const HALF_CARRY_FLAG_BYTE_POSITION: u8 = 5;
 const CARRY_FLAG_BYTE_POSITION: u8 = 4;
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Default, Eq, Clone, Copy, PartialEq, Debug)]
+#[derive(Default, Eq, Clone, Copy, PartialEq)]
 pub struct Flags {
     pub z: bool,
     pub n: bool,
@@ -16,15 +16,15 @@ pub struct Flags {
     pub c: bool,
 }
 
-impl Display for Flags {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        write!(
-            f,
-            "z: {}, n: {}, h: {}, c: {}",
-            self.z, self.n, self.h, self.c
-        )
-    }
-}
+// impl Display for Flags {
+//     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+//         write!(
+//             f,
+//             "z: {}, n: {}, h: {}, c: {}",
+//             self.z, self.n, self.h, self.c
+//         )
+//     }
+// }
 
 impl Flags {
     #[inline(always)]
