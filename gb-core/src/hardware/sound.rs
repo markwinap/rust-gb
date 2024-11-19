@@ -888,12 +888,13 @@ impl Sound {
                 if self.reg_ff25 & 0x10 == 0x10 {
                     let scaled_sample =
                         ((*v as i32) * left_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
-                    output_buffer[i * 2] += scaled_sample as u16;
+                    output_buffer[i * 2] = output_buffer[i * 2].wrapping_add(scaled_sample as u16);
                 }
                 if self.reg_ff25 & 0x01 == 0x01 {
                     let scaled_sample =
                         ((*v as i32) * right_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
-                    output_buffer[(i * 2) + 1] += scaled_sample as u16;
+                    output_buffer[(i * 2) + 1] =
+                        output_buffer[(i * 2) + 1].wrapping_add(scaled_sample as u16);
                 }
             }
 
@@ -903,12 +904,13 @@ impl Sound {
                 if self.reg_ff25 & 0x20 == 0x20 {
                     let scaled_sample =
                         ((*v as i32) * left_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
-                    output_buffer[i * 2] += scaled_sample as u16;
+                    output_buffer[i * 2] = output_buffer[i * 2].wrapping_add(scaled_sample as u16);
                 }
                 if self.reg_ff25 & 0x02 == 0x02 {
                     let scaled_sample =
                         ((*v as i32) * right_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
-                    output_buffer[(i * 2) + 1] += scaled_sample as u16;
+                    output_buffer[(i * 2) + 1] =
+                        output_buffer[(i * 2) + 1].wrapping_add(scaled_sample as u16);
                 }
             }
 
@@ -920,12 +922,14 @@ impl Sound {
                 if self.reg_ff25 & 0x40 == 0x40 {
                     let scaled_sample =
                         ((*v as i32) * left_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
-                    output_buffer[i * 2] += (scaled_sample / 4) as u16;
+                    output_buffer[i * 2] =
+                        output_buffer[i * 2].wrapping_add((scaled_sample / 4) as u16);
                 }
                 if self.reg_ff25 & 0x04 == 0x04 {
                     let scaled_sample =
                         ((*v as i32) * right_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
-                    output_buffer[(i * 2) + 1] += (scaled_sample / 4) as u16;
+                    output_buffer[(i * 2) + 1] =
+                        output_buffer[(i * 2) + 1].wrapping_add((scaled_sample / 4) as u16);
                 }
             }
 
@@ -935,13 +939,14 @@ impl Sound {
                 if self.reg_ff25 & 0x80 == 0x80 {
                     let scaled_sample =
                         ((*v as i32) * left_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
-                    output_buffer[i * 2] += scaled_sample as u16;
+                    output_buffer[i * 2] = output_buffer[i * 2].wrapping_add(scaled_sample as u16);
                 }
 
                 if self.reg_ff25 & 0x08 == 0x08 {
                     let scaled_sample =
                         ((*v as i32) * right_vol).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
-                    output_buffer[(i * 2) + 1] += scaled_sample as u16;
+                    output_buffer[(i * 2) + 1] =
+                        output_buffer[(i * 2) + 1].wrapping_add(scaled_sample as u16);
                 }
             }
 
