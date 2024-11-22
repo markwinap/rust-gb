@@ -417,7 +417,7 @@ impl<T: Interface> Cpu<T> {
             0x23 => (self.sla(E), 8),
             0x24 => (self.sla(H), 8),
             0x25 => (self.sla(L), 8),
-            0x26 => (self.sla(Addr::HL), 8),
+            0x26 => (self.sla(Addr::HL), 16),
 
             0x2f => (self.sra(A), 8),
             0x28 => (self.sra(B), 8),
@@ -435,7 +435,7 @@ impl<T: Interface> Cpu<T> {
             0x3b => (self.srl(E), 8),
             0x3c => (self.srl(H), 8),
             0x3d => (self.srl(L), 8),
-            0x3e => (self.srl(Addr::HL), 8),
+            0x3e => (self.srl(Addr::HL), 16),
 
             0x37 => (self.swap(A), 8),
             0x30 => (self.swap(B), 8),
@@ -809,6 +809,9 @@ impl<T: Interface> Cpu<T> {
 
     pub fn handle_return(&mut self, address: u16) -> (Step, u16) {
         self.op_code = self.interface.get_byte(address);
+        if self.op_code == 0x10 {
+            print!("Abou to panic!");
+        }
         self.interface.step();
         if self.interface.interrupt_master_enabled() && self.interface.any_enabled() {
             (Step::Interrupt, address)
@@ -820,6 +823,9 @@ impl<T: Interface> Cpu<T> {
 
     pub fn halt(&mut self) -> (Step, u16) {
         self.op_code = self.interface.get_byte(self.registers.pc);
+        if self.op_code == 0x10 {
+            print!("Abou to panic!");
+        }
         self.interface.step();
         if self.interface.any_enabled() {
             if self.interface.interrupt_master_enabled() {
@@ -964,6 +970,9 @@ impl<T: Interface> Cpu<T> {
     pub fn ctr_return(&mut self) -> (Step, u16) {
         let addr = self.pop_u16();
         self.registers.pc = addr;
+        if addr == 678 {
+            println!("Panic!");
+        }
         self.handle_return(self.registers.pc)
     }
 
