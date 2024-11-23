@@ -98,6 +98,9 @@ impl<RM: RomManager> Cartridge for Mbc1Cartridge<RM> {
     }
 
     fn write_ram(&mut self, address: u16, value: u8) {
+        if !self.bank_ram.enabled {
+            return;
+        }
         self.set_byte(address, value)
     }
 }
