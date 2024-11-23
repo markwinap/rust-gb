@@ -91,7 +91,7 @@ impl<RM: RomManager> Cartridge for Mbc1Cartridge<RM> {
     }
 
     fn read_ram(&self, address: u16) -> u8 {
-        if self.bank_ram.enabled {
+        if !self.bank_ram.enabled {
             return 0;
         }
         self.get_byte(address)
@@ -202,6 +202,7 @@ impl Memory for BankableRam {
     }
 
     fn get_byte(&self, address: u16) -> u8 {
+        let curr_bank = self.current_bank;
         self.banks[self.current_bank as usize][address as usize]
     }
 }
