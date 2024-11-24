@@ -1,7 +1,7 @@
 use core::ops::Index;
 use core::str::FromStr;
 
-use crate::hardware::cartridge::{BankableRam, Cartridge, Mbc1Cartridge, ReadOnlyMemoryCartridge};
+use crate::hardware::cartridge::{Cartridge, Mbc1Cartridge, ReadOnlyMemoryCartridge};
 
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
@@ -24,7 +24,16 @@ use alloc::boxed::Box;
 pub enum RomType {
     RomOnly = 0x00,
     MBC1 = 0x01,
+    MBC1RamBattery = 0x03,
     MBC3 = 0x13,
+}
+
+fn rom_banks(v: u8) -> u8 {
+    if v <= 8 {
+        2 << v
+    } else {
+        0
+    }
 }
 
 impl RomType {
@@ -33,6 +42,7 @@ impl RomType {
             RomType::RomOnly => false,
             RomType::MBC1 => false,
             RomType::MBC3 => true,
+            RomType::MBC1RamBattery => true,
         }
     }
 
@@ -41,7 +51,13 @@ impl RomType {
             RomType::RomOnly => Box::new(ReadOnlyMemoryCartridge::from_bytes(rom.data)),
             RomType::MBC1 => Box::new(Mbc1Cartridge::new(
                 rom.data,
-                BankableRam::new(rom.ram_size.banks()),
+                rom.ram_size.banks(),
+                rom_banks(rom.rom_size as u8),
+            )),
+            RomType::MBC1RamBattery => Box::new(Mbc1Cartridge::new(
+                rom.data,
+                rom.ram_size.banks(),
+                rom_banks(rom.rom_size as u8),
             )),
             RomType::MBC3 => Box::new(Mbc3Cartridge::new(rom)),
         }
@@ -87,15 +103,17 @@ impl RomSize {
 
 #[derive(FromPrimitive)]
 pub enum RamSize {
-    _2KB = 0,
-    _8KB = 1,
-    _32KB = 2,
-    _128KB = 3,
+    NoRam = 0,
+    _2KB = 0x01,
+    _8KB = 0x02,
+    _32KB = 0x03,
+    _128KB = 0x04,
 }
 
 impl RamSize {
     pub fn ram_size(&self) -> u32 {
         match self {
+            RamSize::NoRam => 0 * 1024,
             RamSize::_2KB => 2 * 1024,
             RamSize::_8KB => 8 * 1024,
             RamSize::_32KB => 32 * 1024,
@@ -105,6 +123,7 @@ impl RamSize {
 
     pub fn banks(&self) -> u8 {
         match self {
+            RamSize::NoRam => 0,
             RamSize::_2KB => 1,
             RamSize::_8KB => 1,
             RamSize::_32KB => 4,
