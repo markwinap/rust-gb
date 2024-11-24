@@ -228,7 +228,6 @@ impl<T: Screen> Ppu<T> {
 
             self.cycle_counter = VBLANK_MIN_CYCLES;
             if self.scanline == SCREEN_HEIGHT as u8 {
-                self.draw_scan_line();
                 interrupts.request(InterruptLine::VBLANK, true);
             } else if self.scanline >= SCREEN_HEIGHT as u8 + 10 {
                 self.draw_to_screen();
@@ -351,11 +350,13 @@ impl<T: Screen> Ppu<T> {
 
     pub fn set_control(&mut self, value: u8) {
         let new_control = Control::from_bits_truncate(value);
-        if new_control.contains(Control::LCD_ON) && !self.control.contains(Control::LCD_ON) {
+        let previous_value = self.control;
+        self.control = new_control;
+
+        if new_control.contains(Control::LCD_ON) && !previous_value.contains(Control::LCD_ON) {
             self.stat.insert(Stat::COMPARE);
             self.screen.turn_on();
         }
-        self.control = new_control;
     }
     pub fn set_stat(&mut self, value: u8) {
         let new_stat = Stat::from_bits_truncate(value);
