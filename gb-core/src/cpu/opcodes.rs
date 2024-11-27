@@ -17,7 +17,46 @@ pub enum Cond {
 impl<T: Interface> Cpu<T> {
     pub fn decode(&mut self) -> ((Step, u16), u8) {
         let op_code = self.op_code;
+        if self.current_screen_state != self.interface.gpu_screen_on() {
+            self.tick_count = 0;
+            println!("RESET TICK COUNT: {}", self.interface.gpu_screen_on());
+            self.current_screen_state = self.interface.gpu_screen_on();
+        }
+        if self.tick_count == 0
+            && op_code == 0xCD
+            && self.registers.pc == 1859
+            && self.registers.sp == 53245
+        {
+            self.active_print = true;
+            let mut enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
+            // *enable_log = true;
+            drop(enable_log);
+        }
+        let enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
+        if *enable_log {
+            println!(
+                "tick: {} opcode: {:#02x}, PC: {}, SP: {} scanline:{}, regs: a:{} b: {}, c:{}, d:{}, e:{}, h:{}, l:{} f:{}",
+                self.tick_count,
+                op_code,
+                self.registers.pc,
+                self.registers.get_sp(),
+                self.interface.scan_line(),
+                self.registers.a,
+                self.registers.b,
+                self.registers.c,
+                self.registers.d,
+                self.registers.e,
+                self.registers.h,
+                self.registers.l,
+                self.registers.flags.read_value()
+            );
+        }
 
+        self.tick_count = self.tick_count.wrapping_add(1);
+
+        // if self.registers.pc == 18627 {
+        //     panic!("STOP");
+        // }
         match op_code {
             0x7f => (self.load_8(A, A), 4),
             0x78 => (self.load_8(A, B), 4),
@@ -117,10 +156,15 @@ impl<T: Interface> Cpu<T> {
                 self.load_8(Addr::ReadOffset(ReadOffType::Register(C)), A),
                 8,
             ),
-            0xf0 => (
-                self.load_8(A, Addr::ReadOffset(ReadOffType::Immediate8)),
-                12,
-            ),
+            0xf0 => {
+                if self.tick_count == 146 + 1 {
+                    //  println!("debug");
+                }
+                (
+                    self.load_8(A, Addr::ReadOffset(ReadOffType::Immediate8)),
+                    12,
+                )
+            }
             0xe0 => (
                 self.load_8(Addr::ReadOffset(ReadOffType::Immediate8), A),
                 12,
@@ -173,7 +217,7 @@ impl<T: Interface> Cpu<T> {
             0xbb => (self.cp(E), 4),
             0xbc => (self.cp(H), 4),
             0xbd => (self.cp(L), 4),
-            0xbe => (self.cp(Addr::HL), 8),
+            0xbe => (self.cp_test(Addr::HL), 8),
             0xfe => (self.cp(Immediate8), 8),
 
             0xa7 => (self.and(A), 4),
@@ -233,7 +277,7 @@ impl<T: Interface> Cpu<T> {
             0xc3 => (self.jp(), 16),
             0xe9 => (self.jp_hl(), 4),
             0x18 => (self.jr(), 12),
-            0xcd => (self.call(), 24),
+            0xcd => (self.call_test(), 24),
             0xc9 => (self.ret(), 16),
             0xd9 => (self.reti(), 16),
 
@@ -838,7 +882,9 @@ impl<T: Interface> Cpu<T> {
         }
     }
     pub fn stop(&mut self) -> (Step, u16) {
-        panic!("adios! :p ")
+        panic!("adios! :p ");
+        // println!("adios! :p");
+        // self.handle_return(self.registers.pc)
     }
 
     pub fn di(&mut self) -> (Step, u16) {
@@ -907,6 +953,7 @@ impl<T: Interface> Cpu<T> {
     }
 
     pub fn rst(&mut self, add: u8) -> (Step, u16) {
+        //  println!("RST");
         let pc = self.registers.pc;
         self.push_u16(pc);
         self.handle_return(add as u16)
@@ -975,7 +1022,10 @@ impl<T: Interface> Cpu<T> {
         }
         self.handle_return(self.registers.pc)
     }
-
+    pub fn call_test(&mut self) -> (Step, u16) {
+        let address = self.read_next_word();
+        self.ctr_call(address)
+    }
     pub fn call(&mut self) -> (Step, u16) {
         let address = self.read_next_word();
         self.ctr_call(address)
@@ -1084,6 +1134,18 @@ impl<T: Interface> Cpu<T> {
     {
         let value = self.read_8(in8);
         self.registers.a = self.alu_sub(value, carry);
+        self.handle_return(self.registers.pc)
+    }
+
+    pub fn cp_test<I: Copy>(&mut self, in8: I) -> (Step, u16)
+    where
+        Self: Read8<I>,
+    {
+        // if self.tick_count == 2884738 + 1 {
+        //     println!("Debug!");
+        // }
+        let value = self.read_8(in8);
+        self.alu_sub(value, false);
         self.handle_return(self.registers.pc)
     }
 

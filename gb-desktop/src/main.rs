@@ -7,11 +7,12 @@ use gb_core::hardware::boot_rom::{Bootrom, BootromData};
 use gb_core::hardware::color_palette::Color;
 use gb_core::hardware::Screen;
 use log::info;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::fs::{self, File};
 use std::io::{Read, Write};
-use std::sync::mpsc;
+use std::rc::Rc;
 use std::sync::mpsc::{Receiver, SyncSender, TryRecvError};
+use std::sync::{mpsc, Arc, Mutex};
 use std::time::Instant;
 
 pub enum EmulatorKeyEvent {
@@ -38,14 +39,21 @@ fn main() {
 
 pub fn construct_cpu() {
     let mut gb_rom: Vec<u8> = vec![];
-    File::open("C:\\roms\\pkred.gb")
+    File::open("C:\\roms\\sml.gb")
         .and_then(|mut f| f.read_to_end(&mut gb_rom))
         .map_err(|_| "Could not read ROM")
         .unwrap();
+    // File::open("C:\\roms\\testroms\\mooneye-test-suite-wilbertpol\\acceptance\\gpu\\hblank_ly_scx_timing_nops.gb")
+    //     .and_then(|mut f| f.read_to_end(&mut gb_rom))
+    //     .map_err(|_| "Could not read ROM")
+    //     .unwrap();
 
     info!("STARTING");
     let gb_rom = ByteRomManager::new(gb_rom.into_boxed_slice());
     let gb_rom = gb_core::hardware::rom::Rom::from_bytes(gb_rom);
+
+    //  let (do_save_sender, do_save_receiver) = mpsc::sync_channel::<bool>(1);
+    let save_signal: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
 
     let (sender2, receiver2) = mpsc::sync_channel::<Box<[u8; SCREEN_PIXELS]>>(1);
     let (control_sender, control_receiver) = mpsc::channel::<EmulatorKeyEvent>();
@@ -54,6 +62,7 @@ pub fn construct_cpu() {
     let sync_screen = SynScreen {
         sender: sender2,
         off_screen_buffer: RefCell::new(Box::new([0; SCREEN_PIXELS])),
+        check: save_signal.clone(),
     };
 
     // let boot_room_stuff = Bootrom::new(Some(BootromData::from_bytes(include_bytes!(
@@ -71,7 +80,7 @@ pub fn construct_cpu() {
 
         let cart = gb_rom.into_cartridge();
 
-        let state = fs::read_to_string("C:\\roms\\pk.state").unwrap();
+        let state = fs::read_to_string("C:\\roms\\f_test2.state").unwrap();
         let gb_state = serde_json::from_str::<GameBoyState>(&state).unwrap(); //GameBoyState
         let mut gameboy = GameBoy::create(
             sync_screen,
@@ -96,6 +105,22 @@ pub fn construct_cpu() {
 
             ticks -= waitticks;
 
+            let mut check = save_signal.lock().unwrap();
+            if *(check) == true {
+                println!("SAVING");
+                let state = gameboy.create_state();
+                let string = serde_json::to_string(&state).unwrap();
+                let mut file = File::create("C:\\roms\\test_fail.state").unwrap();
+                file.write_all(string.as_bytes()).unwrap();
+                *check = false;
+            }
+            // if (save_signal.) {
+            //     let state = gameboy.create_state();
+            //     let string = serde_json::to_string(&state).unwrap();
+            //     let mut file = File::create("C:\\roms\\pk_intro2.state").unwrap();
+            //     file.write_all(string.as_bytes()).unwrap();
+            // }
+
             'recv: loop {
                 match control_receiver.try_recv() {
                     Ok(event) => match event {
@@ -107,7 +132,7 @@ pub fn construct_cpu() {
                             info!("SAVING STATE");
                             let state = gameboy.create_state();
                             let string = serde_json::to_string(&state).unwrap();
-                            let mut file = File::create("C:\\roms\\pk_intro.state").unwrap();
+                            let mut file = File::create("C:\\roms\\f_test2.state").unwrap();
                             file.write_all(string.as_bytes()).unwrap();
                         }
                     },
@@ -139,12 +164,19 @@ fn timer_periodic(ms: u64) -> Receiver<()> {
 pub struct SynScreen {
     sender: SyncSender<Box<[u8; SCREEN_PIXELS]>>,
     off_screen_buffer: RefCell<Box<[u8; SCREEN_PIXELS]>>,
+    check: Arc<Mutex<bool>>,
 }
 
 impl Screen for SynScreen {
-    fn turn_on(&mut self) {}
+    fn turn_on(&mut self) {
+        //  println!("TURN ON!");
+        let mut check = self.check.lock().unwrap();
+        //  *check = true;
+    }
 
-    fn turn_off(&mut self) {}
+    fn turn_off(&mut self) {
+        println!("TURN OFF!");
+    }
 
     fn set_pixel(&mut self, x: u8, y: u8, color: Color) {
         self.off_screen_buffer.get_mut()[y as usize * SCREEN_WIDTH * 3 + x as usize * 3 + 0] =
@@ -156,6 +188,7 @@ impl Screen for SynScreen {
     }
 
     fn draw(&mut self, skip: bool) {
+        //    println!("DRAW");
         let stuff = self.off_screen_buffer.replace(Box::new([0; SCREEN_PIXELS]));
         self.sender.send(stuff).unwrap();
     }
@@ -182,7 +215,11 @@ impl ByteRomManager {
 impl gb_core::hardware::rom::RomManager for ByteRomManager {
     fn read_from_offset(&self, seek_offset: usize, index: usize, _bank_number: u8) -> u8 {
         let address = seek_offset + index;
-        self.data[address]
+        let result = self.data[address];
+        // if result == u8::MAX {
+        //     println!("Weird");
+        // }
+        result
     }
 
     fn clock(&self) -> u64 {

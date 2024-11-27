@@ -9,7 +9,7 @@ use crate::hardware::timer::Timer;
 use crate::hardware::work_ram::WorkRam;
 use crate::memory::Memory;
 
-use ppu::PPuState;
+use ppu::{Control, PPuState, Stat};
 use sound::Sound;
 
 pub mod boot_rom;
@@ -136,6 +136,12 @@ pub struct HardwareState {
 }
 
 impl<'a, T: Screen> Interface for Hardware<'a, T> {
+    fn gpu_screen_on(&self) -> bool {
+        self.gpu.control.contains(Control::LCD_ON)
+    }
+    fn scan_line(&self) -> u8 {
+        self.gpu.scanline
+    }
     fn set_interrupt_disabled(&mut self, disabled: bool) {
         self.interrupt_handler.set_interrupt_disabled(disabled);
     }

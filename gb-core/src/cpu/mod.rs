@@ -38,6 +38,8 @@ pub trait Interface {
     fn set_byte(&mut self, address: u16, value: u8);
     fn get_byte(&mut self, address: u16) -> u8;
     fn step(&mut self) {}
+    fn gpu_screen_on(&self) -> bool;
+    fn scan_line(&self) -> u8;
 }
 
 impl<T: Interface> Cpu<T> {
@@ -47,6 +49,9 @@ impl<T: Interface> Cpu<T> {
             op_code: 0x00,
             interface,
             state: Step::Run,
+            tick_count: 0,
+            current_screen_state: false,
+            active_print: false,
         }
     }
 
@@ -56,6 +61,9 @@ impl<T: Interface> Cpu<T> {
             op_code: state.op_code,
             interface,
             state: state.state,
+            tick_count: 0,
+            current_screen_state: false,
+            active_print: false,
         }
     }
 
@@ -72,7 +80,7 @@ impl<T: Interface> Cpu<T> {
     pub fn reset(&mut self) {
         self.registers.pc = 0x100;
         self.push_u16(0xFFFE);
-        self.registers.set_af(0x01B0);
+        self.registers.set_af(0x0180);
         self.registers.set_bc(0x0013);
         self.registers.set_de(0x00D8);
         self.registers.set_hl(0x014D);
@@ -115,6 +123,7 @@ impl<T: Interface> Cpu<T> {
             }
             Step::HaltBug => {
                 let current_pc = self.registers.pc;
+                println!("Current HALT PC: {}", self.registers.pc);
                 let ((step, _), cycles) = self.decode();
                 self.registers.pc = current_pc;
                 (cycles, step)

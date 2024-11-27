@@ -8,7 +8,9 @@ pub struct Cpu<T: Interface> {
     pub interface: T,
     pub state: Step,
     // pub prev_opcode: PrevExec,
-    //pub tick_count: usize,
+    pub tick_count: usize,
+    pub current_screen_state: bool,
+    pub active_print: bool,
 }
 
 #[derive(Default)]
@@ -25,7 +27,11 @@ impl<T: Interface> Cpu<T> {
     pub fn read_next_byte(&mut self) -> u8 {
         let addr = self.registers.get_pc();
         self.registers.increment_pc();
-        self.interface.get_byte(addr)
+        let result = self.interface.get_byte(addr);
+        // if result == u8::MAX {
+        //     println!("WER");
+        // }
+        result
     }
 
     pub fn read_next_word(&mut self) -> u16 {
@@ -118,7 +124,11 @@ pub struct Immediate16;
 
 impl<T: Interface> Read8<Immediate8> for Cpu<T> {
     fn read_8(&mut self, _: Immediate8) -> u8 {
-        self.read_next_byte()
+        let result = self.read_next_byte();
+        // if result == u8::MAX {
+        //     println!("WEIRD");
+        // }
+        result
     }
 }
 

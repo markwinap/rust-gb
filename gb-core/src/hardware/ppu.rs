@@ -87,10 +87,10 @@ pub struct Ppu<T: Screen> {
     background_palette: Palette,
     obj_palette0: Palette,
     obj_palette1: Palette,
-    scanline: u8,
+    pub scanline: u8,
     video_ram: VideoRam,
-    control: Control,
-    stat: Stat,
+    pub control: Control,
+    pub stat: Stat,
     compare_line: u8,
     scroll_x: u8,
     scroll_y: u8,
@@ -203,22 +203,39 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn step(&mut self, cycles: isize, interrupts: &mut InterruptHandler) {
-        if self.scanline == self.compare_line {
-            self.stat.insert(Stat::COMPARE);
-        } else {
-            self.stat.remove(Stat::COMPARE);
+        if !self.control.contains(Control::LCD_ON) {
+            self.cycle_counter = VBLANK_MIN_CYCLES;
+            self.mode = Mode::VBlank;
+            self.scanline = 0;
+            return;
         }
-
         if !self.update_lcd_stat_interrupts(interrupts) {
             return;
         }
+
+        // if !self.update_lcd_stat_interrupts(interrupts) {
+        //     return;
+        // }
         if cycles == 0 {
             self.draw_blank_screen();
             return;
         }
-        self.cycle_counter -= cycles;
+        let enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
+        if *enable_log {
+            println!(
+                "PPU cycles in:{} current_cycles:{}",
+                cycles, self.cycle_counter
+            );
+        }
 
+        self.cycle_counter -= cycles;
+        if *enable_log {
+            println!("pending ppu: {}", self.cycle_counter);
+        }
         if self.cycle_counter <= 0 {
+            if *enable_log {
+                println!("Increase scanline at: {}", self.cycle_counter);
+            }
             self.scanline = self.scanline + 1;
             if self.scanline == self.compare_line {
                 self.stat.insert(Stat::COMPARE);
@@ -226,18 +243,19 @@ impl<T: Screen> Ppu<T> {
                 self.stat.remove(Stat::COMPARE);
             }
 
-            self.cycle_counter = VBLANK_MIN_CYCLES;
+            self.cycle_counter += VBLANK_MIN_CYCLES;
             if self.scanline == SCREEN_HEIGHT as u8 {
                 interrupts.request(InterruptLine::VBLANK, true);
             } else if self.scanline >= SCREEN_HEIGHT as u8 + 10 {
                 self.draw_to_screen();
-                if self.scanline != 0 && self.scanline as usize != SCREEN_HEIGHT + 10 {
-                    self.scanline = 0;
-                }
                 self.scanline = 0;
             } else if self.scanline < SCREEN_HEIGHT as u8 {
                 self.draw_scan_line();
             }
+            ////
+            // if !self.update_lcd_stat_interrupts(interrupts) {
+            //     return;
+            // }
         }
     }
 
@@ -256,9 +274,7 @@ impl<T: Screen> Ppu<T> {
         if !self.control.contains(Control::LCD_ON) {
             self.cycle_counter = VBLANK_MIN_CYCLES;
             self.mode = Mode::VBlank;
-            if self.scanline != 0 && self.scanline as usize != SCREEN_HEIGHT {
-                self.scanline = 0;
-            }
+
             self.scanline = 0;
             return false;
         }
@@ -368,7 +384,28 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn get_stat(&self) -> u8 {
-        self.mode.bits() | self.stat.bits() | STAT_UNUSED_MASK
+        let mode_bits = self.mode.bits();
+        let compare_is_active = self.stat.contains(Stat::COMPARE);
+        let compare_int = self.stat.contains(Stat::COMPARE_INT);
+        let oam_access = self.stat.contains(Stat::ACCESS_OAM_INT);
+        let hblank = self.stat.contains(Stat::HBLANK_INT);
+        let vblank = self.stat.contains(Stat::VBLANK_INT);
+        let result = self.mode.bits() | self.stat.bits() | STAT_UNUSED_MASK;
+
+        let result2 = 0x80
+            | if compare_int { 0x40 } else { 0 }
+            | if oam_access { 0x20 } else { 0 }
+            | if vblank { 0x10 } else { 0 }
+            | if hblank { 0x08 } else { 0 }
+            | if compare_is_active { 0x04 } else { 0 }
+            | mode_bits;
+        // if result == u8::MAX {
+        //     println!("WEIRD");
+        // }
+        // if result2 == u8::MAX {
+        //     println!("WEIRD");
+        // }
+        result2
     }
 
     #[inline(always)]
@@ -518,14 +555,21 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn read_memory(&self, address: u16) -> u8 {
+        // println!(
+        //     "read_memory: {}, {}",
+        //     address,
+        //     self.video_ram.get_byte(address)
+        // );
         self.video_ram.get_byte(address)
     }
 
     pub fn get_scroll_y(&self) -> u8 {
+        println!("get_scroll_y");
         self.scroll_y
     }
 
     pub fn get_scroll_x(&self) -> u8 {
+        println!("get_scroll_x");
         self.scroll_x
     }
 
@@ -546,16 +590,20 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn get_current_line(&self) -> u8 {
+        //   println!("get_current_line");
         self.scanline
     }
     pub fn get_compare_line(&self) -> u8 {
+        println!("get_compare_line");
         self.compare_line
     }
 
     pub fn get_obj_palette0(&self) -> u8 {
+        println!("get_obj_palette0");
         self.obj_palette0.0
     }
     pub fn get_obj_palette1(&self) -> u8 {
+        println!("get_obj_palette1");
         self.obj_palette1.0
     }
 
@@ -567,9 +615,11 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn get_window_x(&self) -> u8 {
+        println!("get_window_x");
         self.window_x
     }
     pub fn get_window_y(&self) -> u8 {
+        println!("get_window_y");
         self.window_y
     }
 
@@ -581,6 +631,7 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn get_bg_palette(&self) -> u8 {
+        println!("get_bg_palette");
         self.background_palette.0
     }
 
@@ -592,7 +643,7 @@ impl<T: Screen> Ppu<T> {
 bitflags!(
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     #[derive(Clone, Copy)]
-  struct Control: u8 {
+ pub struct Control: u8 {
     const BG_ON = 1 << 0;
     const OBJ_ON = 1 << 1;
     const OBJ_SIZE = 1 << 2;
@@ -607,7 +658,7 @@ bitflags!(
 
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
   #[derive( Clone, Copy, PartialEq, Eq, Hash)]
-  struct Stat: u8 {
+  pub struct Stat: u8 {
     const COMPARE = 1 << 2;
     const HBLANK_INT = 1 << 3;
     const VBLANK_INT = 1 << 4;

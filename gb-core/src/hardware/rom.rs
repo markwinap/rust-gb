@@ -24,6 +24,7 @@ use alloc::boxed::Box;
 pub enum RomType {
     RomOnly = 0x00,
     MBC1 = 0x01,
+    MBC1Ram = 0x02,
     MBC1RamBattery = 0x03,
     MBC3 = 0x13,
 }
@@ -42,6 +43,7 @@ impl RomType {
             RomType::RomOnly => false,
             RomType::MBC1 => false,
             RomType::MBC3 => true,
+            RomType::MBC1Ram => false,
             RomType::MBC1RamBattery => true,
         }
     }
@@ -50,6 +52,11 @@ impl RomType {
         match self {
             RomType::RomOnly => Box::new(ReadOnlyMemoryCartridge::from_bytes(rom.data)),
             RomType::MBC1 => Box::new(Mbc1Cartridge::new(
+                rom.data,
+                rom.ram_size.banks(),
+                rom_banks(rom.rom_size as u8),
+            )),
+            RomType::MBC1Ram => Box::new(Mbc1Cartridge::new(
                 rom.data,
                 rom.ram_size.banks(),
                 rom_banks(rom.rom_size as u8),

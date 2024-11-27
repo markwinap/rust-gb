@@ -129,8 +129,10 @@ impl<RM: RomManager> Cartridge for Mbc1Cartridge<RM> {
             );
             return result;
         }
-        self.rom_manager
-            .read_from_offset(0x0000, address as usize, 0)
+        let result = self
+            .rom_manager
+            .read_from_offset(0x0000, address as usize, 0);
+        result
     }
 
     fn write_rom(&mut self, address: u16, mut data: u8) {
@@ -176,7 +178,7 @@ impl<RM: RomManager> Cartridge for Mbc1Cartridge<RM> {
     }
 
     fn write_ram(&mut self, address: u16, value: u8) {
-        if !self.ram_enabled {
+        if !self.ram_enabled || self.ram_banks.len() == 0 {
             return;
         }
         let rambank = if self.mode == MemoryMode::_4MBitRom32KByteRam {
