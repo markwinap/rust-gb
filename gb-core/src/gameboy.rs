@@ -68,12 +68,15 @@ impl<'a, S: Screen> GameBoy<'a, S> {
 impl<'a, S: Screen> GameBoy<'a, S> {
     pub fn tick(&mut self) -> u8 {
         let cycles = self.cpu.step();
-        let interrupts = &mut self.cpu.interface.interrupt_handler;
-        self.cpu.interface.input_controller.update_state(interrupts);
-        self.cpu.interface.timer.do_cycle(cycles as u32, interrupts);
-        self.cpu.interface.gpu.step(cycles as isize, interrupts);
-        self.cpu.interface.sound.do_cycle(cycles as u32);
-        self.cpu.interface.cartridge.step();
+        if cycles != 0 {
+            let interrupts = &mut self.cpu.interface.interrupt_handler;
+            self.cpu.interface.input_controller.update_state(interrupts);
+            self.cpu.interface.timer.do_cycle(cycles as u32, interrupts);
+            self.cpu.interface.gpu.step(cycles as isize, interrupts);
+            self.cpu.interface.sound.do_cycle(cycles as u32);
+            self.cpu.interface.cartridge.step();
+        }
+
         cycles
     }
 

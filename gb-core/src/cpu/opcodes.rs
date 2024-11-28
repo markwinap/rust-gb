@@ -29,7 +29,7 @@ impl<T: Interface> Cpu<T> {
         {
             self.active_print = true;
             let mut enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
-            // *enable_log = true;
+            *enable_log = true;
             drop(enable_log);
         }
         let enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
@@ -868,13 +868,17 @@ impl<T: Interface> Cpu<T> {
     pub fn halt(&mut self) -> (Step, u16) {
         self.op_code = self.interface.get_byte(self.registers.pc);
         if self.op_code == 0x10 {
-            print!("Abou to panic!");
+            print!("About to panic!");
         }
         self.interface.step();
         if self.interface.any_enabled() {
             if self.interface.interrupt_master_enabled() {
                 (Step::Interrupt, self.registers.pc)
             } else {
+                let enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
+                if *enable_log {
+                    println!("HALT BUG");
+                }
                 (Step::HaltBug, self.registers.pc)
             }
         } else {

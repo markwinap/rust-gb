@@ -115,8 +115,12 @@ impl<T: Interface> Cpu<T> {
             }
             Step::Halt => {
                 if self.interface.any_enabled() {
+                    let enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
+                    if *enable_log {
+                        // println!("OUT OF HALT");
+                    }
                     let (step, _) = self.handle_return(self.registers.pc);
-                    (4, step)
+                    (0, step)
                 } else {
                     (4, Step::Halt)
                 }

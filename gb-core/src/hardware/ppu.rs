@@ -29,7 +29,7 @@ const TILE_MAP_SIZE: usize = 0x400;
 use alloc::boxed::Box;
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Copy, Clone, PartialEq, Eq, FromPrimitive)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 enum Mode {
     AccessOam,
     AccessVram,
@@ -238,9 +238,9 @@ impl<T: Screen> Ppu<T> {
             }
             self.scanline = self.scanline + 1;
             if self.scanline == self.compare_line {
-                self.stat.insert(Stat::COMPARE);
+                self.stat.insert(Stat::COMPARE_TRIGERRED);
             } else {
-                self.stat.remove(Stat::COMPARE);
+                self.stat.remove(Stat::COMPARE_TRIGERRED);
             }
 
             self.cycle_counter += VBLANK_MIN_CYCLES;
@@ -302,7 +302,7 @@ impl<T: Screen> Ppu<T> {
             );
         }
 
-        if self.stat.contains(Stat::COMPARE) && self.scanline == self.compare_line {
+        if self.stat.contains(Stat::COMPARE_TRIGERRED) && self.scanline == self.compare_line {
             interrupts.request(InterruptLine::STAT, true);
         }
         true
@@ -370,13 +370,13 @@ impl<T: Screen> Ppu<T> {
         self.control = new_control;
 
         if new_control.contains(Control::LCD_ON) && !previous_value.contains(Control::LCD_ON) {
-            self.stat.insert(Stat::COMPARE);
+            self.stat.insert(Stat::COMPARE_TRIGERRED);
             self.screen.turn_on();
         }
     }
     pub fn set_stat(&mut self, value: u8) {
         let new_stat = Stat::from_bits_truncate(value);
-        self.stat = (self.stat & Stat::COMPARE)
+        self.stat = (self.stat & Stat::COMPARE_TRIGERRED)
             | (new_stat & Stat::HBLANK_INT)
             | (new_stat & Stat::VBLANK_INT)
             | (new_stat & Stat::ACCESS_OAM_INT)
@@ -385,7 +385,7 @@ impl<T: Screen> Ppu<T> {
 
     pub fn get_stat(&self) -> u8 {
         let mode_bits = self.mode.bits();
-        let compare_is_active = self.stat.contains(Stat::COMPARE);
+        let compare_is_trigerred = self.stat.contains(Stat::COMPARE_TRIGERRED);
         let compare_int = self.stat.contains(Stat::COMPARE_INT);
         let oam_access = self.stat.contains(Stat::ACCESS_OAM_INT);
         let hblank = self.stat.contains(Stat::HBLANK_INT);
@@ -397,14 +397,9 @@ impl<T: Screen> Ppu<T> {
             | if oam_access { 0x20 } else { 0 }
             | if vblank { 0x10 } else { 0 }
             | if hblank { 0x08 } else { 0 }
-            | if compare_is_active { 0x04 } else { 0 }
+            | if compare_is_trigerred { 0x04 } else { 0 }
             | mode_bits;
-        // if result == u8::MAX {
-        //     println!("WEIRD");
-        // }
-        // if result2 == u8::MAX {
-        //     println!("WEIRD");
-        // }
+
         result2
     }
 
@@ -594,16 +589,16 @@ impl<T: Screen> Ppu<T> {
         self.scanline
     }
     pub fn get_compare_line(&self) -> u8 {
-        println!("get_compare_line");
+        //    println!("get_compare_line");
         self.compare_line
     }
 
     pub fn get_obj_palette0(&self) -> u8 {
-        println!("get_obj_palette0");
+        //    println!("get_obj_palette0");
         self.obj_palette0.0
     }
     pub fn get_obj_palette1(&self) -> u8 {
-        println!("get_obj_palette1");
+        //  println!("get_obj_palette1");
         self.obj_palette1.0
     }
 
@@ -615,11 +610,11 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn get_window_x(&self) -> u8 {
-        println!("get_window_x");
+        //  println!("get_window_x");
         self.window_x
     }
     pub fn get_window_y(&self) -> u8 {
-        println!("get_window_y");
+        //    println!("get_window_y");
         self.window_y
     }
 
@@ -655,11 +650,10 @@ bitflags!(
   }
 );
 bitflags!(
-
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
   #[derive( Clone, Copy, PartialEq, Eq, Hash)]
   pub struct Stat: u8 {
-    const COMPARE = 1 << 2;
+    const COMPARE_TRIGERRED = 1 << 2;
     const HBLANK_INT = 1 << 3;
     const VBLANK_INT = 1 << 4;
     const ACCESS_OAM_INT = 1 << 5;
