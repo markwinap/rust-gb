@@ -2,6 +2,7 @@ use crate::gameboy::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use crate::hardware::color_palette::{Color, ColorPalette, ORIGINAL_GREEN};
 use crate::hardware::interrupt_handler::{InterruptHandler, InterruptLine};
 use crate::hardware::Screen;
+use crate::is_log_enabled;
 use crate::memory::Memory;
 
 use arrayvec::ArrayVec;
@@ -29,7 +30,7 @@ const TILE_MAP_SIZE: usize = 0x400;
 use alloc::boxed::Box;
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 enum Mode {
     AccessOam,
     AccessVram,
@@ -209,9 +210,9 @@ impl<T: Screen> Ppu<T> {
             self.scanline = 0;
             return;
         }
-        if !self.update_lcd_stat_interrupts(interrupts) {
-            return;
-        }
+        // if !self.update_lcd_stat_interrupts(interrupts) {
+        //     return;
+        // }
 
         // if !self.update_lcd_stat_interrupts(interrupts) {
         //     return;
@@ -220,31 +221,40 @@ impl<T: Screen> Ppu<T> {
             self.draw_blank_screen();
             return;
         }
-        let enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
-        if *enable_log {
+
+        if is_log_enabled() {
             println!(
                 "PPU cycles in:{} current_cycles:{}",
-                cycles, self.cycle_counter
+                cycles,
+                VBLANK_MIN_CYCLES - self.cycle_counter
             );
         }
 
         self.cycle_counter -= cycles;
-        if *enable_log {
-            println!("pending ppu: {}", self.cycle_counter);
+        if is_log_enabled() {
+            println!("pending ppu: {}", VBLANK_MIN_CYCLES - self.cycle_counter);
         }
         if self.cycle_counter <= 0 {
-            if *enable_log {
+            if is_log_enabled() {
                 println!("Increase scanline at: {}", self.cycle_counter);
             }
             self.scanline = self.scanline + 1;
             if self.scanline == self.compare_line {
                 self.stat.insert(Stat::COMPARE_TRIGERRED);
+                // if is_log_enabled() {
+                //     println!("PPU interrupt from mode: COMPARE_TRIGERRED");
+                // }
+                // interrupts.request(InterruptLine::STAT, true);
             } else {
                 self.stat.remove(Stat::COMPARE_TRIGERRED);
             }
 
             self.cycle_counter += VBLANK_MIN_CYCLES;
             if self.scanline == SCREEN_HEIGHT as u8 {
+                //  let enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
+                if is_log_enabled() {
+                    println!("PPU interrupt from mode: VBLANK");
+                }
                 interrupts.request(InterruptLine::VBLANK, true);
             } else if self.scanline >= SCREEN_HEIGHT as u8 + 10 {
                 self.draw_to_screen();
@@ -252,10 +262,10 @@ impl<T: Screen> Ppu<T> {
             } else if self.scanline < SCREEN_HEIGHT as u8 {
                 self.draw_scan_line();
             }
-            ////
-            // if !self.update_lcd_stat_interrupts(interrupts) {
-            //     return;
-            // }
+            //
+        }
+        if !self.update_lcd_stat_interrupts(interrupts) {
+            return;
         }
     }
 
@@ -271,13 +281,13 @@ impl<T: Screen> Ppu<T> {
     }
 
     fn update_lcd_stat_interrupts(&mut self, interrupts: &mut InterruptHandler) -> bool {
-        if !self.control.contains(Control::LCD_ON) {
-            self.cycle_counter = VBLANK_MIN_CYCLES;
-            self.mode = Mode::VBlank;
+        // if !self.control.contains(Control::LCD_ON) {
+        //     self.cycle_counter = VBLANK_MIN_CYCLES;
+        //     self.mode = Mode::VBlank;
 
-            self.scanline = 0;
-            return false;
-        }
+        //     self.scanline = 0;
+        //     return false;
+        // }
         if self.scanline >= SCREEN_HEIGHT as u8 {
             self.update_current_mode_sec(
                 interrupts,
@@ -303,6 +313,9 @@ impl<T: Screen> Ppu<T> {
         }
 
         if self.stat.contains(Stat::COMPARE_TRIGERRED) && self.scanline == self.compare_line {
+            if is_log_enabled() {
+                println!("PPU interrupt from mode: COMPARE_TRIGERRED");
+            }
             interrupts.request(InterruptLine::STAT, true);
         }
         true
@@ -315,6 +328,11 @@ impl<T: Screen> Ppu<T> {
         request_interrupt: bool,
     ) {
         if request_interrupt && new_mode != self.mode {
+            // let enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
+            if is_log_enabled() {
+                println!("PPU interrupt from mode: {:#?}", new_mode);
+            }
+            // drop(enable_log);
             interrupts.request(InterruptLine::STAT, true);
         }
         self.mode = new_mode;

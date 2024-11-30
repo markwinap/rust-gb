@@ -97,6 +97,11 @@ impl<T: Interface> Cpu<T> {
             Step::Interrupt => {
                 self.interface.change_interrupt_master_enabled(false);
                 let interrupt = self.interface.requested_interrupts().highest_priority();
+                let enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
+                // if *enable_log {
+                //     println!("Trigerring interrupt: {:#?}", interrupt);
+                // }
+                drop(enable_log);
                 self.interface.acknowledge(interrupt);
                 self.push_u16(self.registers.pc);
 

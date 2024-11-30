@@ -29,7 +29,7 @@ impl<T: Interface> Cpu<T> {
         {
             self.active_print = true;
             let mut enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
-            *enable_log = true;
+            //*enable_log = true;
             drop(enable_log);
         }
         let enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
@@ -51,7 +51,7 @@ impl<T: Interface> Cpu<T> {
                 self.registers.flags.read_value()
             );
         }
-
+        drop(enable_log);
         self.tick_count = self.tick_count.wrapping_add(1);
 
         // if self.registers.pc == 18627 {
