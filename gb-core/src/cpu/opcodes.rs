@@ -4,6 +4,7 @@ use crate::cpu::address::{
 use crate::cpu::registers::Reg16;
 use crate::cpu::registers::Reg8::{A, B, C, D, E, H, L};
 use crate::cpu::{Interface, Step};
+use crate::is_log_enabled;
 use crate::util::int::IntExt;
 
 #[derive(Clone, Copy)]
@@ -29,7 +30,7 @@ impl<T: Interface> Cpu<T> {
         {
             self.active_print = true;
             let mut enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
-            *enable_log = true;
+            //*enable_log = true;
             drop(enable_log);
         }
         let enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
@@ -856,7 +857,7 @@ impl<T: Interface> Cpu<T> {
         if self.op_code == 0x10 {
             print!("Abou to panic!");
         }
-        self.interface.step();
+        self.interface.interface_step();
         if self.interface.interrupt_master_enabled() && self.interface.any_enabled() {
             (Step::Interrupt, address)
         } else {
@@ -870,13 +871,12 @@ impl<T: Interface> Cpu<T> {
         if self.op_code == 0x10 {
             print!("About to panic!");
         }
-        self.interface.step();
+        self.interface.interface_step();
         if self.interface.any_enabled() {
             if self.interface.interrupt_master_enabled() {
                 (Step::Interrupt, self.registers.pc)
             } else {
-                let enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
-                if *enable_log {
+                if is_log_enabled() {
                     println!("HALT BUG");
                 }
                 (Step::HaltBug, self.registers.pc)
@@ -892,7 +892,7 @@ impl<T: Interface> Cpu<T> {
     }
 
     pub fn di(&mut self) -> (Step, u16) {
-        self.interface.step();
+        self.interface.interface_step();
         self.interface.set_interrupt_disabled(true);
         self.op_code = self.read_next_byte();
         (Step::Run, self.registers.pc.wrapping_add(1)) //TODO Do we increment? it has already been incremented
@@ -901,7 +901,7 @@ impl<T: Interface> Cpu<T> {
     pub fn ei(&mut self) -> (Step, u16) {
         let return_value = self.handle_return(self.registers.pc);
         self.interface.set_interrupt_disabled(false);
-        self.interface.step();
+        self.interface.interface_step();
         return_value
     }
 

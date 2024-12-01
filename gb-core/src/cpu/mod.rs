@@ -1,6 +1,7 @@
 use crate::cpu::address::Cpu;
 use crate::cpu::registers::Registers;
 use crate::hardware::interrupt_handler::InterruptLine;
+use crate::is_log_enabled;
 
 pub mod flags;
 
@@ -37,7 +38,7 @@ pub trait Interface {
     fn any_enabled(&self) -> bool;
     fn set_byte(&mut self, address: u16, value: u8);
     fn get_byte(&mut self, address: u16) -> u8;
-    fn step(&mut self) {}
+    fn interface_step(&mut self) {}
     fn gpu_screen_on(&self) -> bool;
     fn scan_line(&self) -> u8;
 }
@@ -97,15 +98,11 @@ impl<T: Interface> Cpu<T> {
             Step::Interrupt => {
                 self.interface.change_interrupt_master_enabled(false);
                 let interrupt = self.interface.requested_interrupts().highest_priority();
-                let enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
-                // if *enable_log {
-                //     println!("Trigerring interrupt: {:#?}", interrupt);
-                // }
-                drop(enable_log);
+
                 self.interface.acknowledge(interrupt);
                 self.push_u16(self.registers.pc);
 
-                self.registers.pc = match interrupt {
+                let interrupt_address = match interrupt {
                     InterruptLine::VBLANK => 0x0040,
                     InterruptLine::STAT => 0x0048,
                     InterruptLine::TIMER => 0x0050,
@@ -113,15 +110,14 @@ impl<T: Interface> Cpu<T> {
                     InterruptLine::JOYPAD => 0x0060,
                     _ => 0x0000,
                 };
-                self.op_code = self.interface.get_byte(self.registers.pc);
-                self.registers.pc = self.registers.pc.wrapping_add(1);
-                self.interface.step();
+                self.op_code = self.interface.get_byte(interrupt_address);
+                self.registers.pc = interrupt_address.wrapping_add(1);
+                self.interface.interface_step();
                 (20, Step::Run)
             }
             Step::Halt => {
                 if self.interface.any_enabled() {
-                    let enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
-                    if *enable_log {
+                    if is_log_enabled() {
                         // println!("OUT OF HALT");
                     }
                     let (step, _) = self.handle_return(self.registers.pc);

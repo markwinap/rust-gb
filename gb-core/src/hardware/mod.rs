@@ -265,7 +265,7 @@ impl<'a, T: Screen> Interface for Hardware<'a, T> {
         }
     }
 
-    fn step(&mut self) {
+    fn interface_step(&mut self) {
         self.interrupt_handler.step();
     }
 }
