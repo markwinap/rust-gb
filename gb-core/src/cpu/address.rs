@@ -126,7 +126,7 @@ impl<T: Interface> Read8<Immediate8> for Cpu<T> {
     fn read_8(&mut self, _: Immediate8) -> u8 {
         let result = self.read_next_byte();
         // if result == u8::MAX {
-        //     println!("WEIRD");
+        //     println!("WEIRD: {}", result);
         // }
         result
     }

@@ -236,22 +236,13 @@ impl<T: Screen> Ppu<T> {
         }
         if self.cycle_counter <= 0 {
             if is_log_enabled() {
-                println!("Increase scanline at: {}", self.cycle_counter);
+                println!("Increase scanline at: {}", self.cycle_counter * -1);
             }
             self.scanline = self.scanline + 1;
-            if self.scanline == self.compare_line {
-                self.stat.insert(Stat::COMPARE_TRIGERRED);
-                // if is_log_enabled() {
-                //     println!("PPU interrupt from mode: COMPARE_TRIGERRED");
-                // }
-                // interrupts.request(InterruptLine::STAT, true);
-            } else {
-                self.stat.remove(Stat::COMPARE_TRIGERRED);
-            }
+            self.check_compare_interrupt(interrupts);
 
             self.cycle_counter += VBLANK_MIN_CYCLES;
             if self.scanline == SCREEN_HEIGHT as u8 {
-                //  let enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
                 if is_log_enabled() {
                     println!("PPU interrupt from mode: VBLANK");
                 }
@@ -259,6 +250,7 @@ impl<T: Screen> Ppu<T> {
             } else if self.scanline >= SCREEN_HEIGHT as u8 + 10 {
                 self.draw_to_screen();
                 self.scanline = 0;
+                self.check_compare_interrupt(interrupts);
             } else if self.scanline < SCREEN_HEIGHT as u8 {
                 self.draw_scan_line();
             }
@@ -266,6 +258,20 @@ impl<T: Screen> Ppu<T> {
         }
         if !self.update_lcd_stat_interrupts(interrupts) {
             return;
+        }
+    }
+    fn check_compare_interrupt(&mut self, interrupts: &mut InterruptHandler) {
+        if self.scanline == self.compare_line {
+            self.stat.insert(Stat::COMPARE_TRIGERRED);
+
+            if self.stat.contains(Stat::COMPARE_INT) {
+                if is_log_enabled() {
+                    println!("PPU interrupt from mode: COMPARE_TRIGERRED");
+                }
+                interrupts.request(InterruptLine::STAT, true);
+            }
+        } else {
+            self.stat.remove(Stat::COMPARE_TRIGERRED);
         }
     }
 
@@ -312,12 +318,12 @@ impl<T: Screen> Ppu<T> {
             );
         }
 
-        if self.stat.contains(Stat::COMPARE_TRIGERRED) && self.scanline == self.compare_line {
-            if is_log_enabled() {
-                println!("PPU interrupt from mode: COMPARE_TRIGERRED");
-            }
-            interrupts.request(InterruptLine::STAT, true);
-        }
+        // if self.stat.contains(Stat::COMPARE_TRIGERRED) && self.scanline == self.compare_line {
+        //     if is_log_enabled() {
+        //         println!("PPU interrupt from mode: COMPARE_TRIGERRED");
+        //     }
+        //     interrupts.request(InterruptLine::STAT, true);
+        // }
         true
     }
 
@@ -328,11 +334,9 @@ impl<T: Screen> Ppu<T> {
         request_interrupt: bool,
     ) {
         if request_interrupt && new_mode != self.mode {
-            // let enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
             if is_log_enabled() {
                 println!("PPU interrupt from mode: {:#?}", new_mode);
             }
-            // drop(enable_log);
             interrupts.request(InterruptLine::STAT, true);
         }
         self.mode = new_mode;
@@ -417,6 +421,10 @@ impl<T: Screen> Ppu<T> {
             | if hblank { 0x08 } else { 0 }
             | if compare_is_trigerred { 0x04 } else { 0 }
             | mode_bits;
+
+        if is_log_enabled() {
+            println!("PPU stats: {:?}, mode: {:?}", self.stat, self.mode);
+        }
 
         result2
     }
@@ -669,7 +677,7 @@ bitflags!(
 );
 bitflags!(
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-  #[derive( Clone, Copy, PartialEq, Eq, Hash)]
+  #[derive( Clone, Copy, PartialEq, Eq, Hash, Debug)]
   pub struct Stat: u8 {
     const COMPARE_TRIGERRED = 1 << 2;
     const HBLANK_INT = 1 << 3;

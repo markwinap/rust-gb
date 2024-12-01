@@ -29,7 +29,7 @@ impl<T: Interface> Cpu<T> {
         {
             self.active_print = true;
             let mut enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
-            //*enable_log = true;
+            *enable_log = true;
             drop(enable_log);
         }
         let enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
@@ -157,9 +157,9 @@ impl<T: Interface> Cpu<T> {
                 8,
             ),
             0xf0 => {
-                if self.tick_count == 146 + 1 {
-                    //  println!("debug");
-                }
+                // if self.tick_count == 8138 + 1 {
+                //     println!("debug");
+                // }
                 (
                     self.load_8(A, Addr::ReadOffset(ReadOffType::Immediate8)),
                     12,
