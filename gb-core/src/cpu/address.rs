@@ -4,13 +4,12 @@ use crate::cpu::{Interface, Step};
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Cpu<T: Interface> {
     pub registers: Registers,
-    pub op_code: u8,
+    //   pub op_code: u8,
     pub interface: T,
-    pub state: Step,
+    //pub state: Step,
     // pub prev_opcode: PrevExec,
     pub tick_count: usize,
     pub current_screen_state: bool,
-    pub active_print: bool,
 }
 
 #[derive(Default)]
@@ -29,7 +28,7 @@ impl<T: Interface> Cpu<T> {
         self.registers.increment_pc();
         let result = self.interface.get_byte(addr);
         // if result == u8::MAX {
-        //     println!("WER");
+        //     println!("WER: {}", result);
         // }
         result
     }

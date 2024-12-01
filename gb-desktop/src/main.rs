@@ -80,8 +80,8 @@ pub fn construct_cpu() {
 
         let cart = gb_rom.into_cartridge();
 
-        let state = fs::read_to_string("C:\\roms\\f_test2.state").unwrap();
-        let gb_state = serde_json::from_str::<GameBoyState>(&state).unwrap(); //GameBoyState
+        //  let state = fs::read_to_string("C:\\roms\\f_test2.state").unwrap();
+        // let gb_state = serde_json::from_str::<GameBoyState>(&state).unwrap(); //GameBoyState
         let mut gameboy = GameBoy::create(
             sync_screen,
             cart,

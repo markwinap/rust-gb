@@ -1,3 +1,5 @@
+use opcodes::DecodeStep;
+
 use crate::cpu::address::Cpu;
 use crate::cpu::registers::Registers;
 use crate::hardware::interrupt_handler::InterruptLine;
@@ -7,7 +9,7 @@ pub mod flags;
 
 pub mod address;
 pub mod alu;
-mod opcodes;
+pub mod opcodes;
 pub mod registers;
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -24,8 +26,8 @@ pub enum Step {
 #[derive(Clone, Copy)]
 pub struct CpuState {
     pub registers: Registers,
-    pub op_code: u8,
-    pub state: Step,
+    // pub op_code: u8,
+    // pub state: Step,
 }
 pub trait Interface {
     fn set_interrupt_disabled(&mut self, disabled: bool);
@@ -47,32 +49,32 @@ impl<T: Interface> Cpu<T> {
     pub fn new(interface: T) -> Self {
         Cpu {
             registers: Registers::default(),
-            op_code: 0x00,
+            // op_code: 0x00,
             interface,
-            state: Step::Run,
+            //    state: Step::Run,
             tick_count: 0,
             current_screen_state: false,
-            active_print: false,
+            //  active_print: false,
         }
     }
 
     pub fn new_from_state(interface: T, state: CpuState) -> Self {
         Cpu {
             registers: state.registers,
-            op_code: state.op_code,
+            // op_code: state.op_code,
             interface,
-            state: state.state,
+            //    state: state.state,
             tick_count: 0,
             current_screen_state: false,
-            active_print: false,
+            // active_print: false,
         }
     }
 
     pub fn create_state(&self) -> CpuState {
         CpuState {
             registers: self.registers,
-            op_code: self.op_code,
-            state: self.state,
+            // op_code: self.op_code,
+            //  state: self.state,
         }
     }
 }
@@ -89,8 +91,8 @@ impl<T: Interface> Cpu<T> {
         self.interface.reset();
     }
 
-    pub fn step(&mut self) -> u8 {
-        let (cycles, step) = match self.state {
+    pub fn step(&mut self, state: Step) -> (u8, DecodeStep) {
+        let (cycles, step) = match state {
             Step::Run => {
                 let ((step, _), cycles) = self.decode();
                 (cycles, step)
@@ -102,7 +104,7 @@ impl<T: Interface> Cpu<T> {
                 self.interface.acknowledge(interrupt);
                 self.push_u16(self.registers.pc);
 
-                let interrupt_address = match interrupt {
+                let interrupt_address: u16 = match interrupt {
                     InterruptLine::VBLANK => 0x0040,
                     InterruptLine::STAT => 0x0048,
                     InterruptLine::TIMER => 0x0050,
@@ -110,20 +112,20 @@ impl<T: Interface> Cpu<T> {
                     InterruptLine::JOYPAD => 0x0060,
                     _ => 0x0000,
                 };
-                self.op_code = self.interface.get_byte(interrupt_address);
-                self.registers.pc = interrupt_address.wrapping_add(1);
-                self.interface.interface_step();
-                (20, Step::Run)
+                //   self.op_code = self.interface.get_byte(interrupt_address);
+                // self.registers.pc = interrupt_address.wrapping_add(1);
+                self.registers.pc = interrupt_address;
+                //  self.interface.interface_step();
+                (20, DecodeStep::Run)
             }
             Step::Halt => {
                 if self.interface.any_enabled() {
                     if is_log_enabled() {
                         // println!("OUT OF HALT");
                     }
-                    let (step, _) = self.handle_return(self.registers.pc);
-                    (0, step)
+                    (0, DecodeStep::Run)
                 } else {
-                    (4, Step::Halt)
+                    (4, DecodeStep::Halt)
                 }
             }
             Step::HaltBug => {
@@ -137,7 +139,7 @@ impl<T: Interface> Cpu<T> {
                 panic!()
             }
         };
-        self.state = step;
-        cycles
+        // self.state = step;
+        (cycles, step)
     }
 }

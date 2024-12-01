@@ -185,7 +185,7 @@ impl<T: Screen> Ppu<T> {
             counter: 0,
             skip_interval: FRAMES_PER_SECOND as f32
                 / u8::min(screen.frame_rate(), FRAMES_PER_SECOND) as f32,
-            cycle_counter: 0,
+            cycle_counter: VBLANK_MIN_CYCLES,
             sprites: [Sprite::new(); SPRITE_COUNT],
             screen,
         }
