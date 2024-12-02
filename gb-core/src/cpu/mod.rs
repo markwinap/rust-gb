@@ -84,7 +84,7 @@ impl<T: Interface> Cpu<T> {
     pub fn step(&mut self, state: Step) -> (u8, DecodeStep) {
         let (cycles, step) = match state {
             Step::Run => {
-                let ((step, _), cycles) = self.decode();
+                let (step, cycles) = self.decode();
                 (cycles, step)
             }
             Step::Interrupt => {
@@ -117,7 +117,7 @@ impl<T: Interface> Cpu<T> {
             }
             Step::HaltBug => {
                 let current_pc = self.registers.pc;
-                let ((step, _), cycles) = self.decode();
+                let (step, cycles) = self.decode();
                 self.registers.pc = current_pc;
                 (cycles, step)
             }

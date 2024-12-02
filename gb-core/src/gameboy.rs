@@ -43,7 +43,7 @@ impl<'a, S: Screen> GameBoy<'a, S> {
             cpu.interface.gpu.reset();
             cpu.interface.interrupt_handler.reset();
         }
-        cpu.handle_return(cpu.registers.pc);
+
         GameBoy {
             cpu,
             state: Step::Run,
