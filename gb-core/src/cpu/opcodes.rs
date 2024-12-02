@@ -3,8 +3,9 @@ use crate::cpu::address::{
 };
 use crate::cpu::registers::Reg16;
 use crate::cpu::registers::Reg8::{A, B, C, D, E, H, L};
-use crate::cpu::{Interface, Step};
+use crate::cpu::Interface;
 use crate::util::int::IntExt;
+use crate::{is_log_enabled, trace};
 
 #[derive(Clone, Copy)]
 pub enum Cond {
@@ -14,9 +15,41 @@ pub enum Cond {
     C,
 }
 
+pub enum DecodeStep {
+    Run,
+    Halt,
+    Stopped,
+}
+
 impl<T: Interface> Cpu<T> {
-    pub fn decode(&mut self) -> ((Step, u16), u8) {
-        let op_code = self.op_code;
+    pub fn decode(&mut self) -> (DecodeStep, u8) {
+        let op_code = self.read_next_byte();
+        if self.current_screen_state != self.interface.gpu_screen_on() {
+            self.tick_count = 0;
+            trace!("RESET TICK COUNT: {}", self.interface.gpu_screen_on());
+            self.current_screen_state = self.interface.gpu_screen_on();
+        }
+
+        if is_log_enabled() {
+            trace!(
+                "tick: {} opcode: {:#02x}, PC: {}, SP: {} scanline:{}, regs: a:{} b: {}, c:{}, d:{}, e:{}, h:{}, l:{} f:{}",
+                self.tick_count,
+                op_code,
+                self.registers.pc,
+                self.registers.get_sp(),
+                self.interface.scan_line(),
+                self.registers.a,
+                self.registers.b,
+                self.registers.c,
+                self.registers.d,
+                self.registers.e,
+                self.registers.h,
+                self.registers.l,
+                self.registers.flags.read_value()
+            );
+        }
+
+        self.tick_count = self.tick_count.wrapping_add(1);
 
         match op_code {
             0x7f => (self.load_8(A, A), 4),
@@ -173,7 +206,7 @@ impl<T: Interface> Cpu<T> {
             0xbb => (self.cp(E), 4),
             0xbc => (self.cp(H), 4),
             0xbd => (self.cp(L), 4),
-            0xbe => (self.cp(Addr::HL), 8),
+            0xbe => (self.cp_test(Addr::HL), 8),
             0xfe => (self.cp(Immediate8), 8),
 
             0xa7 => (self.and(A), 4),
@@ -361,19 +394,18 @@ impl<T: Interface> Cpu<T> {
             0x3b => (self.dec16(Reg16::SP), 8),
 
             0xcb => self.cb_prefix(),
-            // _ => panic!("Undefined opcode {}", self.op_code)
-            _ => ((Step::Run, 0), 0),
+            _ => (DecodeStep::Run, 0),
         }
     }
 
-    pub fn cb_prefix(&mut self) -> ((Step, u16), u8) {
-        self.op_code = self.read_next_byte();
+    pub fn cb_prefix(&mut self) -> (DecodeStep, u8) {
         let result = self.cb_decode_execute();
         result
     }
 
-    pub fn cb_decode_execute(&mut self) -> ((Step, u16), u8) {
-        match self.op_code {
+    pub fn cb_decode_execute(&mut self) -> (DecodeStep, u8) {
+        let op_code = self.read_next_byte();
+        match op_code {
             0x07 => (self.rlc(A), 8),
             0x00 => (self.rlc(B), 8),
             0x01 => (self.rlc(C), 8),
@@ -643,38 +675,37 @@ impl<T: Interface> Cpu<T> {
         }
     }
 
-    pub fn res<IO: Copy>(&mut self, bit: usize, io: IO) -> (Step, u16)
+    pub fn res<IO: Copy>(&mut self, bit: usize, io: IO) -> DecodeStep
     where
         Self: Read8<IO> + Write8<IO>,
     {
         let value = self.read_8(io) & !(1 << bit);
         self.write_8(io, value);
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn set<IO: Copy>(&mut self, bit: usize, io: IO) -> (Step, u16)
+    pub fn set<IO: Copy>(&mut self, bit: usize, io: IO) -> DecodeStep
     where
         Self: Read8<IO> + Write8<IO>,
     {
         let value = self.read_8(io) | (1 << bit);
         self.write_8(io, value);
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn bit<I: Copy>(&mut self, bit: usize, in8: I) -> (Step, u16)
+    pub fn bit<I: Copy>(&mut self, bit: usize, in8: I) -> DecodeStep
     where
         Self: Read8<I>,
     {
         let value = self.read_8(in8) & (1 << bit);
 
         self.registers.flags.z = value == 0;
-        // println!("z value: {}", self.registers.flags.z);
         self.registers.flags.n = false;
         self.registers.flags.h = true;
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn swap<IO: Copy>(&mut self, io: IO) -> (Step, u16)
+    pub fn swap<IO: Copy>(&mut self, io: IO) -> DecodeStep
     where
         Self: Read8<IO> + Write8<IO>,
     {
@@ -687,10 +718,10 @@ impl<T: Interface> Cpu<T> {
         self.registers.flags.c = false;
 
         self.write_8(io, new_value);
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn srl<IO: Copy>(&mut self, io: IO) -> (Step, u16)
+    pub fn srl<IO: Copy>(&mut self, io: IO) -> DecodeStep
     where
         Self: Read8<IO> + Write8<IO>,
     {
@@ -704,10 +735,10 @@ impl<T: Interface> Cpu<T> {
         self.registers.flags.c = co != 0;
 
         self.write_8(io, new_value);
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn sra<IO: Copy>(&mut self, io: IO) -> (Step, u16)
+    pub fn sra<IO: Copy>(&mut self, io: IO) -> DecodeStep
     where
         Self: Read8<IO> + Write8<IO>,
     {
@@ -722,10 +753,10 @@ impl<T: Interface> Cpu<T> {
         self.registers.flags.c = co != 0;
 
         self.write_8(io, new_value);
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn sla<IO: Copy>(&mut self, io: IO) -> (Step, u16)
+    pub fn sla<IO: Copy>(&mut self, io: IO) -> DecodeStep
     where
         Self: Read8<IO> + Write8<IO>,
     {
@@ -739,30 +770,30 @@ impl<T: Interface> Cpu<T> {
         self.registers.flags.c = co != 0;
 
         self.write_8(io, new_value);
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn inc16<IO: Copy>(&mut self, io8: IO) -> (Step, u16)
+    pub fn inc16<IO: Copy>(&mut self, io8: IO) -> DecodeStep
     where
         Self: Read16<IO> + Write16<IO>,
     {
         let value = self.read_16(io8);
         let result = value.wrapping_add(1);
         self.write_16(io8, result);
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn dec16<IO: Copy>(&mut self, io8: IO) -> (Step, u16)
+    pub fn dec16<IO: Copy>(&mut self, io8: IO) -> DecodeStep
     where
         Self: Read16<IO> + Write16<IO>,
     {
         let value = self.read_16(io8);
         let result = value.wrapping_sub(1);
         self.write_16(io8, result);
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn add16<I: Copy>(&mut self, in16: I) -> (Step, u16)
+    pub fn add16<I: Copy>(&mut self, in16: I) -> DecodeStep
     where
         Self: Read16<I>,
     {
@@ -774,9 +805,9 @@ impl<T: Interface> Cpu<T> {
         self.registers.flags.h = u16::test_add_carry_bit(11, hl, value);
         self.registers.flags.c = hl > 0xffff - value;
         self.registers.set_hl(result);
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
-    pub fn add16_sp_e(&mut self) -> (Step, u16) {
+    pub fn add16_sp_e(&mut self) -> DecodeStep {
         let offset = self.read_next_byte() as i8 as i16 as u16;
         let sp = self.registers.sp;
         self.registers.set_sp(sp.wrapping_add(offset));
@@ -786,94 +817,68 @@ impl<T: Interface> Cpu<T> {
         self.registers.flags.h = u16::test_add_carry_bit(3, sp, offset);
         self.registers.flags.c = u16::test_add_carry_bit(7, sp, offset);
 
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn push16<I: Copy>(&mut self, in16: I) -> (Step, u16)
+    pub fn push16<I: Copy>(&mut self, in16: I) -> DecodeStep
     where
         Self: Read16<I>,
     {
         let result = self.read_16(in16);
         self.push_u16(result);
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn pop16<O: Copy>(&mut self, out16: O) -> (Step, u16)
+    pub fn pop16<O: Copy>(&mut self, out16: O) -> DecodeStep
     where
         Self: Write16<O>,
     {
         let result = self.pop_u16();
         self.write_16(out16, result);
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn handle_return(&mut self, address: u16) -> (Step, u16) {
-        self.op_code = self.interface.get_byte(address);
-        if self.op_code == 0x10 {
-            print!("Abou to panic!");
-        }
-        self.interface.step();
-        if self.interface.interrupt_master_enabled() && self.interface.any_enabled() {
-            (Step::Interrupt, address)
-        } else {
-            self.registers.pc = address.wrapping_add(1);
-            (Step::Run, address.wrapping_add(1))
-        }
+    #[inline(always)]
+    pub fn handle_return(&mut self) -> DecodeStep {
+        DecodeStep::Run
     }
 
-    pub fn halt(&mut self) -> (Step, u16) {
-        self.op_code = self.interface.get_byte(self.registers.pc);
-        if self.op_code == 0x10 {
-            print!("Abou to panic!");
-        }
-        self.interface.step();
-        if self.interface.any_enabled() {
-            if self.interface.interrupt_master_enabled() {
-                (Step::Interrupt, self.registers.pc)
-            } else {
-                (Step::HaltBug, self.registers.pc)
-            }
-        } else {
-            (Step::Halt, self.registers.pc)
-        }
+    pub fn halt(&mut self) -> DecodeStep {
+        DecodeStep::Halt
     }
-    pub fn stop(&mut self) -> (Step, u16) {
-        panic!("adios! :p ")
+    pub fn stop(&mut self) -> DecodeStep {
+        DecodeStep::Stopped
     }
 
-    pub fn di(&mut self) -> (Step, u16) {
-        self.interface.step();
+    pub fn di(&mut self) -> DecodeStep {
         self.interface.set_interrupt_disabled(true);
-        self.op_code = self.read_next_byte();
-        (Step::Run, self.registers.pc.wrapping_add(1)) //TODO Do we increment? it has already been incremented
+        DecodeStep::Run
     }
 
-    pub fn ei(&mut self) -> (Step, u16) {
-        let return_value = self.handle_return(self.registers.pc);
+    pub fn ei(&mut self) -> DecodeStep {
         self.interface.set_interrupt_disabled(false);
-        self.interface.step();
-        return_value
+        DecodeStep::Run
     }
 
-    pub fn ccf(&mut self) -> (Step, u16) {
+    pub fn ccf(&mut self) -> DecodeStep {
         self.registers.flags.n = false;
         self.registers.flags.h = false;
         self.registers.flags.c = !self.registers.flags.c;
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn scf(&mut self) -> (Step, u16) {
+    pub fn scf(&mut self) -> DecodeStep {
         self.registers.flags.n = false;
         self.registers.flags.h = false;
         self.registers.flags.c = true;
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn nop(&mut self) -> (Step, u16) {
-        self.handle_return(self.registers.pc)
+    pub fn nop(&mut self) -> DecodeStep {
+        DecodeStep::Run
     }
 
-    pub fn daa(&mut self) -> (Step, u16) {
+    pub fn daa(&mut self) -> DecodeStep {
         let mut carry = false;
         if !self.registers.flags.n {
             if self.registers.flags.c || self.registers.a > 0x99 {
@@ -896,36 +901,37 @@ impl<T: Interface> Cpu<T> {
         self.registers.flags.z = self.registers.a == 0;
         self.registers.flags.h = false;
         self.registers.flags.c = carry;
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn cpl(&mut self) -> (Step, u16) {
+    pub fn cpl(&mut self) -> DecodeStep {
         self.registers.a = !self.registers.a;
         self.registers.flags.n = true;
         self.registers.flags.h = true;
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn rst(&mut self, add: u8) -> (Step, u16) {
+    pub fn rst(&mut self, add: u8) -> DecodeStep {
         let pc = self.registers.pc;
         self.push_u16(pc);
-        self.handle_return(add as u16)
+        self.registers.pc = add as u16;
+        DecodeStep::Run
     }
 
-    pub fn ret_cc(&mut self, cond: Cond) -> (Step, u16) {
+    pub fn ret_cc(&mut self, cond: Cond) -> DecodeStep {
         if self.check_cond(cond) {
             self.ctr_return()
         } else {
-            self.handle_return(self.registers.pc)
+            DecodeStep::Run
         }
     }
 
-    pub fn call_cc(&mut self, cond: Cond) -> (Step, u16) {
+    pub fn call_cc(&mut self, cond: Cond) -> DecodeStep {
         let address = self.read_next_word();
         if self.check_cond(cond) {
             self.ctr_call(address)
         } else {
-            self.handle_return(self.registers.pc)
+            DecodeStep::Run
         }
     }
 
@@ -939,97 +945,91 @@ impl<T: Interface> Cpu<T> {
         }
     }
 
-    pub fn jr_cc(&mut self, cond: Cond) -> (Step, u16) {
+    pub fn jr_cc(&mut self, cond: Cond) -> DecodeStep {
         let addr = self.read_next_byte() as i8;
         if self.check_cond(cond) {
             self.ctrl_jr(addr)
         } else {
-            self.handle_return(self.registers.pc)
+            DecodeStep::Run
         }
     }
 
-    pub fn jp_cc(&mut self, cond: Cond) -> (Step, u16) {
+    pub fn jp_cc(&mut self, cond: Cond) -> DecodeStep {
         let addr = self.read_next_word();
         if self.check_cond(cond) {
             self.registers.pc = addr;
-            self.handle_return(addr)
-        } else {
-            self.handle_return(self.registers.pc)
         }
+        DecodeStep::Run
     }
 
-    pub fn ret(&mut self) -> (Step, u16) {
+    pub fn ret(&mut self) -> DecodeStep {
         self.ctr_return()
     }
 
-    pub fn reti(&mut self) -> (Step, u16) {
+    pub fn reti(&mut self) -> DecodeStep {
         self.interface.set_interrupt_disabled(false);
         self.ctr_return()
     }
 
-    pub fn ctr_return(&mut self) -> (Step, u16) {
+    pub fn ctr_return(&mut self) -> DecodeStep {
         let addr = self.pop_u16();
         self.registers.pc = addr;
-        if addr == 678 {
-            println!("Panic!");
-        }
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn call(&mut self) -> (Step, u16) {
+    pub fn call(&mut self) -> DecodeStep {
         let address = self.read_next_word();
         self.ctr_call(address)
     }
 
-    fn ctr_call(&mut self, address: u16) -> (Step, u16) {
+    #[inline(always)]
+    fn ctr_call(&mut self, address: u16) -> DecodeStep {
         self.push_u16(self.registers.pc);
         self.registers.pc = address;
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn jr(&mut self) -> (Step, u16) {
+    pub fn jr(&mut self) -> DecodeStep {
         let offset = self.read_next_byte() as i8;
         self.ctrl_jr(offset)
     }
 
-    pub fn jp(&mut self) -> (Step, u16) {
+    pub fn jp(&mut self) -> DecodeStep {
         let address = self.read_next_word();
         self.registers.pc = address;
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn jp_hl(&mut self) -> (Step, u16) {
+    pub fn jp_hl(&mut self) -> DecodeStep {
         self.registers.pc = self.registers.get_hl();
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    fn ctrl_jr(&mut self, offset: i8) -> (Step, u16) {
+    #[inline(always)]
+    fn ctrl_jr(&mut self, offset: i8) -> DecodeStep {
         self.registers.pc = self.registers.pc.wrapping_add(offset as u16);
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    // #[inline(always)]
-    pub fn load_8<I: Copy, O: Copy>(&mut self, out8: O, in8: I) -> (Step, u16)
+    pub fn load_8<I: Copy, O: Copy>(&mut self, out8: O, in8: I) -> DecodeStep
     where
         Self: Write8<O> + Read8<I>,
     {
         let read = self.read_8(in8);
-        //println!("writing value: {}", read);
         self.write_8(out8, read);
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    //#[inline(always)]
-    pub fn load_16<I: Copy, O: Copy>(&mut self, out16: O, in16: I) -> (Step, u16)
+    pub fn load_16<I: Copy, O: Copy>(&mut self, out16: O, in16: I) -> DecodeStep
     where
         Self: Write16<O> + Read16<I>,
     {
         let read = self.read_16(in16);
         self.write_16(out16, read);
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn load_16_e<I: Copy, O: Copy>(&mut self, out16: O, in16: I) -> (Step, u16)
+    pub fn load_16_e<I: Copy, O: Copy>(&mut self, out16: O, in16: I) -> DecodeStep
     where
         Self: Write16<O> + Read16<I>,
     {
@@ -1042,10 +1042,10 @@ impl<T: Interface> Cpu<T> {
         self.registers.flags.h = u16::test_add_carry_bit(3, read, offset);
         self.registers.flags.c = u16::test_add_carry_bit(7, read, offset);
 
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn add<I: Copy>(&mut self, in8: I) -> (Step, u16)
+    pub fn add<I: Copy>(&mut self, in8: I) -> DecodeStep
     where
         Self: Read8<I>,
     {
@@ -1060,10 +1060,10 @@ impl<T: Interface> Cpu<T> {
         self.registers.flags.h = half_carry;
         self.registers.flags.c = carry;
         self.registers.a = result;
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn addc<I: Copy>(&mut self, in8: I) -> (Step, u16)
+    pub fn addc<I: Copy>(&mut self, in8: I) -> DecodeStep
     where
         Self: Read8<I>,
     {
@@ -1075,28 +1075,37 @@ impl<T: Interface> Cpu<T> {
         self.registers.flags.h = (self.registers.a & 0xf) + (value & 0xf) + cy > 0xf;
         self.registers.flags.c = self.registers.a as u16 + value as u16 + cy as u16 > 0xff;
         self.registers.a = result;
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn sub<I: Copy>(&mut self, in8: I, carry: bool) -> (Step, u16)
+    pub fn sub<I: Copy>(&mut self, in8: I, carry: bool) -> DecodeStep
     where
         Self: Read8<I>,
     {
         let value = self.read_8(in8);
         self.registers.a = self.alu_sub(value, carry);
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn cp<I: Copy>(&mut self, in8: I) -> (Step, u16)
+    pub fn cp_test<I: Copy>(&mut self, in8: I) -> DecodeStep
     where
         Self: Read8<I>,
     {
         let value = self.read_8(in8);
         self.alu_sub(value, false);
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn and<I: Copy>(&mut self, in8: I) -> (Step, u16)
+    pub fn cp<I: Copy>(&mut self, in8: I) -> DecodeStep
+    where
+        Self: Read8<I>,
+    {
+        let value = self.read_8(in8);
+        self.alu_sub(value, false);
+        DecodeStep::Run
+    }
+
+    pub fn and<I: Copy>(&mut self, in8: I) -> DecodeStep
     where
         Self: Read8<I>,
     {
@@ -1106,10 +1115,10 @@ impl<T: Interface> Cpu<T> {
         self.registers.flags.n = false;
         self.registers.flags.h = true;
         self.registers.flags.c = false;
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn or<I: Copy>(&mut self, in8: I) -> (Step, u16)
+    pub fn or<I: Copy>(&mut self, in8: I) -> DecodeStep
     where
         Self: Read8<I>,
     {
@@ -1119,10 +1128,10 @@ impl<T: Interface> Cpu<T> {
         self.registers.flags.n = false;
         self.registers.flags.h = false;
         self.registers.flags.c = false;
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn xor<I: Copy>(&mut self, in8: I) -> (Step, u16)
+    pub fn xor<I: Copy>(&mut self, in8: I) -> DecodeStep
     where
         Self: Read8<I>,
     {
@@ -1132,10 +1141,10 @@ impl<T: Interface> Cpu<T> {
         self.registers.flags.n = false;
         self.registers.flags.h = false;
         self.registers.flags.c = false;
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn inc<IO: Copy>(&mut self, io8: IO) -> (Step, u16)
+    pub fn inc<IO: Copy>(&mut self, io8: IO) -> DecodeStep
     where
         Self: Read8<IO> + Write8<IO>,
     {
@@ -1145,10 +1154,10 @@ impl<T: Interface> Cpu<T> {
         self.registers.flags.z = result == 0;
         self.registers.flags.n = false;
         self.registers.flags.h = (value & 0x0F) == 0x0F;
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn dec<IO: Copy>(&mut self, io8: IO) -> (Step, u16)
+    pub fn dec<IO: Copy>(&mut self, io8: IO) -> DecodeStep
     where
         Self: Read8<IO> + Write8<IO>,
     {
@@ -1158,10 +1167,10 @@ impl<T: Interface> Cpu<T> {
         self.registers.flags.n = true;
         self.registers.flags.h = (value & 0x0F) == 0;
         self.write_8(io8, result);
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn rl<IO: Copy>(&mut self, io8: IO) -> (Step, u16)
+    pub fn rl<IO: Copy>(&mut self, io8: IO) -> DecodeStep
     where
         Self: Read8<IO> + Write8<IO>,
     {
@@ -1169,10 +1178,10 @@ impl<T: Interface> Cpu<T> {
         let result = self.alu_rl(value, false, |flags, _| if flags.c { 1 } else { 0 });
 
         self.write_8(io8, result);
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn rlc<IO: Copy>(&mut self, io8: IO) -> (Step, u16)
+    pub fn rlc<IO: Copy>(&mut self, io8: IO) -> DecodeStep
     where
         Self: Read8<IO> + Write8<IO>,
     {
@@ -1180,38 +1189,38 @@ impl<T: Interface> Cpu<T> {
         let result = self.alu_rl(value, false, |_, n| n >> 7);
 
         self.write_8(io8, result);
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn rlca(&mut self) -> (Step, u16) {
+    pub fn rlca(&mut self) -> DecodeStep {
         let value = self.registers.a;
         self.registers.a = self.alu_rl(value, true, |_, n| n >> 7);
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn rla(&mut self) -> (Step, u16) {
+    pub fn rla(&mut self) -> DecodeStep {
         let value = self.registers.a;
         self.registers.a = self.alu_rl(value, true, |flags, _| if flags.c { 1 } else { 0 });
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn rrca(&mut self) -> (Step, u16) {
+    pub fn rrca(&mut self) -> DecodeStep {
         let value = self.registers.a;
         self.registers.a = self.alu_rr(value, true, |_, n| (n & 0b0000_0001) << 7);
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn rra(&mut self) -> (Step, u16) {
+    pub fn rra(&mut self) -> DecodeStep {
         let value = self.registers.a;
         self.registers.a = self.alu_rr(
             value,
             true,
             |flags, _| if flags.c { 0b1000_0000 } else { 0 },
         );
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn rrc<IO: Copy>(&mut self, io8: IO) -> (Step, u16)
+    pub fn rrc<IO: Copy>(&mut self, io8: IO) -> DecodeStep
     where
         Self: Read8<IO> + Write8<IO>,
     {
@@ -1219,10 +1228,10 @@ impl<T: Interface> Cpu<T> {
         let result = self.alu_rr(value, false, |_, n| (n & 0b0000_0001) << 7);
 
         self.write_8(io8, result);
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 
-    pub fn rr<IO: Copy>(&mut self, io8: IO) -> (Step, u16)
+    pub fn rr<IO: Copy>(&mut self, io8: IO) -> DecodeStep
     where
         Self: Read8<IO> + Write8<IO>,
     {
@@ -1234,6 +1243,6 @@ impl<T: Interface> Cpu<T> {
         );
 
         self.write_8(io8, result);
-        self.handle_return(self.registers.pc)
+        DecodeStep::Run
     }
 }

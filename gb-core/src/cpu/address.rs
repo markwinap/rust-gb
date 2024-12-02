@@ -4,17 +4,9 @@ use crate::cpu::{Interface, Step};
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Cpu<T: Interface> {
     pub registers: Registers,
-    pub op_code: u8,
     pub interface: T,
-    pub state: Step,
-    // pub prev_opcode: PrevExec,
-    //pub tick_count: usize,
-}
-
-#[derive(Default)]
-pub struct PrevExec {
-    pub prev_opcode: u8,
-    pub prev_pc: u16,
+    pub tick_count: usize,
+    pub current_screen_state: bool,
 }
 
 impl<T: Interface> Cpu<T> {
@@ -25,14 +17,14 @@ impl<T: Interface> Cpu<T> {
     pub fn read_next_byte(&mut self) -> u8 {
         let addr = self.registers.get_pc();
         self.registers.increment_pc();
-        self.interface.get_byte(addr)
+        let result = self.interface.get_byte(addr);
+        result
     }
 
     pub fn read_next_word(&mut self) -> u16 {
         let lo = self.read_next_byte();
         let hi = self.read_next_byte();
         let word = u16::from_le_bytes([lo, hi]);
-        //  println!("Word read: {:X?}", word);
         word
     }
 
@@ -99,7 +91,6 @@ impl<T: Interface> Read16<Reg16> for Cpu<T> {
 impl<T: Interface> Write16<Reg16> for Cpu<T> {
     #[inline(always)]
     fn write_16(&mut self, dst: Reg16, val: u16) {
-        //  println!("Inside write reg: {} with value: {}", dst, val);
         match dst {
             Reg16::AF => self.registers.set_af(val),
             Reg16::BC => self.registers.set_bc(val),
@@ -118,7 +109,8 @@ pub struct Immediate16;
 
 impl<T: Interface> Read8<Immediate8> for Cpu<T> {
     fn read_8(&mut self, _: Immediate8) -> u8 {
-        self.read_next_byte()
+        let result = self.read_next_byte();
+        result
     }
 }
 

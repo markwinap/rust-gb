@@ -3,6 +3,7 @@ use crate::hardware::color_palette::{Color, ColorPalette, ORIGINAL_GREEN};
 use crate::hardware::interrupt_handler::{InterruptHandler, InterruptLine};
 use crate::hardware::Screen;
 use crate::memory::Memory;
+use crate::{is_log_enabled, trace};
 
 use arrayvec::ArrayVec;
 use bitflags::bitflags;
@@ -29,7 +30,7 @@ const TILE_MAP_SIZE: usize = 0x400;
 use alloc::boxed::Box;
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Copy, Clone, PartialEq, Eq, FromPrimitive)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 enum Mode {
     AccessOam,
     AccessVram,
@@ -87,10 +88,10 @@ pub struct Ppu<T: Screen> {
     background_palette: Palette,
     obj_palette0: Palette,
     obj_palette1: Palette,
-    scanline: u8,
+    pub scanline: u8,
     video_ram: VideoRam,
-    control: Control,
-    stat: Stat,
+    pub control: Control,
+    pub stat: Stat,
     compare_line: u8,
     scroll_x: u8,
     scroll_y: u8,
@@ -184,7 +185,7 @@ impl<T: Screen> Ppu<T> {
             counter: 0,
             skip_interval: FRAMES_PER_SECOND as f32
                 / u8::min(screen.frame_rate(), FRAMES_PER_SECOND) as f32,
-            cycle_counter: 0,
+            cycle_counter: VBLANK_MIN_CYCLES,
             sprites: [Sprite::new(); SPRITE_COUNT],
             screen,
         }
@@ -203,41 +204,65 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn step(&mut self, cycles: isize, interrupts: &mut InterruptHandler) {
-        if self.scanline == self.compare_line {
-            self.stat.insert(Stat::COMPARE);
-        } else {
-            self.stat.remove(Stat::COMPARE);
-        }
-
-        if !self.update_lcd_stat_interrupts(interrupts) {
+        if !self.control.contains(Control::LCD_ON) {
+            self.cycle_counter = VBLANK_MIN_CYCLES;
+            self.mode = Mode::VBlank;
+            self.scanline = 0;
             return;
         }
+
         if cycles == 0 {
             self.draw_blank_screen();
             return;
         }
+
+        if is_log_enabled() {
+            trace!(
+                "PPU cycles in:{} current_cycles:{}",
+                cycles,
+                VBLANK_MIN_CYCLES - self.cycle_counter
+            );
+        }
+
         self.cycle_counter -= cycles;
-
+        if is_log_enabled() {
+            trace!("pending ppu: {}", VBLANK_MIN_CYCLES - self.cycle_counter);
+        }
         if self.cycle_counter <= 0 {
-            self.scanline = self.scanline + 1;
-            if self.scanline == self.compare_line {
-                self.stat.insert(Stat::COMPARE);
-            } else {
-                self.stat.remove(Stat::COMPARE);
+            if is_log_enabled() {
+                trace!("Increase scanline at: {}", self.cycle_counter * -1);
             }
+            self.scanline = self.scanline + 1;
+            self.check_compare_interrupt(interrupts);
 
-            self.cycle_counter = VBLANK_MIN_CYCLES;
+            self.cycle_counter += VBLANK_MIN_CYCLES;
             if self.scanline == SCREEN_HEIGHT as u8 {
+                if is_log_enabled() {
+                    trace!("PPU interrupt from mode: VBLANK");
+                }
                 interrupts.request(InterruptLine::VBLANK, true);
             } else if self.scanline >= SCREEN_HEIGHT as u8 + 10 {
                 self.draw_to_screen();
-                if self.scanline != 0 && self.scanline as usize != SCREEN_HEIGHT + 10 {
-                    self.scanline = 0;
-                }
                 self.scanline = 0;
+                self.check_compare_interrupt(interrupts);
             } else if self.scanline < SCREEN_HEIGHT as u8 {
                 self.draw_scan_line();
             }
+        }
+        self.update_lcd_stat_interrupts(interrupts);
+    }
+    fn check_compare_interrupt(&mut self, interrupts: &mut InterruptHandler) {
+        if self.scanline == self.compare_line {
+            self.stat.insert(Stat::COMPARE_TRIGERRED);
+
+            if self.stat.contains(Stat::COMPARE_INT) {
+                if is_log_enabled() {
+                    trace!("PPU interrupt from mode: COMPARE_TRIGERRED");
+                }
+                interrupts.request(InterruptLine::STAT, true);
+            }
+        } else {
+            self.stat.remove(Stat::COMPARE_TRIGERRED);
         }
     }
 
@@ -252,16 +277,8 @@ impl<T: Screen> Ppu<T> {
         self.screen.draw(self.render_frame);
     }
 
-    fn update_lcd_stat_interrupts(&mut self, interrupts: &mut InterruptHandler) -> bool {
-        if !self.control.contains(Control::LCD_ON) {
-            self.cycle_counter = VBLANK_MIN_CYCLES;
-            self.mode = Mode::VBlank;
-            if self.scanline != 0 && self.scanline as usize != SCREEN_HEIGHT {
-                self.scanline = 0;
-            }
-            self.scanline = 0;
-            return false;
-        }
+    #[inline(always)]
+    fn update_lcd_stat_interrupts(&mut self, interrupts: &mut InterruptHandler) {
         if self.scanline >= SCREEN_HEIGHT as u8 {
             self.update_current_mode_sec(
                 interrupts,
@@ -285,11 +302,6 @@ impl<T: Screen> Ppu<T> {
                 self.stat.contains(Stat::HBLANK_INT),
             );
         }
-
-        if self.stat.contains(Stat::COMPARE) && self.scanline == self.compare_line {
-            interrupts.request(InterruptLine::STAT, true);
-        }
-        true
     }
 
     fn update_current_mode_sec(
@@ -299,6 +311,9 @@ impl<T: Screen> Ppu<T> {
         request_interrupt: bool,
     ) {
         if request_interrupt && new_mode != self.mode {
+            if is_log_enabled() {
+                trace!("PPU interrupt from mode: {:#?}", new_mode);
+            }
             interrupts.request(InterruptLine::STAT, true);
         }
         self.mode = new_mode;
@@ -318,7 +333,6 @@ impl<T: Screen> Ppu<T> {
         self.control.bits()
     }
 
-    //#[unroll_for_loops]
     pub fn draw_scan_line(&mut self) {
         if !self.render_frame {
             return;
@@ -354,13 +368,13 @@ impl<T: Screen> Ppu<T> {
         self.control = new_control;
 
         if new_control.contains(Control::LCD_ON) && !previous_value.contains(Control::LCD_ON) {
-            self.stat.insert(Stat::COMPARE);
+            self.stat.insert(Stat::COMPARE_TRIGERRED);
             self.screen.turn_on();
         }
     }
     pub fn set_stat(&mut self, value: u8) {
         let new_stat = Stat::from_bits_truncate(value);
-        self.stat = (self.stat & Stat::COMPARE)
+        self.stat = (self.stat & Stat::COMPARE_TRIGERRED)
             | (new_stat & Stat::HBLANK_INT)
             | (new_stat & Stat::VBLANK_INT)
             | (new_stat & Stat::ACCESS_OAM_INT)
@@ -368,7 +382,26 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn get_stat(&self) -> u8 {
-        self.mode.bits() | self.stat.bits() | STAT_UNUSED_MASK
+        let mode_bits = self.mode.bits();
+        let compare_is_trigerred = self.stat.contains(Stat::COMPARE_TRIGERRED);
+        let compare_int = self.stat.contains(Stat::COMPARE_INT);
+        let oam_access = self.stat.contains(Stat::ACCESS_OAM_INT);
+        let hblank = self.stat.contains(Stat::HBLANK_INT);
+        let vblank = self.stat.contains(Stat::VBLANK_INT);
+
+        let result = 0x80
+            | if compare_int { 0x40 } else { 0 }
+            | if oam_access { 0x20 } else { 0 }
+            | if vblank { 0x10 } else { 0 }
+            | if hblank { 0x08 } else { 0 }
+            | if compare_is_trigerred { 0x04 } else { 0 }
+            | mode_bits;
+
+        if is_log_enabled() {
+            trace!("PPU stats: {:?}, mode: {:?}", self.stat, self.mode);
+        }
+
+        result
     }
 
     #[inline(always)]
@@ -592,7 +625,7 @@ impl<T: Screen> Ppu<T> {
 bitflags!(
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     #[derive(Clone, Copy)]
-  struct Control: u8 {
+ pub struct Control: u8 {
     const BG_ON = 1 << 0;
     const OBJ_ON = 1 << 1;
     const OBJ_SIZE = 1 << 2;
@@ -604,11 +637,10 @@ bitflags!(
   }
 );
 bitflags!(
-
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-  #[derive( Clone, Copy, PartialEq, Eq, Hash)]
-  struct Stat: u8 {
-    const COMPARE = 1 << 2;
+  #[derive( Clone, Copy, PartialEq, Eq, Hash, Debug)]
+  pub struct Stat: u8 {
+    const COMPARE_TRIGERRED = 1 << 2;
     const HBLANK_INT = 1 << 3;
     const VBLANK_INT = 1 << 4;
     const ACCESS_OAM_INT = 1 << 5;

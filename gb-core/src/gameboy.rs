@@ -1,5 +1,6 @@
 use crate::cpu::address::Cpu;
-use crate::cpu::CpuState;
+use crate::cpu::opcodes::DecodeStep;
+use crate::cpu::{CpuState, Interface, Step};
 use crate::hardware::boot_rom::Bootrom;
 use crate::hardware::cartridge::Cartridge;
 use crate::hardware::input::Button;
@@ -18,9 +19,11 @@ pub struct GameBoyState {
     pub cpu_state: CpuState,
     pub ppu_state: PPuState,
     pub hard_ware_state: HardwareState,
+    pub state: Step,
 }
 pub struct GameBoy<'a, S: Screen> {
     pub cpu: Cpu<Hardware<'a, S>>,
+    pub state: Step,
 }
 
 impl<'a, S: Screen> GameBoy<'a, S> {
@@ -39,8 +42,11 @@ impl<'a, S: Screen> GameBoy<'a, S> {
             cpu.interface.gpu.reset();
             cpu.interface.interrupt_handler.reset();
         }
-        cpu.handle_return(cpu.registers.pc);
-        GameBoy { cpu }
+
+        GameBoy {
+            cpu,
+            state: Step::Run,
+        }
     }
 
     pub fn create_from_state(
@@ -61,19 +67,48 @@ impl<'a, S: Screen> GameBoy<'a, S> {
         );
         let cpu = Cpu::new_from_state(hardware, state.cpu_state);
 
-        GameBoy { cpu }
+        GameBoy {
+            cpu,
+            state: state.state,
+        }
     }
 }
 
 impl<'a, S: Screen> GameBoy<'a, S> {
     pub fn tick(&mut self) -> u8 {
-        let cycles = self.cpu.step();
-        let interrupts = &mut self.cpu.interface.interrupt_handler;
-        self.cpu.interface.input_controller.update_state(interrupts);
-        self.cpu.interface.timer.do_cycle(cycles as u32, interrupts);
-        self.cpu.interface.gpu.step(cycles as isize, interrupts);
-        self.cpu.interface.sound.do_cycle(cycles as u32);
-        self.cpu.interface.cartridge.step();
+        let (cycles, decode_step) = self.cpu.step(self.state);
+        if cycles != 0 {
+            let interrupts = &mut self.cpu.interface.interrupt_handler;
+            interrupts.step();
+            self.cpu.interface.input_controller.update_state(interrupts);
+            self.cpu.interface.timer.do_cycle(cycles as u32, interrupts);
+            self.cpu.interface.gpu.step(cycles as isize, interrupts);
+            self.cpu.interface.sound.do_cycle(cycles as u32);
+            self.cpu.interface.cartridge.step();
+        }
+        let next_state = match decode_step {
+            DecodeStep::Run => {
+                if self.cpu.interface.interrupt_master_enabled() && self.cpu.interface.any_enabled()
+                {
+                    Step::Interrupt
+                } else {
+                    Step::Run
+                }
+            }
+            DecodeStep::Halt => {
+                if self.cpu.interface.any_enabled() {
+                    if self.cpu.interface.interrupt_master_enabled() {
+                        Step::Interrupt
+                    } else {
+                        Step::HaltBug
+                    }
+                } else {
+                    Step::Halt
+                }
+            }
+            DecodeStep::Stopped => Step::Stopped,
+        };
+        self.state = next_state;
         cycles
     }
 
@@ -82,6 +117,7 @@ impl<'a, S: Screen> GameBoy<'a, S> {
             cpu_state: self.cpu.create_state(),
             ppu_state: self.cpu.interface.gpu.create_state(),
             hard_ware_state: self.cpu.interface.create_state(),
+            state: self.state,
         }
     }
 

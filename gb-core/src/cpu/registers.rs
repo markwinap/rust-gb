@@ -21,7 +21,7 @@ pub enum Reg16 {
 }
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone, Copy, Debug)]
 pub struct Registers {
     pub a: u8,
     pub b: u8,

@@ -1,4 +1,4 @@
-use crate::memory::Memory;
+use crate::{is_log_enabled, memory::Memory, trace};
 
 use super::interrupt_handler::{InterruptHandler, InterruptLine};
 
@@ -87,6 +87,14 @@ impl Timer {
                     self.counter = self.modulo;
                     self.interrupt |= 0x04;
                     interrupts.request(InterruptLine::TIMER, true);
+                    if is_log_enabled() {
+                        trace!(
+                            "Timer interrupt with: counter:{}, modulo: {}, internalcnt: {}",
+                            self.counter,
+                            self.modulo,
+                            self.internalcnt
+                        );
+                    }
                 }
                 self.internalcnt -= self.step;
             }

@@ -2,7 +2,7 @@ use crate::util::int::IntExt;
 use bitflags::bitflags;
 
 bitflags!(
-    #[derive( Clone, Copy, PartialEq, Eq)]
+    #[derive( Clone, Copy, PartialEq, Eq, Debug)]
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
   pub struct InterruptLine: u8 {
     const VBLANK = 1 << 0;
