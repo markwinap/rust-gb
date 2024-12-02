@@ -16,7 +16,7 @@ log = "0.4"
 
 serde = { version = "1.0.188", optional = true, features = ["derive"] }
 serde-big-array = { version = "0.5.1", optional = true }
-defmt = "0.3.10"
+defmt = { version = "0.3.10", optional = true }
 [dev-dependencies]
 
 
@@ -24,6 +24,7 @@ defmt = "0.3.10"
 default = ["std"]
 std = ["serde"]
 serde = ["dep:serde", "dep:serde-big-array", "bitflags/serde"]
+defmt-log = ["dep:defmt"]
 
 [profile.dev]
 codegen-units = 1

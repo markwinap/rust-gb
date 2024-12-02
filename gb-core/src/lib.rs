@@ -9,6 +9,30 @@ pub mod hardware;
 mod memory;
 mod util;
 
+#[cfg(feature = "defmt-log")]
+use defmt::{debug, trace, warn};
+
+#[cfg(all(not(feature = "defmt-log"),))]
+#[macro_export]
+/// Like log::debug! but does nothing at all
+macro_rules! debug {
+    ($($arg:tt)+) => {};
+}
+
+#[cfg(all(not(feature = "defmt-log"),))]
+#[macro_export]
+/// Like log::trace! but does nothing at all
+macro_rules! trace {
+    ($($arg:tt)+) => {};
+}
+
+#[cfg(all(not(feature = "defmt-log"),))]
+#[macro_export]
+/// Like log::warn! but does nothing at all
+macro_rules! warn {
+    ($($arg:tt)+) => {};
+}
+
 // static mut ENABLE_LOG: LazyLock<Arc<Mutex<bool>>> =
 //     std::sync::LazyLock::new(|| Arc::new(Mutex::new(false)));
 

@@ -10,7 +10,6 @@ use log::info;
 use std::cell::{Cell, RefCell};
 use std::fs::{self, File};
 use std::io::{Read, Write};
-use std::rc::Rc;
 use std::sync::mpsc::{Receiver, SyncSender, TryRecvError};
 use std::sync::{mpsc, Arc, Mutex};
 use std::time::Instant;

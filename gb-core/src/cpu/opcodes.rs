@@ -4,8 +4,8 @@ use crate::cpu::address::{
 use crate::cpu::registers::Reg16;
 use crate::cpu::registers::Reg8::{A, B, C, D, E, H, L};
 use crate::cpu::Interface;
-use crate::is_log_enabled;
 use crate::util::int::IntExt;
+use crate::{is_log_enabled, trace};
 
 #[derive(Clone, Copy)]
 pub enum Cond {
@@ -26,12 +26,12 @@ impl<T: Interface> Cpu<T> {
         let op_code = self.read_next_byte();
         if self.current_screen_state != self.interface.gpu_screen_on() {
             self.tick_count = 0;
-            defmt::trace!("RESET TICK COUNT: {}", self.interface.gpu_screen_on());
+            trace!("RESET TICK COUNT: {}", self.interface.gpu_screen_on());
             self.current_screen_state = self.interface.gpu_screen_on();
         }
 
         if is_log_enabled() {
-            defmt::trace!(
+            trace!(
                 "tick: {} opcode: {:#02x}, PC: {}, SP: {} scanline:{}, regs: a:{} b: {}, c:{}, d:{}, e:{}, h:{}, l:{} f:{}",
                 self.tick_count,
                 op_code,
