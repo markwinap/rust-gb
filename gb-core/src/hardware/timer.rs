@@ -88,9 +88,11 @@ impl Timer {
                     self.interrupt |= 0x04;
                     interrupts.request(InterruptLine::TIMER, true);
                     if is_log_enabled() {
-                        println!(
+                        defmt::trace!(
                             "Timer interrupt with: counter:{}, modulo: {}, internalcnt: {}",
-                            self.counter, self.modulo, self.internalcnt
+                            self.counter,
+                            self.modulo,
+                            self.internalcnt
                         );
                     }
                 }

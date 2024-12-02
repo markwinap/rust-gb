@@ -6,7 +6,6 @@ use crate::hardware::cartridge::Cartridge;
 use crate::hardware::input::Button;
 use crate::hardware::ppu::PPuState;
 use crate::hardware::{Hardware, HardwareState, Screen};
-use crate::is_log_enabled;
 
 #[cfg(not(feature = "std"))]
 use alloc::boxed::Box;

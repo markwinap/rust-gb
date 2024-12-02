@@ -26,21 +26,12 @@ impl<T: Interface> Cpu<T> {
         let op_code = self.read_next_byte();
         if self.current_screen_state != self.interface.gpu_screen_on() {
             self.tick_count = 0;
-            println!("RESET TICK COUNT: {}", self.interface.gpu_screen_on());
+            defmt::trace!("RESET TICK COUNT: {}", self.interface.gpu_screen_on());
             self.current_screen_state = self.interface.gpu_screen_on();
         }
-        let mut enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
-        if self.tick_count == 0
-            && op_code == 0xCD
-            && self.registers.pc == 1859
-            && self.registers.sp == 53245
-        {
-            // *enable_log = true;
-        }
-        drop(enable_log);
 
         if is_log_enabled() {
-            println!(
+            defmt::trace!(
                 "tick: {} opcode: {:#02x}, PC: {}, SP: {} scanline:{}, regs: a:{} b: {}, c:{}, d:{}, e:{}, h:{}, l:{} f:{}",
                 self.tick_count,
                 op_code,

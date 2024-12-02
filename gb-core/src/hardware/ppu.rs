@@ -217,7 +217,7 @@ impl<T: Screen> Ppu<T> {
         }
 
         if is_log_enabled() {
-            println!(
+            defmt::trace!(
                 "PPU cycles in:{} current_cycles:{}",
                 cycles,
                 VBLANK_MIN_CYCLES - self.cycle_counter
@@ -226,11 +226,11 @@ impl<T: Screen> Ppu<T> {
 
         self.cycle_counter -= cycles;
         if is_log_enabled() {
-            println!("pending ppu: {}", VBLANK_MIN_CYCLES - self.cycle_counter);
+            defmt::trace!("pending ppu: {}", VBLANK_MIN_CYCLES - self.cycle_counter);
         }
         if self.cycle_counter <= 0 {
             if is_log_enabled() {
-                println!("Increase scanline at: {}", self.cycle_counter * -1);
+                defmt::trace!("Increase scanline at: {}", self.cycle_counter * -1);
             }
             self.scanline = self.scanline + 1;
             self.check_compare_interrupt(interrupts);
@@ -238,7 +238,7 @@ impl<T: Screen> Ppu<T> {
             self.cycle_counter += VBLANK_MIN_CYCLES;
             if self.scanline == SCREEN_HEIGHT as u8 {
                 if is_log_enabled() {
-                    println!("PPU interrupt from mode: VBLANK");
+                    defmt::trace!("PPU interrupt from mode: VBLANK");
                 }
                 interrupts.request(InterruptLine::VBLANK, true);
             } else if self.scanline >= SCREEN_HEIGHT as u8 + 10 {
@@ -257,7 +257,7 @@ impl<T: Screen> Ppu<T> {
 
             if self.stat.contains(Stat::COMPARE_INT) {
                 if is_log_enabled() {
-                    println!("PPU interrupt from mode: COMPARE_TRIGERRED");
+                    defmt::trace!("PPU interrupt from mode: COMPARE_TRIGERRED");
                 }
                 interrupts.request(InterruptLine::STAT, true);
             }
@@ -312,7 +312,7 @@ impl<T: Screen> Ppu<T> {
     ) {
         if request_interrupt && new_mode != self.mode {
             if is_log_enabled() {
-                println!("PPU interrupt from mode: {:#?}", new_mode);
+                defmt::trace!("PPU interrupt from mode: {:#?}", new_mode);
             }
             interrupts.request(InterruptLine::STAT, true);
         }
@@ -398,7 +398,7 @@ impl<T: Screen> Ppu<T> {
             | mode_bits;
 
         if is_log_enabled() {
-            println!("PPU stats: {:?}, mode: {:?}", self.stat, self.mode);
+            defmt::trace!("PPU stats: {:?}, mode: {:?}", self.stat, self.mode);
         }
 
         result
