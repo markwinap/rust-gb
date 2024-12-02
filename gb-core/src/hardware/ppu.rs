@@ -22,8 +22,6 @@ const SPRITE_COUNT: usize = 40;
 
 const SPRITE_HEIGHT: u8 = 16;
 
-const STAT_UNUSED_MASK: u8 = 0 << 7;
-
 const TILE_MAP_SIZE: usize = 0x400;
 
 #[cfg(not(feature = "std"))]

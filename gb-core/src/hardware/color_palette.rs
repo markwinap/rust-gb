@@ -20,7 +20,7 @@ pub enum ColorPalette {
 }
 
 impl ColorPalette {
-    pub fn sprite(&self, shade: Shade, index: u8) -> Color {
+    pub fn sprite(&self, shade: Shade, _index: u8) -> Color {
         match self {
             ColorPalette::FixedColorPalette { .. } => self.background(shade),
         }

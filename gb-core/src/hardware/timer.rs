@@ -12,7 +12,6 @@ pub struct Timer {
     step: u32,
     internalcnt: u32,
     internaldiv: u32,
-    pub interrupt: u8,
 }
 
 impl Timer {
@@ -25,7 +24,6 @@ impl Timer {
             step: 1024,
             internalcnt: 0,
             internaldiv: 0,
-            interrupt: 0,
         }
     }
 
@@ -85,7 +83,7 @@ impl Timer {
                 self.counter = self.counter.wrapping_add(1);
                 if self.counter == 0 {
                     self.counter = self.modulo;
-                    self.interrupt |= 0x04;
+
                     interrupts.request(InterruptLine::TIMER, true);
                     if is_log_enabled() {
                         trace!(

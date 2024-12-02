@@ -3,7 +3,6 @@ use opcodes::DecodeStep;
 use crate::cpu::address::Cpu;
 use crate::cpu::registers::Registers;
 use crate::hardware::interrupt_handler::InterruptLine;
-use crate::is_log_enabled;
 
 pub mod flags;
 

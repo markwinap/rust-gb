@@ -9,7 +9,7 @@ use crate::hardware::timer::Timer;
 use crate::hardware::work_ram::WorkRam;
 use crate::memory::Memory;
 
-use ppu::{Control, PPuState, Stat};
+use ppu::{Control, PPuState};
 use sound::Sound;
 
 pub mod boot_rom;
@@ -36,7 +36,7 @@ pub trait Screen {
     fn turn_on(&mut self);
     fn turn_off(&mut self);
     fn set_pixel(&mut self, x: u8, y: u8, color: Color);
-    fn scanline_complete(&mut self, _y: u8, skip: bool) {}
+    fn scanline_complete(&mut self, _y: u8, _skip: bool) {}
     fn draw(&mut self, skip_next: bool);
     fn frame_rate(&self) -> u8;
 }

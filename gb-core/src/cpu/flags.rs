@@ -1,7 +1,3 @@
-// use bitflags::_core::fmt::{Display, Formatter};
-
-use core::fmt::{Display, Formatter};
-
 const ZERO_FLAG_BYTE_POSITION: u8 = 7;
 const SUBTRACT_FLAG_BYTE_POSITION: u8 = 6;
 const HALF_CARRY_FLAG_BYTE_POSITION: u8 = 5;
@@ -15,16 +11,6 @@ pub struct Flags {
     pub h: bool,
     pub c: bool,
 }
-
-// impl Display for Flags {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-//         write!(
-//             f,
-//             "z: {}, n: {}, h: {}, c: {}",
-//             self.z, self.n, self.h, self.c
-//         )
-//     }
-// }
 
 impl Flags {
     #[inline(always)]

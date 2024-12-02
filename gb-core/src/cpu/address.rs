@@ -1,5 +1,5 @@
 use crate::cpu::registers::{Reg16, Reg8, Registers};
-use crate::cpu::{Interface, Step};
+use crate::cpu::Interface;
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Cpu<T: Interface> {
