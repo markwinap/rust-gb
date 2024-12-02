@@ -115,12 +115,6 @@ pub fn construct_cpu() {
                 file.write_all(string.as_bytes()).unwrap();
                 *check = false;
             }
-            // if (save_signal.) {
-            //     let state = gameboy.create_state();
-            //     let string = serde_json::to_string(&state).unwrap();
-            //     let mut file = File::create("C:\\roms\\pk_intro2.state").unwrap();
-            //     file.write_all(string.as_bytes()).unwrap();
-            // }
 
             'recv: loop {
                 match control_receiver.try_recv() {
@@ -169,15 +163,9 @@ pub struct SynScreen {
 }
 
 impl Screen for SynScreen {
-    fn turn_on(&mut self) {
-        //  println!("TURN ON!");
-        let mut check = self.check.lock().unwrap();
-        //  *check = true;
-    }
+    fn turn_on(&mut self) {}
 
-    fn turn_off(&mut self) {
-        println!("TURN OFF!");
-    }
+    fn turn_off(&mut self) {}
 
     fn set_pixel(&mut self, x: u8, y: u8, color: Color) {
         self.off_screen_buffer.get_mut()[y as usize * SCREEN_WIDTH * 3 + x as usize * 3 + 0] =
@@ -189,7 +177,6 @@ impl Screen for SynScreen {
     }
 
     fn draw(&mut self, skip: bool) {
-        //    println!("DRAW");
         let stuff = self.off_screen_buffer.replace(Box::new([0; SCREEN_PIXELS]));
         self.sender.send(stuff).unwrap();
     }
@@ -217,23 +204,18 @@ impl gb_core::hardware::rom::RomManager for ByteRomManager {
     fn read_from_offset(&self, seek_offset: usize, index: usize, _bank_number: u8) -> u8 {
         let address = seek_offset + index;
         let result = self.data[address];
-        // if result == u8::MAX {
-        //     println!("Weird");
-        // }
         result
     }
 
     fn clock(&self) -> u64 {
         self.instant.elapsed().as_micros() as u64
-        //print!("rr");
-        //0
     }
 
-    fn save(&mut self, game_title: &str, bank_index: u8, bank: &[u8]) {
+    fn save(&mut self, _game_title: &str, bank_index: u8, _bank: &[u8]) {
         info!("SAVING RAM BANK: {}", bank_index);
     }
 
-    fn load_to_bank(&mut self, game_title: &str, bank_index: u8, bank: &mut [u8]) {
+    fn load_to_bank(&mut self, _game_title: &str, bank_index: u8, _bank: &mut [u8]) {
         info!("LOADING RAM BANK: {}", bank_index);
     }
 }

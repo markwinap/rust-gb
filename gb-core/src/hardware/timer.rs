@@ -102,12 +102,10 @@ impl Timer {
 
 impl Memory for Timer {
     fn set_byte(&mut self, address: u16, value: u8) {
-        // println!("Timer write: a:{} v:{}", address, value);
         self.wb(address, value);
     }
 
     fn get_byte(&self, address: u16) -> u8 {
-        //  println!("Timer read: a:{}", address);
         self.rb(address)
     }
 }

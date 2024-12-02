@@ -107,9 +107,6 @@ impl<T: Interface> Cpu<T> {
             }
             Step::Halt => {
                 if self.interface.any_enabled() {
-                    if is_log_enabled() {
-                        // println!("OUT OF HALT");
-                    }
                     (0, DecodeStep::Run)
                 } else {
                     (4, DecodeStep::Halt)

@@ -30,7 +30,6 @@ impl<T: Interface> Cpu<T> {
             self.current_screen_state = self.interface.gpu_screen_on();
         }
         let mut enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
-        //*enable_log = true;
         if self.tick_count == 0
             && op_code == 0xCD
             && self.registers.pc == 1859
@@ -160,15 +159,10 @@ impl<T: Interface> Cpu<T> {
                 self.load_8(Addr::ReadOffset(ReadOffType::Register(C)), A),
                 8,
             ),
-            0xf0 => {
-                // if self.tick_count == 8138 + 1 {
-                //     println!("debug");
-                // }
-                (
-                    self.load_8(A, Addr::ReadOffset(ReadOffType::Immediate8)),
-                    12,
-                )
-            }
+            0xf0 => (
+                self.load_8(A, Addr::ReadOffset(ReadOffType::Immediate8)),
+                12,
+            ),
             0xe0 => (
                 self.load_8(Addr::ReadOffset(ReadOffType::Immediate8), A),
                 12,
@@ -927,7 +921,6 @@ impl<T: Interface> Cpu<T> {
     }
 
     pub fn rst(&mut self, add: u8) -> DecodeStep {
-        //  println!("RST");
         let pc = self.registers.pc;
         self.push_u16(pc);
         self.registers.pc = add as u16;

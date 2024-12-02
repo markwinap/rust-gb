@@ -91,7 +91,6 @@ impl<'a, S: Screen> GameBoy<'a, S> {
             DecodeStep::Run => {
                 if self.cpu.interface.interrupt_master_enabled() && self.cpu.interface.any_enabled()
                 {
-                    //   println!("INTERRRRRUPT");
                     Step::Interrupt
                 } else {
                     Step::Run
@@ -102,13 +101,9 @@ impl<'a, S: Screen> GameBoy<'a, S> {
                     if self.cpu.interface.interrupt_master_enabled() {
                         Step::Interrupt
                     } else {
-                        if is_log_enabled() {
-                            //      println!("HALT BUG");
-                        }
                         Step::HaltBug
                     }
                 } else {
-                    //println!("HALT");
                     Step::Halt
                 }
             }

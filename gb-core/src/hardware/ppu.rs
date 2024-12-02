@@ -248,7 +248,6 @@ impl<T: Screen> Ppu<T> {
             } else if self.scanline < SCREEN_HEIGHT as u8 {
                 self.draw_scan_line();
             }
-            //
         }
         self.update_lcd_stat_interrupts(interrupts);
     }
@@ -389,9 +388,8 @@ impl<T: Screen> Ppu<T> {
         let oam_access = self.stat.contains(Stat::ACCESS_OAM_INT);
         let hblank = self.stat.contains(Stat::HBLANK_INT);
         let vblank = self.stat.contains(Stat::VBLANK_INT);
-        let result = self.mode.bits() | self.stat.bits() | STAT_UNUSED_MASK;
 
-        let result2 = 0x80
+        let result = 0x80
             | if compare_int { 0x40 } else { 0 }
             | if oam_access { 0x20 } else { 0 }
             | if vblank { 0x10 } else { 0 }
@@ -403,7 +401,7 @@ impl<T: Screen> Ppu<T> {
             println!("PPU stats: {:?}, mode: {:?}", self.stat, self.mode);
         }
 
-        result2
+        result
     }
 
     #[inline(always)]
@@ -557,12 +555,10 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn get_scroll_y(&self) -> u8 {
-        println!("get_scroll_y");
         self.scroll_y
     }
 
     pub fn get_scroll_x(&self) -> u8 {
-        println!("get_scroll_x");
         self.scroll_x
     }
 
@@ -618,7 +614,6 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn get_bg_palette(&self) -> u8 {
-        println!("get_bg_palette");
         self.background_palette.0
     }
 
