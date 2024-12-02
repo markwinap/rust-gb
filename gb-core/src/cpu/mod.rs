@@ -26,8 +26,6 @@ pub enum Step {
 #[derive(Clone, Copy)]
 pub struct CpuState {
     pub registers: Registers,
-    // pub op_code: u8,
-    // pub state: Step,
 }
 pub trait Interface {
     fn set_interrupt_disabled(&mut self, disabled: bool);
@@ -40,7 +38,7 @@ pub trait Interface {
     fn any_enabled(&self) -> bool;
     fn set_byte(&mut self, address: u16, value: u8);
     fn get_byte(&mut self, address: u16) -> u8;
-    fn interface_step(&mut self) {}
+
     fn gpu_screen_on(&self) -> bool;
     fn scan_line(&self) -> u8;
 }
@@ -49,32 +47,24 @@ impl<T: Interface> Cpu<T> {
     pub fn new(interface: T) -> Self {
         Cpu {
             registers: Registers::default(),
-            // op_code: 0x00,
             interface,
-            //    state: Step::Run,
             tick_count: 0,
             current_screen_state: false,
-            //  active_print: false,
         }
     }
 
     pub fn new_from_state(interface: T, state: CpuState) -> Self {
         Cpu {
             registers: state.registers,
-            // op_code: state.op_code,
             interface,
-            //    state: state.state,
             tick_count: 0,
             current_screen_state: false,
-            // active_print: false,
         }
     }
 
     pub fn create_state(&self) -> CpuState {
         CpuState {
             registers: self.registers,
-            // op_code: self.op_code,
-            //  state: self.state,
         }
     }
 }
@@ -83,7 +73,7 @@ impl<T: Interface> Cpu<T> {
     pub fn reset(&mut self) {
         self.registers.pc = 0x100;
         self.push_u16(0xFFFE);
-        self.registers.set_af(0x0180);
+        self.registers.set_af(0x01B0);
         self.registers.set_bc(0x0013);
         self.registers.set_de(0x00D8);
         self.registers.set_hl(0x014D);
@@ -112,10 +102,7 @@ impl<T: Interface> Cpu<T> {
                     InterruptLine::JOYPAD => 0x0060,
                     _ => 0x0000,
                 };
-                //   self.op_code = self.interface.get_byte(interrupt_address);
-                // self.registers.pc = interrupt_address.wrapping_add(1);
                 self.registers.pc = interrupt_address;
-                //  self.interface.interface_step();
                 (20, DecodeStep::Run)
             }
             Step::Halt => {
@@ -130,7 +117,6 @@ impl<T: Interface> Cpu<T> {
             }
             Step::HaltBug => {
                 let current_pc = self.registers.pc;
-                println!("Current HALT PC: {}", self.registers.pc);
                 let ((step, _), cycles) = self.decode();
                 self.registers.pc = current_pc;
                 (cycles, step)
@@ -139,7 +125,6 @@ impl<T: Interface> Cpu<T> {
                 panic!()
             }
         };
-        // self.state = step;
         (cycles, step)
     }
 }

@@ -31,13 +31,13 @@ impl<T: Interface> Cpu<T> {
         }
         let mut enable_log = unsafe { crate::ENABLE_LOG.lock().unwrap() };
         //*enable_log = true;
-        // if self.tick_count == 0
-        //     && op_code == 0xCD
-        //     && self.registers.pc == 1859
-        //     && self.registers.sp == 53245
-        // {
-        //      *enable_log = true;
-        // }
+        if self.tick_count == 0
+            && op_code == 0xCD
+            && self.registers.pc == 1859
+            && self.registers.sp == 53245
+        {
+            *enable_log = true;
+        }
         drop(enable_log);
 
         if is_log_enabled() {
@@ -61,9 +61,6 @@ impl<T: Interface> Cpu<T> {
 
         self.tick_count = self.tick_count.wrapping_add(1);
 
-        // if self.registers.pc == 18627 {
-        //     panic!("STOP");
-        // }
         match op_code {
             0x7f => (self.load_8(A, A), 4),
             0x78 => (self.load_8(A, B), 4),

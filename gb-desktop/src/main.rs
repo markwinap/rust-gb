@@ -43,7 +43,8 @@ pub fn construct_cpu() {
         .and_then(|mut f| f.read_to_end(&mut gb_rom))
         .map_err(|_| "Could not read ROM")
         .unwrap();
-    // File::open("C:\\roms\\testroms\\mooneye-test-suite-wilbertpol\\acceptance\\gpu\\hblank_ly_scx_timing_nops.gb")
+
+    // File::open("C:\\roms\\testroms\\blargg\\cpu_instrs\\cpu_instrs.gb")
     //     .and_then(|mut f| f.read_to_end(&mut gb_rom))
     //     .map_err(|_| "Could not read ROM")
     //     .unwrap();
@@ -57,7 +58,7 @@ pub fn construct_cpu() {
 
     let (sender2, receiver2) = mpsc::sync_channel::<Box<[u8; SCREEN_PIXELS]>>(1);
     let (control_sender, control_receiver) = mpsc::channel::<EmulatorKeyEvent>();
-    let gl_screen = GlScreen::init("foo".to_string(), receiver2);
+    let gl_screen = GlScreen::init("GB-RUST".to_string(), receiver2);
 
     let sync_screen = SynScreen {
         sender: sender2,

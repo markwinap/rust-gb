@@ -210,13 +210,7 @@ impl<T: Screen> Ppu<T> {
             self.scanline = 0;
             return;
         }
-        // if !self.update_lcd_stat_interrupts(interrupts) {
-        //     return;
-        // }
 
-        // if !self.update_lcd_stat_interrupts(interrupts) {
-        //     return;
-        // }
         if cycles == 0 {
             self.draw_blank_screen();
             return;
@@ -256,9 +250,7 @@ impl<T: Screen> Ppu<T> {
             }
             //
         }
-        if !self.update_lcd_stat_interrupts(interrupts) {
-            return;
-        }
+        self.update_lcd_stat_interrupts(interrupts);
     }
     fn check_compare_interrupt(&mut self, interrupts: &mut InterruptHandler) {
         if self.scanline == self.compare_line {
@@ -286,14 +278,8 @@ impl<T: Screen> Ppu<T> {
         self.screen.draw(self.render_frame);
     }
 
-    fn update_lcd_stat_interrupts(&mut self, interrupts: &mut InterruptHandler) -> bool {
-        // if !self.control.contains(Control::LCD_ON) {
-        //     self.cycle_counter = VBLANK_MIN_CYCLES;
-        //     self.mode = Mode::VBlank;
-
-        //     self.scanline = 0;
-        //     return false;
-        // }
+    #[inline(always)]
+    fn update_lcd_stat_interrupts(&mut self, interrupts: &mut InterruptHandler) {
         if self.scanline >= SCREEN_HEIGHT as u8 {
             self.update_current_mode_sec(
                 interrupts,
@@ -317,14 +303,6 @@ impl<T: Screen> Ppu<T> {
                 self.stat.contains(Stat::HBLANK_INT),
             );
         }
-
-        // if self.stat.contains(Stat::COMPARE_TRIGERRED) && self.scanline == self.compare_line {
-        //     if is_log_enabled() {
-        //         println!("PPU interrupt from mode: COMPARE_TRIGERRED");
-        //     }
-        //     interrupts.request(InterruptLine::STAT, true);
-        // }
-        true
     }
 
     fn update_current_mode_sec(
@@ -356,7 +334,6 @@ impl<T: Screen> Ppu<T> {
         self.control.bits()
     }
 
-    //#[unroll_for_loops]
     pub fn draw_scan_line(&mut self) {
         if !self.render_frame {
             return;
@@ -576,11 +553,6 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn read_memory(&self, address: u16) -> u8 {
-        // println!(
-        //     "read_memory: {}, {}",
-        //     address,
-        //     self.video_ram.get_byte(address)
-        // );
         self.video_ram.get_byte(address)
     }
 
@@ -611,20 +583,16 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn get_current_line(&self) -> u8 {
-        //   println!("get_current_line");
         self.scanline
     }
     pub fn get_compare_line(&self) -> u8 {
-        //    println!("get_compare_line");
         self.compare_line
     }
 
     pub fn get_obj_palette0(&self) -> u8 {
-        //    println!("get_obj_palette0");
         self.obj_palette0.0
     }
     pub fn get_obj_palette1(&self) -> u8 {
-        //  println!("get_obj_palette1");
         self.obj_palette1.0
     }
 
@@ -636,11 +604,9 @@ impl<T: Screen> Ppu<T> {
     }
 
     pub fn get_window_x(&self) -> u8 {
-        //  println!("get_window_x");
         self.window_x
     }
     pub fn get_window_y(&self) -> u8 {
-        //    println!("get_window_y");
         self.window_y
     }
 
