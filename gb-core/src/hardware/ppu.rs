@@ -1,5 +1,5 @@
 use crate::gameboy::{SCREEN_HEIGHT, SCREEN_WIDTH};
-use crate::hardware::color_palette::{Color, ColorPalette, ORIGINAL_GREEN};
+use crate::hardware::color_palette::{Color, ColorPalette, MONOCHROME as RENDER_COLOR};
 use crate::hardware::interrupt_handler::{InterruptHandler, InterruptLine};
 use crate::hardware::Screen;
 use crate::memory::Memory;
@@ -133,7 +133,7 @@ impl<T: Screen> Ppu<T> {
     }
     pub fn new_from_state(screen: T, state: PPuState) -> Ppu<T> {
         Ppu {
-            color_palette: ORIGINAL_GREEN,
+            color_palette: RENDER_COLOR,
             background_palette: state.background_palette,
             obj_palette0: state.obj_palette0,
             obj_palette1: state.obj_palette0,
@@ -159,7 +159,7 @@ impl<T: Screen> Ppu<T> {
 
     pub fn new(screen: T) -> Ppu<T> {
         Ppu {
-            color_palette: ORIGINAL_GREEN,
+            color_palette: RENDER_COLOR,
             background_palette: Palette(0),
             obj_palette0: Palette(0),
             obj_palette1: Palette(0),

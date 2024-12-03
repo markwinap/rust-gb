@@ -71,3 +71,48 @@ pub const ORIGINAL_GREEN: ColorPalette = ColorPalette::FixedColorPalette {
         blue: 210,
     },
 };
+pub const ORIGINAL: ColorPalette = ColorPalette::FixedColorPalette {
+    darkest: Color {
+        red: 24,
+        green: 60,
+        blue: 21,
+    },
+    dark: Color {
+        red: 54,
+        green: 100,
+        blue: 50,
+    },
+    light: Color {
+        red: 138,
+        green: 174,
+        blue: 0,
+    },
+    lightest: Color {
+        red: 153,
+        green: 189,
+        blue: 0,
+    },
+};
+
+pub const MONOCHROME: ColorPalette = ColorPalette::FixedColorPalette {
+    darkest: Color {
+        red: 0,
+        green: 0,
+        blue: 0,
+    },
+    dark: Color {
+        red: 64,
+        green: 64,
+        blue: 64,
+    },
+    light: Color {
+        red: 192,
+        green: 192,
+        blue: 192,
+    },
+    lightest: Color {
+        red: 255,
+        green: 255,
+        blue: 255,
+    },
+};
