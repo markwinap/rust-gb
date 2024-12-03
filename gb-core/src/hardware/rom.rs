@@ -26,7 +26,11 @@ pub enum RomType {
     MBC1 = 0x01,
     MBC1Ram = 0x02,
     MBC1RamBattery = 0x03,
-    MBC3 = 0x13,
+    MBC3 = 0x11,
+    MBC3Ram = 0x12,
+    MBC3RamBattery = 0x13,
+    MBC3TimerBattery = 0x0F,
+    MBC3TimerRamBattery = 0x10,
 }
 
 fn rom_banks(v: u8) -> u8 {
@@ -42,9 +46,13 @@ impl RomType {
         match self {
             RomType::RomOnly => false,
             RomType::MBC1 => false,
-            RomType::MBC3 => true,
+            RomType::MBC3RamBattery => true,
             RomType::MBC1Ram => false,
             RomType::MBC1RamBattery => true,
+            RomType::MBC3Ram => false,
+            RomType::MBC3 => false,
+            RomType::MBC3TimerBattery => true,
+            RomType::MBC3TimerRamBattery => true,
         }
     }
 
@@ -66,7 +74,11 @@ impl RomType {
                 rom.ram_size.banks(),
                 rom_banks(rom.rom_size as u8),
             )),
+            RomType::MBC3RamBattery => Box::new(Mbc3Cartridge::new(rom)),
+            RomType::MBC3Ram => Box::new(Mbc3Cartridge::new(rom)),
             RomType::MBC3 => Box::new(Mbc3Cartridge::new(rom)),
+            RomType::MBC3TimerBattery => Box::new(Mbc3Cartridge::new(rom)),
+            RomType::MBC3TimerRamBattery => Box::new(Mbc3Cartridge::new(rom)),
         }
     }
 }
