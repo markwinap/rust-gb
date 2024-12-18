@@ -8,17 +8,21 @@ use gb_core::hardware::color_palette::Color;
 use gb_core::hardware::Screen;
 use log::info;
 use std::cell::{Cell, RefCell};
-use std::fs::{self, File};
-use std::io::{Read, Write};
+use std::env;
+use std::fs;
 use std::sync::mpsc::{Receiver, SyncSender, TryRecvError};
 use std::sync::{mpsc, Arc, Mutex};
+use std::thread;
 use std::time::Instant;
+
+const CYCLES_PER_FRAME: u32 = 70224;
 
 pub enum EmulatorKeyEvent {
     GbEvent(GbEvents),
     Save,
 }
 fn main() {
+    println!("{}", std::env::current_dir().unwrap().display());
     use std::io::Write;
 
     let mut builder = env_logger::Builder::from_default_env();
@@ -32,50 +36,49 @@ fn main() {
         })
         .init();
 
-    info!("HELLO");
-    construct_cpu()
+    let args: Vec<String> = env::args().collect();
+    let room_path = &args[1];
+
+    construct_cpu(room_path);
 }
 
-pub fn construct_cpu() {
-    let mut gb_rom: Vec<u8> = vec![];
-    File::open("C:\\roms\\sml.gb")
-        .and_then(|mut f| f.read_to_end(&mut gb_rom))
-        .map_err(|_| "Could not read ROM")
-        .unwrap();
-
-    // File::open("C:\\roms\\testroms\\blargg\\cpu_instrs\\cpu_instrs.gb")
-    //     .and_then(|mut f| f.read_to_end(&mut gb_rom))
-    //     .map_err(|_| "Could not read ROM")
-    //     .unwrap();
-
+pub fn construct_cpu(room_path: &str) {
+    //read room
     info!("STARTING");
-    let gb_rom = ByteRomManager::new(gb_rom.into_boxed_slice());
-    let gb_rom = gb_core::hardware::rom::Rom::from_bytes(gb_rom);
+    let gb_rom: Vec<u8> = fs::read(room_path).expect("Failed to read ROM file");
+    // move vec to heap allocated boxed slice
+    let gb_rom = gb_rom.into_boxed_slice();
 
-    //  let (do_save_sender, do_save_receiver) = mpsc::sync_channel::<bool>(1);
-    let save_signal: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
-
-    let (sender2, receiver2) = mpsc::sync_channel::<Box<[u8; SCREEN_PIXELS]>>(1);
-    let (control_sender, control_receiver) = mpsc::channel::<EmulatorKeyEvent>();
-    let gl_screen = GlScreen::init("GB-RUST".to_string(), receiver2);
-
-    let sync_screen = SynScreen {
-        sender: sender2,
-        off_screen_buffer: RefCell::new(Box::new([0; SCREEN_PIXELS])),
-        check: save_signal.clone(),
+    let gb_rom = ByteRomManager {
+        data: gb_rom,
+        instant: Instant::now(),
     };
+    info!("CONTROLS: Z = A, X = B, Enter = Start, Space = Select, Arrow keys = D-Pad");
 
-    // let boot_room_stuff = Bootrom::new(Some(BootromData::from_bytes(include_bytes!(
-    //     "C:\\roms\\dmg_boot.bin"
-    // ))));
+    let gb_rom = gb_core::hardware::rom::Rom::from_bytes(gb_rom);
+    // block threads waiting for the lock to become available
+    let save_lock: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
+    // Synchronous FIFO Queue (fix size) for screen updates of (160x144 pixels) * 3 rgb = 69120 bytes
+    let (tx_screen, rx_screen) = mpsc::sync_channel::<Box<[u8; SCREEN_PIXELS]>>(1);
+    // FIFO Queue for key events
+    let (tx_control, rx_control) = mpsc::channel::<EmulatorKeyEvent>();
+    // Initialize OpenGL screen
+    let gl_screen = GlScreen::init(gb_rom.title.to_string(), rx_screen);
+
+    let sync_screen = SyncScreen {
+        sender: tx_screen,
+        off_screen_buffer: RefCell::new(Box::new([0; SCREEN_PIXELS])), // turn time borrow checker with RefCell
+        check: save_lock.clone(),
+    };
 
     let boot_room_stuff = Bootrom::new(None);
 
-    let cputhread = std::thread::spawn(move || {
-        let periodic = timer_periodic(16);
+    let cpu_thread = thread::spawn(move || {
+        let periodic = periodic_timer(16);
         let limit_speed = true;
+        // let waitticks = (4194304f64 / 1000.0 * 16.0).round() as u32;
+        let wait_ticks = CYCLES_PER_FRAME;
 
-        let waitticks = (4194304f64 / 1000.0 * 16.0).round() as u32;
         let mut ticks = 0;
 
         let cart = gb_rom.into_cartridge();
@@ -99,24 +102,23 @@ pub fn construct_cpu() {
         // );
 
         'outer: loop {
-            while ticks < waitticks {
+            while ticks < wait_ticks {
                 ticks += gameboy.tick() as u32
             }
 
-            ticks -= waitticks;
+            ticks -= wait_ticks;
 
-            let mut check = save_signal.lock().unwrap();
+            let mut check: std::sync::MutexGuard<'_, bool> = save_lock.lock().unwrap();
             if *(check) == true {
                 println!("SAVING");
                 let state = gameboy.create_state();
-                let string = serde_json::to_string(&state).unwrap();
-                let mut file = File::create("C:\\roms\\test_fail.state").unwrap();
-                file.write_all(string.as_bytes()).unwrap();
+                let json_state = serde_json::to_string(&state).unwrap();
+                fs::write("test_fail.state", json_state).unwrap();
                 *check = false;
             }
 
             'recv: loop {
-                match control_receiver.try_recv() {
+                match rx_control.try_recv() {
                     Ok(event) => match event {
                         EmulatorKeyEvent::GbEvent(gb_events) => match gb_events {
                             GbEvents::KeyUp(key) => gameboy.key_released(key),
@@ -124,10 +126,10 @@ pub fn construct_cpu() {
                         },
                         EmulatorKeyEvent::Save => {
                             info!("SAVING STATE");
+                            // Store GameBoy state to JSON for debuging {cpu_state, ppu_state, hard_ware_state, state}
                             let state = gameboy.create_state();
-                            let string = serde_json::to_string(&state).unwrap();
-                            let mut file = File::create("C:\\roms\\f_test2.state").unwrap();
-                            file.write_all(string.as_bytes()).unwrap();
+                            let json_state = serde_json::to_string(&state).unwrap();
+                            fs::write("f_test2.state", json_state).unwrap();
                         }
                     },
                     Err(TryRecvError::Empty) => break 'recv,
@@ -136,32 +138,35 @@ pub fn construct_cpu() {
             }
             if limit_speed {
                 let _ = periodic.recv();
+                //sleep(16);
             }
         }
     });
 
-    render(gl_screen, control_sender);
-    cputhread.join().unwrap();
+    render(gl_screen, tx_control);
+    cpu_thread.join().unwrap();
 }
 
-fn timer_periodic(ms: u64) -> Receiver<()> {
-    let (tx, rx) = std::sync::mpsc::sync_channel(1);
-    std::thread::spawn(move || loop {
-        std::thread::sleep(std::time::Duration::from_millis(ms));
-        if tx.send(()).is_err() {
-            break;
-        }
+// Create a periodic timer that sends a message every ms milliseconds
+fn periodic_timer(ms: u64) -> Receiver<()> {
+    let (tx, rx) = mpsc::sync_channel(1);
+    thread::spawn(move || loop {
+        thread::sleep(std::time::Duration::from_millis(ms));
+        tx.send(()).unwrap();
     });
     rx
 }
+fn sleep(ms: u64) {
+    thread::sleep(std::time::Duration::from_millis(ms));
+}
 
-pub struct SynScreen {
+pub struct SyncScreen {
     sender: SyncSender<Box<[u8; SCREEN_PIXELS]>>,
     off_screen_buffer: RefCell<Box<[u8; SCREEN_PIXELS]>>,
     check: Arc<Mutex<bool>>,
 }
 
-impl Screen for SynScreen {
+impl Screen for SyncScreen {
     fn turn_on(&mut self) {}
 
     fn turn_off(&mut self) {}
@@ -186,17 +191,8 @@ impl Screen for SynScreen {
 }
 
 struct ByteRomManager {
-    data: Box<[u8]>,
-    instant: Instant,
-}
-
-impl ByteRomManager {
-    fn new(data: Box<[u8]>) -> Self {
-        return Self {
-            data,
-            instant: Instant::now(),
-        };
-    }
+    data: Box<[u8]>,  // Game rom data
+    instant: Instant, // Time
 }
 
 impl gb_core::hardware::rom::RomManager for ByteRomManager {
